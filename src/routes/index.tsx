@@ -1,5 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio } from "lucide-react";
+
+const CUE_ICON = {
+  message: MessageSquare,
+  escort: Footprints,
+  turnover: RefreshCcw,
+  setup: Sparkles,
+  handoff: Radio,
+} as const;
+
 
 export const Route = createFileRoute("/")({
   component: TodayPage,
