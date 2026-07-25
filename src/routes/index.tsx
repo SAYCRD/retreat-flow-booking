@@ -1013,11 +1013,12 @@ function Timeline({
                 idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
               }`}
               style={{
+                backgroundColor: tint(roomColor(room), 0.045),
                 backgroundImage: [
                   // hour lines
-                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 60 - 1}px, rgba(0,0,0,0.09) ${PX_PER_MIN * 60 - 1}px, rgba(0,0,0,0.09) ${PX_PER_MIN * 60}px)`,
+                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 60 - 1}px, rgba(0,0,0,0.08) ${PX_PER_MIN * 60 - 1}px, rgba(0,0,0,0.08) ${PX_PER_MIN * 60}px)`,
                   // 15-minute lines
-                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 15 - 1}px, rgba(0,0,0,0.035) ${PX_PER_MIN * 15 - 1}px, rgba(0,0,0,0.035) ${PX_PER_MIN * 15}px)`,
+                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 15 - 1}px, rgba(0,0,0,0.03) ${PX_PER_MIN * 15 - 1}px, rgba(0,0,0,0.03) ${PX_PER_MIN * 15}px)`,
                 ].join(","),
               }}
             >
