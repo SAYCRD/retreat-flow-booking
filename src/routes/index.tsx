@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy } from "lucide-react";
+import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush } from "lucide-react";
 
-const CUE_ICON = {
+const WHISPER_ICON = {
   message: MessageSquare,
   escort: Footprints,
-  turnover: RefreshCcw,
+  turnover: Brush,
   setup: Sparkles,
   handoff: Radio,
+  elixir: Coffee,
+  payment: CreditCard,
+  conflict: AlertTriangle,
 } as const;
 
 
@@ -44,16 +47,16 @@ type Service = {
   note?: string;
 };
 
-type CueKind = "message" | "escort" | "turnover" | "setup" | "handoff";
-type Cue = {
+type WhisperKind = "message" | "escort" | "turnover" | "setup" | "handoff" | "elixir" | "payment" | "conflict";
+type Prompt = {
   id: string;
-  kind: CueKind;
-  headline: string;      // verb-first
+  kind: WhisperKind;
+  headline: string;      // poetic, fun, operational
   reason: string;        // quiet reason line
   room?: string;         // for accent color
   primary: string;       // primary action label
   urgent?: boolean;      // shows priority pulse + Urgent tag
-  serviceId?: string;    // links cue to a booking card on the timeline
+  serviceId?: string;    // links prompt to a booking card on the timeline
 };
 
 
@@ -95,54 +98,113 @@ const SERVICES: Service[] = [
   { id: "s11", guest: "Lena Costa", service: "Grandmother Crystal Bowl", room: "The Temple", practitioner: "Uqualla", start: t(16, 30), end: t(17, 15), status: "confirmed" },
 ];
 
-const CUES: Cue[] = [
-  {
-    id: "c1",
-    kind: "message",
-    headline: "Text Amara — arrival window open",
-    reason: "Intuitive Reading · Om Space · 2:00 PM",
-    room: "Om Space",
-    primary: "Mark done",
-    serviceId: "s6",
-  },
-  {
-    id: "c2",
-    kind: "escort",
-    headline: "Walk Amara to Om Space",
-    reason: "Session begins in 5 min · low light, quiet arrival",
-    room: "Om Space",
-    primary: "Walked in",
-    serviceId: "s6",
-  },
-  {
-    id: "c3",
-    kind: "turnover",
-    headline: "Turn Om Space for Sound Healing",
-    reason: "Amara's reading ends 2:50 PM · Marcus arrives 2:40 PM",
-    room: "Om Space",
-    primary: "Room ready",
-    serviceId: "s7",
-  },
-  {
-    id: "c4",
-    kind: "setup",
-    headline: "Set The Temple for Ceremonial Tea",
-    reason: "Amara arrives 2:50 PM · tea service, low light",
-    room: "The Temple",
-    primary: "Room ready",
-    serviceId: "s8",
-  },
-  {
-    id: "c5",
-    kind: "handoff",
-    headline: "Let Sofia know about short turnover",
-    reason: "Sound Healing ends 3:30 · Infrared Sauna starts 3:20",
-    room: "Infrared Room",
-    primary: "Notified",
-    urgent: true,
-    serviceId: "s9",
-  },
-];
+function firstName(guest: string) {
+  return guest.split(" ")[0];
+}
+
+function generatePrompts(nowMin: number): Prompt[] {
+  const out: Prompt[] = [];
+
+  // 1. Arrivals — services starting in the next 30 minutes.
+  SERVICES.filter((s) => s.start > nowMin && s.start <= nowMin + 30).forEach((s) => {
+    const mins = Math.round(s.start - nowMin);
+    const name = firstName(s.guest);
+    out.push({
+      id: `arrival-${s.id}`,
+      kind: "escort",
+      headline: mins <= 5
+        ? `Walk ${name} to ${s.room}`
+        : mins <= 15
+          ? `${name} arrives in ${mins} minutes — get ${s.room} ready`
+          : `Prepare ${s.room} for ${name}'s arrival`,
+      reason: `${s.service} · ${fmt(s.start)} · with ${s.practitioner}`,
+      room: s.room,
+      serviceId: s.id,
+      primary: mins <= 5 ? "Walked in" : "Ready",
+      urgent: mins <= 5,
+    });
+  });
+
+  // 2. Turnovers & setups — back-to-back services in the same room.
+  ROOMS.forEach((room) => {
+    const roomServices = SERVICES.filter((s) => s.room === room).sort((a, b) => a.start - b.start);
+    for (let i = 0; i < roomServices.length - 1; i++) {
+      const prev = roomServices[i];
+      const next = roomServices[i + 1];
+      const gap = next.start - prev.end;
+      if (gap < 30 && next.end > nowMin) {
+        const urgent = gap < 10;
+        out.push({
+          id: `turnover-${prev.id}-${next.id}`,
+          kind: urgent ? "turnover" : "setup",
+          headline: urgent
+            ? `${room} needs a quick reset before ${firstName(next.guest)}`
+            : `Set ${room} for ${next.service}`,
+          reason: `${prev.service} ends ${fmt(prev.end)} · ${next.service} at ${fmt(next.start)}`,
+          room,
+          serviceId: next.id,
+          primary: "Room ready",
+          urgent,
+        });
+      }
+    }
+  });
+
+  // 3. Elixir windows — a guest has a break between two services.
+  const byGuest: Record<string, Service[]> = {};
+  SERVICES.forEach((s) => {
+    byGuest[s.guest] = byGuest[s.guest] ?? [];
+    byGuest[s.guest].push(s);
+  });
+  Object.entries(byGuest).forEach(([guest, svcs]) => {
+    if (svcs.length < 2) return;
+    const sorted = [...svcs].sort((a, b) => a.start - b.start);
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const a = sorted[i];
+      const b = sorted[i + 1];
+      const gap = b.start - a.end;
+      if (gap >= 5 && gap <= 60 && b.start > nowMin) {
+        out.push({
+          id: `elixir-${a.id}-${b.id}`,
+          kind: "elixir",
+          headline: `A quiet window opens for ${firstName(guest)}`,
+          reason: `${fmt(a.end)}–${fmt(b.start)} between ${a.service} and ${b.service}`,
+          room: b.room,
+          serviceId: b.id,
+          primary: "Tea ready",
+        });
+      }
+    }
+  });
+
+  // 4. Payment whispers — unpaid services that are current or upcoming.
+  SERVICES.filter((s) => !SERVICE_PAID[s.id] && s.start > nowMin - 15).forEach((s) => {
+    out.push({
+      id: `payment-${s.id}`,
+      kind: "payment",
+      headline: `${firstName(s.guest)}'s ${s.service} needs checkout`,
+      reason: `$${PRICES[s.id]} · ${s.room} · ${fmt(s.start)}`,
+      room: s.room,
+      serviceId: s.id,
+      primary: "Send link",
+    });
+  });
+
+  // 5. Conflicts — overlapping services in the same room.
+  detectConflicts(SERVICES).forEach((c, i) => {
+    out.push({
+      id: `conflict-${i}`,
+      kind: "conflict",
+      headline: `Two sessions want ${c.a.room}`,
+      reason: `${c.a.service} (${fmt(c.a.start)}–${fmt(c.a.end)}) overlaps ${c.b.service}`,
+      room: c.a.room,
+      primary: "Resolve",
+      urgent: true,
+    });
+  });
+
+  return out;
+}
 
 
 
