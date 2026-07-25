@@ -1315,6 +1315,13 @@ function Timeline({
                 const isRequest = s.status === "requested";
                 const gc = roomColor(s.room);
                 const duration = Math.round(s.end - s.start);
+                // Previous service in this room, so pre-session room tasks can
+                // breathe in the actual gap instead of hugging the session card.
+                const prevInRoom = services
+                  .slice()
+                  .sort((a, b) => a.start - b.start)
+                  .find((s2, i, arr) => arr[i + 1]?.id === s.id);
+                const prevEnd = prevInRoom?.end ?? null;
                 const practInitials = s.practitioner
                   .replace(/^(Dr\.?|Mr\.?|Ms\.?)\s+/i, "")
                   .split(/\s+/)
