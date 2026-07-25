@@ -1337,8 +1337,24 @@ function Timeline({
     } as Record<WhisperKind, string>)[activeCue.kind];
 
 
-    return { topMin, label, verb, after, overlapsNext, kind: activeCue.kind, room: s.room, gc: roomColor(s.room) };
+    return { topMin, label, verb, after, overlapsNext, kind: activeCue.kind, room: s.room, gc: roomColor(s.room), serviceId: s.id };
   }, [activeCue]);
+
+  // After-markers (checkout, reset) must sit BELOW the actual rendered card,
+  // not just below the card's time-block. Cards use minHeight and grow when
+  // notes push content down, so a time-based topMin can land inside the card.
+  // Measure the referenced card's DOM bottom after render and use that.
+  const [afterTopPx, setAfterTopPx] = useState<number | null>(null);
+  useEffect(() => {
+    if (!cueMarker?.after || !cueMarker.serviceId) { setAfterTopPx(null); return; }
+    const el = document.getElementById(`svc-${cueMarker.serviceId}`);
+    if (!el) { setAfterTopPx(null); return; }
+    const measure = () => setAfterTopPx(el.offsetTop + el.offsetHeight + 8);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [cueMarker?.after, cueMarker?.serviceId]);
 
 
   const hours = useMemo(() => {
