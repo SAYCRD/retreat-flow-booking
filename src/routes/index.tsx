@@ -710,7 +710,8 @@ function ComingUp({ nowMin }: { nowMin: number }) {
           eyebrow="02"
           label="Coming Up"
           count={upcoming.length}
-          highlightColor="#c7f0e0"
+          highlightColor="#fda4af"
+          icon={ArrowDownRight}
 
           trailing={
             <div
