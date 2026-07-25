@@ -982,7 +982,7 @@ function Timeline({
       <div className="flex" style={{ height: trackHeight }}>
         {/* Time column */}
         <div
-          className="relative shrink-0 border-r border-black/[0.06]"
+          className="relative shrink-0 border-r-[3px] border-white"
           style={{ width: TIME_COL }}
         >
           {hours.map((h) => {
