@@ -321,10 +321,11 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* Coming up — chrome-less strip, arrow-navigable */}
-      <section className="border-b border-black/[0.08] bg-white">
-        <div className="mx-auto flex max-w-[1440px] items-center gap-6 px-6 py-6">
-          <div className="flex shrink-0 items-center gap-2">
+      {/* Coming up — label sits above the divider; strip carries only what matters */}
+      <section className="relative bg-white">
+        {/* label above the top hairline */}
+        <div className="mx-auto flex max-w-[1440px] items-center justify-between px-6 pt-4 pb-2">
+          <div className="flex items-center gap-2">
             <span
               className="text-[10px] uppercase tracking-[0.22em] text-black/40"
               style={{ fontFamily: MONO }}
@@ -332,63 +333,74 @@ function TodayPage() {
               Coming up
             </span>
             <span
-              className="text-[10px] tabular-nums text-black/35"
+              className="text-[10px] tabular-nums text-black/30"
               style={{ fontFamily: MONO }}
             >
               {String(cueIdx + 1).padStart(2, "0")} / {String(CUES.length).padStart(2, "0")}
             </span>
           </div>
-
-          {cue.room && (
-            <span
-              aria-hidden
-              className="h-10 w-[3px] shrink-0"
-              style={{ background: roomColor(cue.room) }}
-            />
-          )}
-
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[20px] font-semibold tracking-tight text-black">
-              {cue.headline}
-            </div>
-            <div className="mt-0.5 flex items-center gap-2 truncate text-[13.5px] text-black/55">
-              {cue.room && (
-                <>
-                  <span style={{ color: roomColor(cue.room), fontFamily: MONO }}>
-                    {cue.room}
-                  </span>
-                  <span className="text-black/25">·</span>
-                </>
-              )}
-              <span className="truncate">{cue.reason}</span>
-            </div>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-5">
+          <div className="flex items-center gap-1">
             <button
-              className="text-[13.5px] font-medium text-black/75 underline decoration-black/20 underline-offset-4 transition-colors hover:decoration-black"
+              onClick={prevCue}
+              aria-label="Previous"
+              className="grid h-7 w-7 place-items-center text-[16px] text-black/35 transition-colors hover:text-black"
+            >
+              ‹
+            </button>
+            <button
+              onClick={nextCue}
+              aria-label="Next"
+              className="grid h-7 w-7 place-items-center text-[16px] text-black/35 transition-colors hover:text-black"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+
+        {/* the strip itself — hairline top and bottom, information-first */}
+        <div className="border-y border-black/[0.08]">
+          <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-6 py-5">
+            {(() => {
+              const Icon = CUE_ICON[cue.kind];
+              const tint = cue.room ? roomColor(cue.room) : "#0a0a0a";
+              return (
+                <span
+                  aria-hidden
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full"
+                  style={{ background: `${tint}14`, color: tint }}
+                >
+                  <Icon size={18} strokeWidth={2} />
+                </span>
+              );
+            })()}
+
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[20px] font-semibold tracking-tight text-black">
+                {cue.headline}
+              </div>
+              <div className="mt-0.5 flex items-center gap-2 truncate text-[13.5px] text-black/55">
+                {cue.room && (
+                  <>
+                    <span style={{ color: roomColor(cue.room), fontFamily: MONO }}>
+                      {cue.room}
+                    </span>
+                    <span className="text-black/25">·</span>
+                  </>
+                )}
+                <span className="truncate">{cue.reason}</span>
+              </div>
+            </div>
+
+            <button
+              className="shrink-0 text-[13.5px] font-medium text-black/80 underline decoration-black/20 underline-offset-4 transition-colors hover:decoration-black"
               onClick={nextCue}
             >
               {cue.primary}
             </button>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={prevCue}
-                aria-label="Previous"
-                className="grid h-8 w-8 place-items-center text-[18px] text-black/40 transition-colors hover:text-black"
-              >
-                ‹
-              </button>
-              <button
-                onClick={nextCue}
-                aria-label="Next"
-                className="grid h-8 w-8 place-items-center text-[18px] text-black/40 transition-colors hover:text-black"
-              >
-                ›
-              </button>
-            </div>
           </div>
         </div>
+      </section>
+
       </section>
 
 
