@@ -1387,6 +1387,27 @@ function FocusOverlay({ cue, onClose }: { cue: Prompt; onClose: () => void }) {
           { icon: UserCheck, label: "Guide next guest in", hint: "Signal ready to front desk." },
         );
         break;
+      case "elixir":
+        base.push(
+          { icon: Coffee, label: "Prepare the pause", hint: "Warm tea, water, light snack if wanted." },
+          { icon: DoorOpen, label: "Show guest to lounge", hint: service ? `Between ${service.service} legs` : "Between services" },
+          { icon: CalendarRange, label: "Confirm next room", hint: service ? `Next: ${service.room}` : "Confirm next room" },
+        );
+        break;
+      case "payment":
+        base.push(
+          { icon: CreditCard, label: "Open checkout", hint: service ? `${service.guest} · ${formatCurrency(PRICES[service.id] ?? 0)}` : "Open checkout" },
+          { icon: MessageSquare, label: "Send payment link", hint: "Text/email secure link before guest leaves." },
+          { icon: Check, label: "Mark as paid", hint: "Update once payment clears." },
+        );
+        break;
+      case "conflict":
+        base.push(
+          { icon: AlertTriangle, label: "Review overlap", hint: service ? `${service.room} · ${fmt(service.start)}` : "Review overlap" },
+          { icon: UserCheck, label: "Call affected guest", hint: "Offer reschedule or alternate room." },
+          { icon: CalendarRange, label: "Update booking", hint: "Move or split the reservation." },
+        );
+        break;
     }
     return base;
   }, [cue.kind, service]);
