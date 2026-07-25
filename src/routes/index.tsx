@@ -573,6 +573,90 @@ function ServiceRow({ s, first }: { s: Service; first: boolean }) {
   );
 }
 
+function ComingUp({ nowMin }: { nowMin: number }) {
+  const [sortBy, setSortBy] = useState<"time" | "room">("time");
+  const upcoming = SERVICES.filter((s) => s.end > nowMin);
+
+  const grouped = ROOMS
+    .map((room) => ({
+      room,
+      items: upcoming.filter((s) => s.room === room).sort((a, b) => a.start - b.start),
+    }))
+    .filter((g) => g.items.length > 0);
+
+  const flat = [...upcoming].sort((a, b) => a.start - b.start);
+
+  return (
+    <section className="border-b border-black/[0.08]">
+      <div className="mx-auto max-w-[1440px] px-6 py-10">
+        <SectionHeader
+          eyebrow="02"
+          label="Coming Up"
+          count={upcoming.length}
+          trailing={
+            <div
+              className="inline-flex items-center gap-0 overflow-hidden rounded-full border border-black/10 bg-white p-0.5 text-[12px]"
+              style={{ fontFamily: MONO }}
+            >
+              {(["time", "room"] as const).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setSortBy(k)}
+                  className={`rounded-full px-3 py-1 uppercase tracking-[0.14em] transition-colors ${
+                    sortBy === k
+                      ? "bg-black text-white"
+                      : "text-black/55 hover:text-black"
+                  }`}
+                >
+                  {k}
+                </button>
+              ))}
+            </div>
+          }
+        />
+
+        {sortBy === "time" ? (
+          <div className="mt-6 overflow-hidden border-y border-black/[0.08] bg-white">
+            {flat.map((s, i) => (
+              <ServiceRow key={s.id} s={s} first={i === 0} />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-6 space-y-6">
+            {grouped.map((g) => {
+              const rc = roomColor(g.room);
+              return (
+                <div key={g.room}>
+                  <div className="mb-2 flex items-baseline gap-3 px-1">
+                    <span
+                      className="inline-block h-2.5 w-2.5 rounded-full"
+                      style={{ background: rc }}
+                    />
+                    <h3 className="text-[18px] font-semibold tracking-tight" style={{ color: rc }}>
+                      {g.room}
+                    </h3>
+                    <span
+                      className="text-[12px] tabular-nums text-black/45"
+                      style={{ fontFamily: MONO }}
+                    >
+                      {String(g.items.length).padStart(2, "0")}
+                    </span>
+                  </div>
+                  <div className="overflow-hidden border-y border-black/[0.08] bg-white">
+                    {g.items.map((s, i) => (
+                      <ServiceRow key={s.id} s={s} first={i === 0} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function Avatar({ name, color = NEUTRAL }: { name: string; color?: string }) {
   const initials = name
     .split(/\s+/)
