@@ -226,6 +226,28 @@ function generatePrompts(nowMin: number): Prompt[] {
     }
   });
 
+  // 2b. Room resets — EVERY completed session needs the room reset. Fires the
+  // moment a session ends and stays live for ~45 minutes so housekeeping has a
+  // clear signal even when no back-to-back booking follows.
+  SERVICES.filter((s) => s.end <= nowMin + 2 && s.end > nowMin - 45).forEach((s) => {
+    // Skip if a turnover prompt already exists for this ended session (it
+    // covers the same reset action ahead of a tight follow-on booking).
+    const hasTurnover = out.some(
+      (p) => (p.kind === "turnover" || p.kind === "setup") && p.id.includes(`-${s.id}-`),
+    );
+    if (hasTurnover) return;
+    out.push({
+      id: `reset-${s.id}`,
+      kind: "reset",
+      headline: `Reset ${s.room} after ${firstName(s.guest)}`,
+      reason: `${s.service} ended ${fmt(s.end)} · notify housekeeping`,
+      room: s.room,
+      serviceId: s.id,
+      primary: "Room reset",
+    });
+  });
+
+
   // 3. Elixir windows — a guest has a break between two services.
   const byGuest: Record<string, Service[]> = {};
   SERVICES.forEach((s) => {
