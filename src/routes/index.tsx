@@ -1235,7 +1235,7 @@ function Timeline({
     return map;
   }, [whispers]);
 
-  const preSessionKinds: WhisperKind[] = ["notify", "checkin", "escort", "turnover", "setup", "elixir", "pickup"];
+  const markerKinds: WhisperKind[] = ["notify", "checkin", "escort", "turnover", "setup", "elixir", "pickup", "reset", "payment"];
 
   // The one currently highlighted cue gets its own marker on the timeline,
   // separate from the session card, so check-ins and room resets read as
@@ -1245,7 +1245,7 @@ function Timeline({
   const cueMarker = useMemo(() => {
     if (!activeCue?.serviceId) return null;
     const s = SERVICES.find((x) => x.id === activeCue.serviceId);
-    if (!s || !preSessionKinds.includes(activeCue.kind)) return null;
+    if (!s || !markerKinds.includes(activeCue.kind)) return null;
 
     const roomServices = SERVICES.filter((x) => x.room === s.room).sort((a, b) => a.start - b.start);
     const prevInRoom = roomServices.find((s2, i, arr) => arr[i + 1]?.id === s.id);
@@ -1254,12 +1254,14 @@ function Timeline({
     const prevGuest = guestIdx > 0 ? guestServices[guestIdx - 1] : null;
 
     let topMin: number;
+    let after = false; // marker sits after the session card, not before
     switch (activeCue.kind) {
       case "checkin":
         topMin = s.start - 15;
         break;
       case "escort":
-        topMin = s.start - 5;
+        // Give the "Walk in" marker meaningful breathing room above the card.
+        topMin = s.start - 12;
         break;
       case "notify":
         topMin = s.start - 20;
@@ -1274,13 +1276,21 @@ function Timeline({
       case "elixir":
         topMin = prevGuest ? Math.round((prevGuest.end + s.start) / 2) : s.start - 10;
         break;
+      case "reset":
+        topMin = s.end + 2;
+        after = true;
+        break;
+      case "payment":
+        topMin = s.end + 2;
+        after = true;
+        break;
       default:
         topMin = s.start - 10;
     }
     topMin = Math.max(0, topMin);
 
     const label =
-      activeCue.kind === "turnover" || activeCue.kind === "setup"
+      activeCue.kind === "turnover" || activeCue.kind === "setup" || activeCue.kind === "reset"
         ? s.room
         : activeCue.kind === "notify"
           ? s.practitioner.replace(/^(Dr\.?|Mr\.?|Ms\.?)\s+/i, "").split(/\s+/)[0]
@@ -1291,17 +1301,18 @@ function Timeline({
       checkin: "Check in",
       escort: "Walk in",
       turnover: "Reset",
+      reset: "Reset room",
       setup: "Set up",
       elixir: "Tea for",
       pickup: "Pick up",
+      payment: "Checkout",
       message: "",
       handoff: "",
-      payment: "",
       conflict: "",
     } as Record<WhisperKind, string>)[activeCue.kind];
 
 
-    return { topMin, label, verb, kind: activeCue.kind, room: s.room, gc: roomColor(s.room) };
+    return { topMin, label, verb, after, kind: activeCue.kind, room: s.room, gc: roomColor(s.room) };
   }, [activeCue]);
 
 
