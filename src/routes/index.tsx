@@ -1292,15 +1292,17 @@ function Timeline({
 
   // On first load, scroll the calendar so the current time is visible near the
   // top of the viewport instead of showing 9 AM when it's mid-afternoon.
+  // If a Coming Up cue is active, the parent handles scrolling to the action
+  // marker; this fallback only runs when there is no cue to follow.
   useEffect(() => {
-    if (scrolledRef.current || !gridRef.current) return;
+    if (scrolledRef.current || !gridRef.current || activeCueId) return;
     scrolledRef.current = true;
     const rect = gridRef.current.getBoundingClientRect();
     const gridTop = rect.top + window.scrollY;
     // Offset for sticky header (44) + sticky Coming Up strip (~88) + room headers + breathing room.
-    const target = gridTop + nowTop - 220;
-    smoothScrollTo(Math.max(0, target), 1200);
-  }, [nowTop]);
+    const target = gridTop + nowTop - 180;
+    smoothScrollTo(Math.max(0, target), 1400);
+  }, [nowTop, activeCueId]);
 
 
   return (
