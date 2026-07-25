@@ -1691,51 +1691,58 @@ function Timeline({
                       {/* Time — from on one line, to on the next, so it reads calmly */}
                       <div className="flex items-start justify-between gap-2">
                         <div
-                          className="whitespace-nowrap text-[15px] font-semibold tabular-nums leading-[1.15] tracking-tight"
+                          className="whitespace-nowrap text-[17px] font-semibold tabular-nums leading-[1.15] tracking-tight"
                           style={{ color: metaColor, fontFamily: MONO }}
                         >
                           <div>{fmt(s.start)}</div>
                           <div style={{ opacity: 0.55 }}>{fmt(s.end)}</div>
                         </div>
                         <div
-                          className="shrink-0 whitespace-nowrap text-[10.5px] font-semibold tabular-nums tracking-[0.08em]"
+                          className="shrink-0 whitespace-nowrap text-[12px] font-semibold tabular-nums tracking-[0.08em]"
                           style={{ color: metaColor, fontFamily: MONO, opacity: 0.65 }}
                         >
                           {duration}m
                         </div>
                       </div>
 
+                      {/* Room — the space this session happens in */}
+                      <div
+                        className="mt-2.5 text-[21px] font-semibold leading-[1.05] tracking-[-0.025em]"
+                        style={{ color: "#0a0a0a", fontFamily: DISPLAY }}
+                      >
+                        {s.room}
+                      </div>
 
                       {/* Service — the offering, in the room's chroma */}
                       <div
-                        className="mt-2 text-[19px] font-semibold leading-[1.1] tracking-[-0.02em]"
+                        className="mt-1 text-[17px] font-semibold leading-[1.15] tracking-[-0.015em]"
                         style={{ color: serviceColor, fontFamily: DISPLAY }}
                       >
                         {s.service}
                       </div>
 
                       {/* for {guest} */}
-                      <div className="mt-2 flex items-center gap-1.5">
+                      <div className="mt-2.5 flex items-center gap-1.5">
                         {isLive && (
-                          <span className="relative inline-flex h-2 w-2 shrink-0">
+                          <span className="relative inline-flex h-2.5 w-2.5 shrink-0">
                             <span
                               className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
                               style={{ background: gc }}
                             />
                             <span
-                              className="relative inline-flex h-2 w-2 rounded-full"
+                              className="relative inline-flex h-2.5 w-2.5 rounded-full"
                               style={{ background: gc }}
                             />
                           </span>
                         )}
                         <span
-                          className="shrink-0 text-[13px] italic leading-tight"
+                          className="shrink-0 text-[14px] italic leading-tight"
                           style={{ color: metaColor, fontFamily: "'Instrument Serif', 'Cormorant Garamond', Georgia, serif", opacity: 0.7 }}
                         >
                           for
                         </span>
                         <div
-                          className="truncate text-[14px] font-semibold leading-tight tracking-[-0.005em]"
+                          className="truncate text-[16px] font-semibold leading-tight tracking-[-0.005em]"
                           style={{ color: nameColor, fontFamily: DISPLAY }}
                         >
                           {s.guest}
@@ -1743,7 +1750,7 @@ function Timeline({
                         </div>
                         {isRequest && (
                           <span
-                            className="ml-auto rounded-sm px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em]"
+                            className="ml-auto rounded-sm px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]"
                             style={{ color: "#b45309", background: "rgba(217,119,6,0.10)", fontFamily: MONO }}
                           >
                             Request
@@ -1752,22 +1759,22 @@ function Timeline({
                       </div>
 
                       {/* with {practitioner} — right justified */}
-                      <div className="mt-1.5 flex items-center justify-end gap-1.5">
+                      <div className="mt-2 flex items-center justify-end gap-1.5">
                         <span
-                          className="shrink-0 text-[13px] italic leading-tight"
+                          className="shrink-0 text-[14px] italic leading-tight"
                           style={{ color: metaColor, fontFamily: "'Instrument Serif', 'Cormorant Garamond', Georgia, serif", opacity: 0.7 }}
                         >
                           with
                         </span>
                         <span
-                          className="truncate text-[12.5px] font-medium leading-tight"
+                          className="truncate text-[14.5px] font-medium leading-tight"
                           style={{ color: metaColor }}
                           
                         >
                           {s.practitioner}
                         </span>
                         <span
-                          className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[9.5px] font-bold"
+                          className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10.5px] font-bold"
                           style={{
                             background: tint(gc, 0.18),
                             color: "#1a1a1a",
@@ -1779,12 +1786,12 @@ function Timeline({
                       </div>
 
                       {/* Orchestration pill or plain note — pushed to bottom */}
-                      {(orchestration || plainNote) && height > 110 && (
-                        <div className="mt-auto pt-2">
+                      {(orchestration || plainNote) && height > 120 && (
+                        <div className="mt-auto pt-2.5">
                           {orchestration ? (
                             <div className="flex items-center gap-1.5">
                               <span
-                                className="rounded-[3px] px-1.5 py-0.5 text-[10.5px] font-bold tabular-nums leading-none"
+                                className="rounded-[3px] px-1.5 py-0.5 text-[12px] font-bold tabular-nums leading-none"
                                 style={{
                                   background: tint(gc, 0.18),
                                   color: "#1a1a1a",
@@ -1794,7 +1801,7 @@ function Timeline({
                                 {orchestration.step}
                               </span>
                               <span
-                                className="truncate text-[11.5px] font-medium leading-tight"
+                                className="truncate text-[13px] font-medium leading-tight"
                                 style={{ color: metaColor }}
                                 
                               >
@@ -1803,7 +1810,7 @@ function Timeline({
                             </div>
                           ) : (
                             <div
-                              className="truncate text-[11.5px] italic leading-snug"
+                              className="truncate text-[13px] italic leading-snug"
                               style={{ color: metaColor }}
                               
                             >
