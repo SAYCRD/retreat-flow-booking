@@ -191,13 +191,15 @@ const INK = "#0a0a0a";
 
 // Each room has its own color — the color follows the space, not the guest.
 // It carries through the timeline card top-bar, the ledger stripe, and the avatar tint.
+// High-chroma pastels — saturated but light. Text on white reads them as
+// distinct hues while still feeling soft and modern.
 const ROOM_COLORS: Record<string, string> = {
-  "Infrared Room": "#e94b6b",   // deep watermelon
-  "Buddha Massage": "#20b892",  // deep mint
-  "Ayurveda Room": "#e89a1c",   // amber butter
-  "Om Space": "#7b5cff",        // iris
-  "The Temple": "#c25aa8",      // magenta plum (differentiated from watermelon)
-  "Land": "#6cb32e",            // deep pistachio
+  "Infrared Room": "#ff7aa2",   // pastel watermelon
+  "Buddha Massage": "#3fd6b0",  // pastel jade
+  "Ayurveda Room": "#f5b544",   // pastel marigold
+  "Om Space": "#9d8bff",        // pastel iris
+  "The Temple": "#e57ac8",      // pastel orchid
+  "Land": "#8fd14f",            // pastel lime
 };
 
 const NEUTRAL = "#475569"; // slate for anything without a room
@@ -939,7 +941,7 @@ function Timeline({
         style={{ height: HEADER_H, top: 48 }}
       >
         <div
-          className="flex shrink-0 items-center justify-end border-r border-black/[0.06] pr-4 text-[11px] uppercase tracking-[0.14em] text-black/45"
+          className="flex shrink-0 items-center justify-end border-r-[3px] border-white pr-4 text-[11px] uppercase tracking-[0.14em] text-black/45"
           style={{ width: TIME_COL, fontFamily: MONO }}
         >
           Time
@@ -954,9 +956,10 @@ function Timeline({
               type="button"
               onClick={() => onRoomClick?.(room)}
               className={`group flex min-w-0 flex-1 flex-col justify-center px-4 text-left transition-colors ${
-                idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
+                idx < ROOMS.length - 1 ? "border-r-[3px] border-white" : ""
               } ${isActive ? "" : "hover:bg-black/[0.02]"}`}
             >
+
               <div className="truncate text-[20px] font-semibold leading-tight tracking-[-0.02em] text-black">
                 {isActive ? (
                   <Highlight color={tint(rc, 0.5)}>{room}</Highlight>
@@ -979,7 +982,7 @@ function Timeline({
       <div className="flex" style={{ height: trackHeight }}>
         {/* Time column */}
         <div
-          className="relative shrink-0 border-r border-black/[0.06]"
+          className="relative shrink-0 border-r-[3px] border-white"
           style={{ width: TIME_COL }}
         >
           {hours.map((h) => {
@@ -1010,15 +1013,15 @@ function Timeline({
             <div
               key={room}
               className={`relative min-w-0 flex-1 ${
-                idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
+                idx < ROOMS.length - 1 ? "border-r-[3px] border-white" : ""
               }`}
               style={{
-                backgroundColor: tint(roomColor(room), 0.045),
+                backgroundColor: tint(roomColor(room), 0.09),
                 backgroundImage: [
                   // hour lines
-                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 60 - 1}px, rgba(0,0,0,0.08) ${PX_PER_MIN * 60 - 1}px, rgba(0,0,0,0.08) ${PX_PER_MIN * 60}px)`,
+                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 60 - 1}px, rgba(255,255,255,0.55) ${PX_PER_MIN * 60 - 1}px, rgba(255,255,255,0.55) ${PX_PER_MIN * 60}px)`,
                   // 15-minute lines
-                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 15 - 1}px, rgba(0,0,0,0.03) ${PX_PER_MIN * 15 - 1}px, rgba(0,0,0,0.03) ${PX_PER_MIN * 15}px)`,
+                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 15 - 1}px, rgba(255,255,255,0.28) ${PX_PER_MIN * 15 - 1}px, rgba(255,255,255,0.28) ${PX_PER_MIN * 15}px)`,
                 ].join(","),
               }}
             >
@@ -1027,6 +1030,7 @@ function Timeline({
                 className="pointer-events-none absolute inset-x-0 z-10 h-px"
                 style={{ top: nowTop, background: ACCENT, opacity: 0.28 }}
               />
+
 
               {services.map((s) => {
                 const top = s.start * PX_PER_MIN;
@@ -1062,23 +1066,23 @@ function Timeline({
                 return (
                   <div
                     key={s.id}
-                    className="group absolute left-1.5 right-1.5 flex flex-col overflow-hidden rounded-[6px] bg-white transition-all hover:z-20"
+                    className="group absolute inset-x-0 flex flex-col overflow-hidden rounded-none bg-white transition-all hover:z-20"
                     style={{
-                      top: top + 2,
-                      height: Math.max(height - 4, 96),
+                      top: top + 1,
+                      height: Math.max(height - 2, 96),
                       boxShadow: isLive
                         ? `0 1px 0 rgba(0,0,0,0.04), 0 6px 20px -8px ${tint(gc, 0.35)}, 0 0 0 1px ${tint(gc, 0.15)}`
                         : isRequest
                           ? "0 1px 0 rgba(0,0,0,0.04), 0 4px 14px -8px rgba(217,119,6,0.35)"
                           : "0 1px 0 rgba(0,0,0,0.04), 0 2px 10px -4px rgba(15,23,42,0.10)",
-                      opacity: isPast ? 0.86 : 1,
+                      opacity: isPast ? 0.9 : 1,
                     }}
                     title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
                   >
-                    {/* Top color rail — the room's identity */}
+                    {/* Top color rail — thinner, high-chroma */}
                     <span
                       aria-hidden
-                      className="absolute inset-x-0 top-0 h-[3px]"
+                      className="absolute inset-x-0 top-0 h-[2px]"
                       style={{
                         background: isRequest
                           ? "repeating-linear-gradient(to right, #d97706 0 6px, transparent 6px 10px)"
@@ -1090,7 +1094,7 @@ function Timeline({
                       {/* Time — big, monospace, sits at the top so it reads first */}
                       <div className="flex items-baseline justify-between gap-2">
                         <div
-                          className="text-[15px] font-semibold tabular-nums leading-none tracking-tight"
+                          className="whitespace-nowrap text-[14px] font-semibold tabular-nums leading-none tracking-tight"
                           style={{ color: metaColor, fontFamily: MONO }}
                         >
                           {fmt(s.start)}
@@ -1098,7 +1102,7 @@ function Timeline({
                           {fmt(s.end)}
                         </div>
                         <div
-                          className="text-[10.5px] font-semibold tabular-nums tracking-[0.08em]"
+                          className="shrink-0 whitespace-nowrap text-[10.5px] font-semibold tabular-nums tracking-[0.08em]"
                           style={{ color: metaColor, fontFamily: MONO, opacity: 0.65 }}
                         >
                           {duration}m
@@ -1113,7 +1117,7 @@ function Timeline({
                         {s.service}
                       </div>
 
-                      {/* Guest */}
+                      {/* for {guest} */}
                       <div className="mt-2 flex items-center gap-1.5">
                         {isLive && (
                           <span className="relative inline-flex h-2 w-2 shrink-0">
@@ -1127,6 +1131,12 @@ function Timeline({
                             />
                           </span>
                         )}
+                        <span
+                          className="shrink-0 text-[13px] italic leading-tight"
+                          style={{ color: metaColor, fontFamily: "'Instrument Serif', 'Cormorant Garamond', Georgia, serif", opacity: 0.7 }}
+                        >
+                          for
+                        </span>
                         <div
                           className="truncate text-[14px] font-semibold leading-tight tracking-[-0.005em]"
                           style={{ color: nameColor, fontFamily: DISPLAY }}
@@ -1144,23 +1154,30 @@ function Timeline({
                         )}
                       </div>
 
-                      {/* Practitioner — initials chip + name, understated */}
-                      <div className="mt-1.5 flex items-center gap-1.5">
+                      {/* with {practitioner} — right justified */}
+                      <div className="mt-1.5 flex items-center justify-end gap-1.5">
+                        <span
+                          className="shrink-0 text-[13px] italic leading-tight"
+                          style={{ color: metaColor, fontFamily: "'Instrument Serif', 'Cormorant Garamond', Georgia, serif", opacity: 0.7 }}
+                        >
+                          with
+                        </span>
+                        <span
+                          className="truncate text-[12.5px] font-medium leading-tight"
+                          style={{ color: metaColor }}
+                          title={s.practitioner}
+                        >
+                          {s.practitioner}
+                        </span>
                         <span
                           className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[9.5px] font-bold"
                           style={{
-                            background: tint(gc, 0.14),
+                            background: tint(gc, 0.18),
                             color: "#1a1a1a",
                             fontFamily: DISPLAY,
                           }}
                         >
                           {practInitials}
-                        </span>
-                        <span
-                          className="truncate text-[12.5px] font-medium leading-tight"
-                          style={{ color: metaColor }}
-                        >
-                          {s.practitioner}
                         </span>
                       </div>
 
@@ -1172,8 +1189,8 @@ function Timeline({
                               <span
                                 className="rounded-[3px] px-1.5 py-0.5 text-[10.5px] font-bold tabular-nums leading-none"
                                 style={{
-                                  background: tint(gc, 0.16),
-                                  color: gc,
+                                  background: tint(gc, 0.18),
+                                  color: "#1a1a1a",
                                   fontFamily: MONO,
                                 }}
                               >
@@ -1201,6 +1218,7 @@ function Timeline({
                     </div>
                   </div>
                 );
+
               })}
             </div>
           );
