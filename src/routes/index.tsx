@@ -547,16 +547,41 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
   );
 }
 
+function Highlight({
+  children,
+  color = "#fef3c7",
+  className = "",
+}: {
+  children: React.ReactNode;
+  color?: string;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`inline px-1 -mx-0.5 ${className}`}
+      style={{
+        background: `linear-gradient(180deg, transparent 55%, ${color} 55%, ${color} 92%, transparent 92%)`,
+        boxDecorationBreak: "clone",
+        WebkitBoxDecorationBreak: "clone",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
 function SectionHeader({
   eyebrow,
   label,
   count,
   trailing,
+  highlightColor,
 }: {
   eyebrow: string;
   label: string;
   count: number;
   trailing?: React.ReactNode;
+  highlightColor?: string;
 }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-4">
@@ -564,7 +589,9 @@ function SectionHeader({
         <span className="text-[12px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
           {eyebrow}
         </span>
-        <h2 className="text-[26px] font-semibold tracking-[-0.02em]">{label}</h2>
+        <h2 className="text-[26px] font-semibold tracking-[-0.02em]">
+          {highlightColor ? <Highlight color={highlightColor}>{label}</Highlight> : label}
+        </h2>
         <span className="text-[13px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
           {String(count).padStart(2, "0")}
         </span>
@@ -573,6 +600,7 @@ function SectionHeader({
     </div>
   );
 }
+
 
 
 function TimelineLegend() {
