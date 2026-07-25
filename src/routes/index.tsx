@@ -1092,18 +1092,17 @@ function Timeline({
     scrolledRef.current = true;
     const rect = gridRef.current.getBoundingClientRect();
     const gridTop = rect.top + window.scrollY;
-    // Position the "Now" line a little below the sticky room headers (~140px)
-    // so the current hour and the next few hours are in view immediately.
-    const target = gridTop + nowTop - 140;
+    // Offset for sticky header (48) + sticky Coming Up strip (~49) + room headers + breathing room.
+    const target = gridTop + nowTop - 200;
     window.scrollTo({ top: Math.max(0, target), behavior: "auto" });
   }, [nowTop]);
 
   return (
     <div className="border-y border-black/[0.08] bg-white">
-      {/* Room headers — stick under the top bar while the calendar scrolls */}
+      {/* Room headers — stick under the top bar + Coming Up strip while the calendar scrolls */}
       <div
-        className="sticky z-20 flex border-b border-black/[0.08] bg-white/95 backdrop-blur-md"
-        style={{ height: HEADER_H, top: 48 }}
+        className="sticky z-10 flex border-b border-black/[0.08] bg-white/95 backdrop-blur-md"
+        style={{ height: HEADER_H, top: 97 }}
       >
         <div
           className="flex shrink-0 items-center justify-end border-r border-black/[0.06] pr-4 text-[11px] uppercase tracking-[0.14em] text-black/45"
