@@ -1076,6 +1076,7 @@ function Timeline({
   whispers = [],
   activeCueId,
   activeRoom,
+  cueRoom,
   onRoomClick,
   onOpenService,
 }: {
@@ -1086,6 +1087,7 @@ function Timeline({
   whispers?: Prompt[];
   activeCueId?: string;
   activeRoom?: string | null;
+  cueRoom?: string | null;
   onRoomClick?: (room: string) => void;
   onOpenService?: (id: string) => void;
 }) {
