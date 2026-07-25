@@ -1406,7 +1406,7 @@ function Timeline({
     scrolledRef.current = true;
     const rect = gridRef.current.getBoundingClientRect();
     const gridTop = rect.top + window.scrollY;
-    // Offset for sticky header (44) + sticky Coming Up strip (~88) + room headers + breathing room.
+    // Offset for sticky header (44) + sticky Coming Up strip (~88) + room headers + top bounce.
     const target = gridTop + nowTop - 180;
     smoothScrollTo(Math.max(0, target), 1400);
   }, [nowTop, activeCueId]);
