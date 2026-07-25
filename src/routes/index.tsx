@@ -336,11 +336,12 @@ function TodayPage() {
         {/* label above the top hairline */}
         <div className="mx-auto flex max-w-[1440px] items-center gap-2 px-6 pt-4 pb-2">
           <span
-            className="text-[10px] uppercase tracking-[0.22em] text-black/40"
+            className="text-[11px] font-semibold uppercase tracking-[0.22em] text-black/75"
             style={{ fontFamily: MONO }}
           >
-            Coming up
+            <Highlight color="#fef3c7">Coming up</Highlight>
           </span>
+
           <span
             className="text-[10px] tabular-nums text-black/30"
             style={{ fontFamily: MONO }}
@@ -446,7 +447,7 @@ function TodayPage() {
       {/* Timeline (rooms across, time down) */}
       <section className="border-b border-black/[0.08]">
         <div className="mx-auto max-w-[1440px] px-6 py-10">
-          <SectionHeader eyebrow="01" label="Rooms" count={ROOMS.length} trailing={<TimelineLegend />} />
+          <SectionHeader eyebrow="01" label="Rooms" count={ROOMS.length} highlightColor="#fde68a" trailing={<TimelineLegend />} />
           <div className="mt-6">
             <Timeline nowMin={nowMin} highlightServiceId={cue.serviceId} highlightKind={cue.kind} highlightUrgent={cue.urgent} />
           </div>
@@ -547,16 +548,41 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
   );
 }
 
+function Highlight({
+  children,
+  color = "#fef3c7",
+  className = "",
+}: {
+  children: React.ReactNode;
+  color?: string;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`inline px-1 -mx-0.5 ${className}`}
+      style={{
+        background: `linear-gradient(180deg, transparent 55%, ${color} 55%, ${color} 92%, transparent 92%)`,
+        boxDecorationBreak: "clone",
+        WebkitBoxDecorationBreak: "clone",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
 function SectionHeader({
   eyebrow,
   label,
   count,
   trailing,
+  highlightColor,
 }: {
   eyebrow: string;
   label: string;
   count: number;
   trailing?: React.ReactNode;
+  highlightColor?: string;
 }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-4">
@@ -564,7 +590,9 @@ function SectionHeader({
         <span className="text-[12px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
           {eyebrow}
         </span>
-        <h2 className="text-[26px] font-semibold tracking-[-0.02em]">{label}</h2>
+        <h2 className="text-[26px] font-semibold tracking-[-0.02em]">
+          {highlightColor ? <Highlight color={highlightColor}>{label}</Highlight> : label}
+        </h2>
         <span className="text-[13px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
           {String(count).padStart(2, "0")}
         </span>
@@ -573,6 +601,7 @@ function SectionHeader({
     </div>
   );
 }
+
 
 
 function TimelineLegend() {
@@ -664,6 +693,8 @@ function ComingUp({ nowMin }: { nowMin: number }) {
           eyebrow="02"
           label="Coming Up"
           count={upcoming.length}
+          highlightColor="#c7f0e0"
+
           trailing={
             <div
               className="inline-flex items-center gap-0 overflow-hidden rounded-full border border-black/10 bg-white p-0.5 text-[12px]"
