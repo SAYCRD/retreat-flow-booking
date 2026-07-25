@@ -110,8 +110,22 @@ function formatCurrency(n: number) {
 function generatePrompts(nowMin: number): Prompt[] {
   const out: Prompt[] = [];
 
-  // 1. Arrivals — services starting in the next 30 minutes.
-  SERVICES.filter((s) => s.start > nowMin && s.start <= nowMin + 30).forEach((s) => {
+  // 1a. Check-ins — services starting in 10–30 minutes; guest expected at the desk.
+  SERVICES.filter((s) => s.start > nowMin + 10 && s.start <= nowMin + 30).forEach((s) => {
+    const name = firstName(s.guest);
+    out.push({
+      id: `checkin-${s.id}`,
+      kind: "checkin",
+      headline: `Check in ${s.guest}`,
+      reason: `${s.service} · ${fmt(s.start)} · ${s.room} · with ${s.practitioner}`,
+      room: s.room,
+      serviceId: s.id,
+      primary: "Checked in",
+    });
+  });
+
+  // 1b. Escorts — services starting in the next 10 minutes; walk the guest in.
+  SERVICES.filter((s) => s.start > nowMin && s.start <= nowMin + 10).forEach((s) => {
     const mins = Math.round(s.start - nowMin);
     const name = firstName(s.guest);
     out.push({
@@ -119,9 +133,7 @@ function generatePrompts(nowMin: number): Prompt[] {
       kind: "escort",
       headline: mins <= 5
         ? `Walk ${name} to ${s.room}`
-        : mins <= 15
-          ? `${name} arrives in ${mins} minutes — get ${s.room} ready`
-          : `Prepare ${s.room} for ${name}'s arrival`,
+        : `${name} arrives in ${mins} minutes — get ${s.room} ready`,
       reason: `${s.service} · ${fmt(s.start)} · with ${s.practitioner}`,
       room: s.room,
       serviceId: s.id,
