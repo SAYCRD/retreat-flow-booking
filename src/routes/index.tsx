@@ -137,7 +137,7 @@ function generatePrompts(nowMin: number): Prompt[] {
       reason: `${s.service} · ${fmt(s.start)} · ${s.room} · with ${s.practitioner}`,
       room: s.room,
       serviceId: s.id,
-      primary: "Checked in",
+      primary: "Confirm walked in",
     });
   });
 
@@ -154,7 +154,7 @@ function generatePrompts(nowMin: number): Prompt[] {
       reason: `${s.service} · ${fmt(s.start)} · with ${s.practitioner}`,
       room: s.room,
       serviceId: s.id,
-      primary: mins <= 5 ? "Walked in" : "Ready",
+      primary: mins <= 5 ? "Confirm walked in" : "Confirm ready",
       urgent: mins <= 5,
     });
   });
@@ -172,7 +172,7 @@ function generatePrompts(nowMin: number): Prompt[] {
       reason: `${s.service} · ${s.room} · quiet heads-up`,
       room: s.room,
       serviceId: s.id,
-      primary: "Notified",
+      primary: "Confirm notified",
     });
   });
 
@@ -197,7 +197,7 @@ function generatePrompts(nowMin: number): Prompt[] {
           reason: `${a.service} ends ${fmt(a.end)} · ${b.service} at ${fmt(b.start)}`,
           room: b.room,
           serviceId: b.id,
-          primary: "Handed off",
+          primary: "Confirm handoff",
           urgent: gap < 5,
         });
       }
@@ -217,12 +217,12 @@ function generatePrompts(nowMin: number): Prompt[] {
           id: `turnover-${prev.id}-${next.id}`,
           kind: urgent ? "turnover" : "setup",
           headline: urgent
-            ? `${room} needs a quick reset before ${firstName(next.guest)}`
-            : `Set ${room} for ${next.service}`,
+            ? `Quick reset before ${firstName(next.guest)}`
+            : `Set for ${next.service}`,
           reason: `${prev.service} ends ${fmt(prev.end)} · ${next.service} at ${fmt(next.start)}`,
           room,
           serviceId: next.id,
-          primary: "Room ready",
+          primary: "Confirm room ready",
           urgent,
         });
       }
@@ -242,11 +242,11 @@ function generatePrompts(nowMin: number): Prompt[] {
     out.push({
       id: `reset-${s.id}`,
       kind: "reset",
-      headline: `Notify — ${s.room} session ended`,
+      headline: `Notify — session ended, reset needed`,
       reason: `${s.service} ended ${fmt(s.end)}`,
       room: s.room,
       serviceId: s.id,
-      primary: "Notified",
+      primary: "Confirm reset",
     });
   });
 
@@ -550,6 +550,7 @@ function TodayPage() {
   const now = useNow();
   const nowMin = useNowMin();
   const [cueIdx, setCueIdx] = useState(0);
+  const [resolvedIds, setResolvedIds] = useState<Set<string>>(() => new Set());
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
   const [focusOpen, setFocusOpen] = useState(false);
   const [conflictDismissed, setConflictDismissed] = useState(false);
@@ -572,10 +573,22 @@ function TodayPage() {
   const stillToCome = SERVICES.filter((s) => s.start > nowMin).length;
   const overlaps = conflicts.length;
 
-  const prompts = useMemo(() => generatePrompts(nowMin), [nowMin]);
-  const cue = prompts[cueIdx] ?? null;
-  const prevCue = () => setCueIdx((i) => (i - 1 + prompts.length) % prompts.length);
-  const nextCue = () => setCueIdx((i) => (i + 1) % prompts.length);
+  const allPrompts = useMemo(() => generatePrompts(nowMin), [nowMin]);
+  const prompts = useMemo(
+    () => allPrompts.filter((p) => !resolvedIds.has(p.id)),
+    [allPrompts, resolvedIds],
+  );
+  const cue = prompts.length ? prompts[cueIdx % prompts.length] ?? null : null;
+  const prevCue = () => setCueIdx((i) => (prompts.length ? (i - 1 + prompts.length) % prompts.length : 0));
+  const nextCue = () => setCueIdx((i) => (prompts.length ? (i + 1) % prompts.length : 0));
+  const confirmCue = () => {
+    if (!cue) return;
+    setResolvedIds((prev) => {
+      const next = new Set(prev);
+      next.add(cue.id);
+      return next;
+    });
+  };
 
   // When the active cue changes, scroll to its action marker (or the linked
   // reservation card as a fallback) so the operator's eyes travel to the exact
@@ -796,13 +809,7 @@ function TodayPage() {
             {cue && (
               <>
                 <button
-                  onClick={() => setFocusOpen(true)}
-                  className="text-[13.5px] font-medium text-black/60 underline decoration-black/15 underline-offset-4 transition-colors hover:text-black hover:decoration-black"
-                >
-                  Focus
-                </button>
-                <button
-                  onClick={nextCue}
+                  onClick={confirmCue}
                   className="text-[13.5px] font-medium text-black/85 underline decoration-black/25 underline-offset-4 transition-colors hover:decoration-black"
                 >
                   {cue.primary}
