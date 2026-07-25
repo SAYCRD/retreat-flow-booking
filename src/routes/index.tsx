@@ -478,6 +478,36 @@ function TodayPage() {
       <section className="border-b border-black/[0.08]">
         <div className="mx-auto max-w-[1440px] px-6 py-10">
           <SectionHeader eyebrow="01" label="Reservations" count={ROOMS.length} highlightColor="#86efac" icon={CalendarRange} trailing={<TimelineLegend />} />
+          {conflicts.length > 0 && !conflictDismissed && (
+            <div
+              role="alert"
+              className="mt-5 flex items-start gap-3 rounded-[8px] border px-4 py-3"
+              style={{ background: "#fff8ec", borderColor: "#fbd38d" }}
+            >
+              <span className="mt-0.5 shrink-0 text-amber-600">
+                <AlertTriangle size={18} strokeWidth={2} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[13.5px] font-semibold text-amber-900">
+                  {conflicts.length} room conflict{conflicts.length > 1 ? "s" : ""} — two services can't share a room
+                </div>
+                <ul className="mt-1 space-y-0.5 text-[12.5px] text-amber-900/85">
+                  {conflicts.map((c, i) => (
+                    <li key={i}>
+                      <span style={{ fontFamily: MONO }}>{c.a.room}</span> · {c.a.service} ({fmt(c.a.start)}–{fmt(c.a.end)}) overlaps {c.b.service} ({fmt(c.b.start)}–{fmt(c.b.end)})
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <button
+                onClick={() => setConflictDismissed(true)}
+                aria-label="Dismiss"
+                className="shrink-0 rounded p-1 text-amber-800/70 hover:bg-amber-100 hover:text-amber-900"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
           <div className="mt-6">
             <Timeline
               nowMin={nowMin}
