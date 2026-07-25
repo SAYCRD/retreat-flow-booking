@@ -441,11 +441,11 @@ function AttentionCard({ item }: { item: Attention }) {
 
 function TimelineLegend() {
   return (
-    <div className="hidden items-center gap-4 text-[11px] text-black/50 md:flex" style={{ fontFamily: MONO }}>
-      <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-[2px]" style={{ background: INK }} />LIVE</span>
-      <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-[2px] border border-black/25 bg-white" />BOOKED</span>
-      <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-[2px] border border-dashed border-black/35" />REQUEST</span>
-      <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-[2px] bg-black/[0.06]" />PAST</span>
+    <div className="hidden items-center gap-4 text-[11px] text-black/60 md:flex" style={{ fontFamily: MONO }}>
+      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-indigo-500/35 bg-indigo-500/10 shadow-[inset_2px_0_0_0_#3730ff]" />LIVE</span>
+      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-black/10 bg-[rgba(250,248,245,0.9)]" />BOOKED</span>
+      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-dashed border-amber-600/50 bg-[rgba(255,247,237,0.6)]" />REQUEST</span>
+      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-black/6 bg-[rgba(243,244,246,0.85)]" />PAST</span>
     </div>
   );
 }
