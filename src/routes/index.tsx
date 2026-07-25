@@ -650,9 +650,9 @@ function TodayPage() {
           <div className="mt-6">
             <Timeline
               nowMin={nowMin}
-              highlightServiceId={cue.serviceId}
-              highlightKind={cue.kind}
-              highlightUrgent={cue.urgent}
+              highlightServiceId={cue?.serviceId}
+              highlightKind={cue?.kind}
+              highlightUrgent={cue?.urgent}
               activeRoom={activeRoom}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
