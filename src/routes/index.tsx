@@ -1222,10 +1222,11 @@ function Timeline({
     scrolledRef.current = true;
     const rect = gridRef.current.getBoundingClientRect();
     const gridTop = rect.top + window.scrollY;
-    // Offset for sticky header (48) + sticky Coming Up strip (~49) + room headers + breathing room.
-    const target = gridTop + nowTop - 200;
-    window.scrollTo({ top: Math.max(0, target), behavior: "auto" });
+    // Offset for sticky header (44) + sticky Coming Up strip (~88) + room headers + breathing room.
+    const target = gridTop + nowTop - 220;
+    smoothScrollTo(Math.max(0, target), 1200);
   }, [nowTop]);
+
 
   return (
     <div className="border-y border-black/[0.08] bg-white">
