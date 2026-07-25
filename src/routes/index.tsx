@@ -75,7 +75,7 @@ const ROOMS = [
 ];
 
 const DAY_START = 9 * 60;
-const DAY_END = 18 * 60;
+const DAY_END = 24 * 60;
 const DAY_SPAN = DAY_END - DAY_START;
 
 const t = (h: number, m = 0) => h * 60 + m - DAY_START;
@@ -83,6 +83,7 @@ const fmt = (mins: number) => {
   const abs = mins + DAY_START;
   const h = Math.floor(abs / 60);
   const m = abs % 60;
+  if (h === 24) return `12:${String(m).padStart(2, "0")} AM`;
   const suffix = h >= 12 ? "PM" : "AM";
   const hh = ((h + 11) % 12) + 1;
   return `${hh}:${String(m).padStart(2, "0")} ${suffix}`;
