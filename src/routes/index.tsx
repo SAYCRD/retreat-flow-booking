@@ -941,7 +941,7 @@ function Timeline({
         style={{ height: HEADER_H, top: 48 }}
       >
         <div
-          className="flex shrink-0 items-center justify-end border-r-[3px] border-white pr-4 text-[11px] uppercase tracking-[0.14em] text-black/45"
+          className="flex shrink-0 items-center justify-end border-r border-black/[0.06] pr-4 text-[11px] uppercase tracking-[0.14em] text-black/45"
           style={{ width: TIME_COL, fontFamily: MONO }}
         >
           Time
@@ -956,9 +956,10 @@ function Timeline({
               type="button"
               onClick={() => onRoomClick?.(room)}
               className={`group flex min-w-0 flex-1 flex-col justify-center px-4 text-left transition-colors ${
-                idx < ROOMS.length - 1 ? "border-r-[3px] border-white" : ""
+                idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
               } ${isActive ? "" : "hover:bg-black/[0.02]"}`}
             >
+
 
               <div className="truncate text-[20px] font-semibold leading-tight tracking-[-0.02em] text-black">
                 {isActive ? (
