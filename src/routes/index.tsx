@@ -539,11 +539,12 @@ function TodayPage() {
     const marker = document.getElementById("active-cue-marker");
     const el = marker ?? document.getElementById(`svc-${cue.serviceId}`);
     if (!el) return;
-    // header (~44) + Coming Up strip (~88) + room headers (64) + calm buffer.
-    const stickyOffset = 44 + 88 + 64 + 96;
+    // header (~44) + Coming Up strip (~88) + room headers (64) + generous calm
+    // buffer so the action item lands comfortably below the sticky chrome.
+    const stickyOffset = 44 + 88 + 64 + 144;
     const rect = el.getBoundingClientRect();
     const target = window.scrollY + rect.top - stickyOffset;
-    smoothScrollTo(Math.max(0, target), 1000);
+    smoothScrollTo(Math.max(0, target), 1300);
   }, [cue?.id, cue?.serviceId]);
 
 
