@@ -154,22 +154,35 @@ const INK = "#0a0a0a";
 // Curated guest palette — each guest gets a consistent, distinct color that
 // carries through their avatar, their timeline stripe, and their row.
 const GUEST_PALETTE = [
-  "#c85a3c", // terracotta
-  "#b8862f", // ochre
-  "#5f8a54", // moss
-  "#2f8a86", // teal
-  "#4b5cd6", // indigo
-  "#8a4a86", // plum
-  "#c85c7e", // rose
-  "#556b7d", // slate
-  "#d97706", // amber
-  "#0f766e", // deep teal
+  "#c2410c", // terracotta
+  "#a16207", // ochre
+  "#4d7c0f", // moss
+  "#0f766e", // teal
+  "#1d4ed8", // indigo
+  "#7e22ce", // plum
+  "#be185d", // rose
+  "#475569", // slate
+  "#b45309", // amber
+  "#0369a1", // deep blue
+  "#65a30d", // olive
+  "#9333ea", // violet
 ] as const;
 
+// Deterministic distinct color per unique guest (assigned in appearance order).
+const GUEST_COLOR_MAP: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  let i = 0;
+  for (const s of SERVICES) {
+    if (!(s.guest in map)) {
+      map[s.guest] = GUEST_PALETTE[i % GUEST_PALETTE.length];
+      i++;
+    }
+  }
+  return map;
+})();
+
 function guestColor(name: string): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return GUEST_PALETTE[h % GUEST_PALETTE.length];
+  return GUEST_COLOR_MAP[name] ?? GUEST_PALETTE[0];
 }
 
 function tint(hex: string, alpha: number): string {
