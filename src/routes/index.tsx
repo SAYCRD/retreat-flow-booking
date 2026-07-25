@@ -1207,6 +1207,71 @@ function Timeline({
     return map;
   }, [whispers]);
 
+  const preSessionKinds: WhisperKind[] = ["notify", "checkin", "escort", "turnover", "setup", "elixir", "pickup"];
+
+  // The one currently highlighted cue gets its own marker on the timeline,
+  // separate from the session card, so check-ins and room resets read as
+  // their own actions rather than decoration on top of a booking.
+  const activeCue = useMemo(() => whispers.find((w) => w.id === activeCueId), [whispers, activeCueId]);
+
+  const cueMarker = useMemo(() => {
+    if (!activeCue?.serviceId) return null;
+    const s = SERVICES.find((x) => x.id === activeCue.serviceId);
+    if (!s || !preSessionKinds.includes(activeCue.kind)) return null;
+
+    const roomServices = SERVICES.filter((x) => x.room === s.room).sort((a, b) => a.start - b.start);
+    const prevInRoom = roomServices.find((s2, i, arr) => arr[i + 1]?.id === s.id);
+    const guestServices = SERVICES.filter((x) => x.guest === s.guest).sort((a, b) => a.start - b.start);
+    const guestIdx = guestServices.findIndex((x) => x.id === s.id);
+    const prevGuest = guestIdx > 0 ? guestServices[guestIdx - 1] : null;
+
+    let topMin: number;
+    switch (activeCue.kind) {
+      case "checkin":
+        topMin = s.start - 15;
+        break;
+      case "escort":
+        topMin = s.start - 5;
+        break;
+      case "notify":
+        topMin = s.start - 20;
+        break;
+      case "turnover":
+      case "setup":
+        topMin = prevInRoom ? prevInRoom.end + 1 : s.start - 10;
+        break;
+      case "pickup":
+        topMin = prevGuest ? prevGuest.end + 1 : s.start - 5;
+        break;
+      case "elixir":
+        topMin = prevGuest ? Math.round((prevGuest.end + s.start) / 2) : s.start - 10;
+        break;
+      default:
+        topMin = s.start - 10;
+    }
+    topMin = Math.max(0, topMin);
+
+    const label =
+      activeCue.kind === "turnover" || activeCue.kind === "setup"
+        ? s.room
+        : activeCue.kind === "notify"
+          ? s.practitioner.replace(/^(Dr\.?|Mr\.?|Ms\.?)\s+/i, "").split(/\s+/)[0]
+          : firstName(s.guest);
+
+    const verb = {
+      notify: "Notify",
+      checkin: "Check in",
+      escort: "Walk in",
+      turnover: "Reset",
+      setup: "Set up",
+      elixir: "Tea for",
+      pickup: "Pick up",
+    }[activeCue.kind];
+
+    return { topMin, label, verb, kind: activeCue.kind, room: s.room, gc: roomColor(s.room) };
+  }, [activeCue]);
+
+
   const hours = useMemo(() => {
     const out: number[] = [];
     for (let h = 9; h <= 18; h++) out.push(h);
