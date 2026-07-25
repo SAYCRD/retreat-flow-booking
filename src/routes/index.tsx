@@ -523,12 +523,13 @@ function AttentionCard({ item }: { item: Attention }) {
 }
 
 function TimelineLegend() {
+  const chip = "h-3 w-4 border border-black/15";
   return (
     <div className="hidden items-center gap-4 text-[12px] text-black/65 md:flex" style={{ fontFamily: MONO }}>
-      <span className="flex items-center gap-2"><span className="h-3 w-4 rounded-[3px] border border-black/15 bg-white shadow-[inset_5px_0_0_0_#1d4ed8]" />GUEST STRIPE</span>
-      <span className="flex items-center gap-2"><span className="h-3 w-4 rounded-[3px] border border-black/25 bg-[rgba(29,78,216,0.1)] shadow-[inset_5px_0_0_0_#1d4ed8]" />LIVE</span>
-      <span className="flex items-center gap-2"><span className="h-3 w-4 rounded-[3px] border border-dashed border-amber-600/55 bg-[#fffbeb]" />REQUEST</span>
-      <span className="flex items-center gap-2"><span className="h-3 w-4 rounded-[3px] border border-black/10 bg-[#f7f7f7]" />PAST</span>
+      <span className="flex items-center gap-2"><span className={`${chip} bg-[rgba(29,78,216,0.12)]`} style={{ boxShadow: "inset 0 4px 0 0 #1d4ed8" }} />LIVE</span>
+      <span className="flex items-center gap-2"><span className={`${chip} bg-white`} style={{ boxShadow: "inset 0 4px 0 0 #1d4ed8" }} />BOOKED</span>
+      <span className="flex items-center gap-2"><span className={`${chip} border-dashed border-amber-600/55 bg-[#fffbeb]`} />REQUEST</span>
+      <span className="flex items-center gap-2"><span className={`${chip} bg-[#f7f7f7]`} />PAST</span>
     </div>
   );
 }
