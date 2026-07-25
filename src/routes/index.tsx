@@ -1459,7 +1459,7 @@ function Timeline({
                       </span>
                     </div>
                     <div
-                      className="absolute inset-x-0 top-[26px] border-t border-dashed"
+                      className={`absolute inset-x-0 border-t border-dashed ${cueMarker.after ? "-top-[2px]" : "top-[26px]"}`}
                       style={{ borderColor: cueMarker.gc, opacity: 0.35 }}
                     />
                   </div>
