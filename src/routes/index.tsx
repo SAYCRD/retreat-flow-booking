@@ -1377,7 +1377,7 @@ function Timeline({
     return out;
   }, []);
 
-  const nowTop = nowMin * PX_PER_MIN;
+  const nowTop = minToPx(nowMin);
 
   // On first load, scroll the calendar so the current time is visible near the
   // top of the viewport instead of showing 9 AM when it's mid-afternoon.
