@@ -1436,13 +1436,6 @@ function Timeline({
                 const isRequest = s.status === "requested";
                 const gc = roomColor(s.room);
                 const duration = Math.round(s.end - s.start);
-                // Previous service in this room, so pre-session room tasks can
-                // breathe in the actual gap instead of hugging the session card.
-                const prevInRoom = services
-                  .slice()
-                  .sort((a, b) => a.start - b.start)
-                  .find((s2, i, arr) => arr[i + 1]?.id === s.id);
-                const prevEnd = prevInRoom?.end ?? null;
                 const practInitials = s.practitioner
                   .replace(/^(Dr\.?|Mr\.?|Ms\.?)\s+/i, "")
                   .split(/\s+/)
@@ -1473,35 +1466,14 @@ function Timeline({
                     : "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)";
                 const hoverShadow = `2px 4px 0 -1px rgba(15,23,42,0.05), 8px 14px 28px -12px ${tint(gc, 0.26)}, 0 0 0 1px ${tint(gc, 0.18)}`;
 
-                // Only render a whisper for the CURRENTLY shown notification
-                // (not always on). The pre-session kinds sit in the gap
-                // just above the card, with a short label so you can see
-                // whether it's about the guest (checkin / escort / elixir)
-                // or the room (turnover / setup).
+                // Only render a badge for the CURRENTLY shown notification when
+                // it is not a pre-session action (those now live as their own
+                // marker on the timeline, separate from the session card).
                 const activeWhisper = (whispersByService[s.id] ?? []).find(
                   (w) => w.id === activeCueId,
                 );
-                const preSessionKinds: WhisperKind[] = ["notify", "checkin", "escort", "turnover", "setup", "elixir", "pickup"];
-                const gapWhisper = activeWhisper && preSessionKinds.includes(activeWhisper.kind) ? activeWhisper : null;
-                const badgeWhisper = activeWhisper && !gapWhisper ? activeWhisper : null;
-                const gapWhisperLabel = gapWhisper
-                  ? (gapWhisper.kind === "turnover" || gapWhisper.kind === "setup"
-                      ? s.room
-                      : gapWhisper.kind === "notify"
-                        ? s.practitioner.replace(/^(Dr\.?|Mr\.?|Ms\.?)\s+/i, "").split(/\s+/)[0]
-                        : firstName(s.guest))
-                  : null;
-                const gapWhisperVerb = gapWhisper
-                  ? ({
-                      notify: "Notify",
-                      checkin: "Check in",
-                      escort: "Walk in",
-                      turnover: "Reset",
-                      setup: "Set up",
-                      elixir: "Tea for",
-                      pickup: "Pick up",
-                    } as Record<WhisperKind, string>)[gapWhisper.kind]
-                  : null;
+                const badgeWhisper = activeWhisper && !preSessionKinds.includes(activeWhisper.kind) ? activeWhisper : null;
+
 
                 return (
                   <div
