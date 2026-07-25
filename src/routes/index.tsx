@@ -322,6 +322,8 @@ function TodayPage() {
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
   const [focusOpen, setFocusOpen] = useState(false);
   const [conflictDismissed, setConflictDismissed] = useState(false);
+  const [openServiceId, setOpenServiceId] = useState<string | null>(null);
+  const openService = openServiceId ? SERVICES.find((s) => s.id === openServiceId) ?? null : null;
 
   const clock = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const date = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
