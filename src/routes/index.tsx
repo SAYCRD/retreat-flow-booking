@@ -842,7 +842,7 @@ function TodayPage() {
       {/* Timeline (rooms across, time down) */}
       <section className="border-b border-black/[0.08]">
         <div className="mx-auto max-w-[1440px] px-6 py-10">
-          <SectionHeader eyebrow="01" label="Reservations" count={ROOMS.length} highlightColor="#86efac" icon={CalendarRange} trailing={<TimelineLegend />} />
+          <SectionHeader eyebrow="01" label="Reservations" count={ROOMS.length} highlightColor="#86efac" icon={CalendarRange} />
           {conflicts.length > 0 && !conflictDismissed && (
             <div
               role="alert"
@@ -1002,17 +1002,6 @@ function SectionHeader({
 
 
 
-function TimelineLegend() {
-  const chip = "h-3 w-4 border border-black/15";
-  return (
-    <div className="hidden items-center gap-4 text-[12px] text-black/65 md:flex" style={{ fontFamily: MONO }}>
-      <span className="flex items-center gap-2"><span className={`${chip} bg-[rgba(29,78,216,0.12)]`} style={{ boxShadow: "inset 0 4px 0 0 #1d4ed8" }} />LIVE</span>
-      <span className="flex items-center gap-2"><span className={`${chip} bg-white`} style={{ boxShadow: "inset 0 4px 0 0 #1d4ed8" }} />BOOKED</span>
-      <span className="flex items-center gap-2"><span className={`${chip} border-dashed border-amber-600/55 bg-[#fffbeb]`} />REQUEST</span>
-      <span className="flex items-center gap-2"><span className={`${chip} bg-[#f7f7f7]`} />PAST</span>
-    </div>
-  );
-}
 
 function ServiceRow({ s, first }: { s: Service; first: boolean }) {
   const gc = roomColor(s.room);
