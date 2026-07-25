@@ -151,38 +151,27 @@ const ACCENT = "#3730ff"; // electric indigo (system accent, not a guest)
 const SURFACE = "#ffffff";
 const INK = "#0a0a0a";
 
-// Curated guest palette — each guest gets a consistent, distinct color that
-// carries through their avatar, their timeline stripe, and their row.
-const GUEST_PALETTE = [
-  "#c2410c", // terracotta
-  "#a16207", // ochre
-  "#4d7c0f", // moss
-  "#0f766e", // teal
-  "#1d4ed8", // indigo
-  "#7e22ce", // plum
-  "#be185d", // rose
-  "#475569", // slate
-  "#b45309", // amber
-  "#0369a1", // deep blue
-  "#65a30d", // olive
-  "#9333ea", // violet
-] as const;
+// Each room has its own color — the color follows the space, not the guest.
+// It carries through the timeline card top-bar, the ledger stripe, and the avatar tint.
+const ROOM_COLORS: Record<string, string> = {
+  "Infrared Room": "#c2410c", // terracotta / warm heat
+  "Buddha Massage": "#0f766e", // deep teal
+  "Ayurveda Room": "#a16207", // ochre
+  "Om Space": "#7e22ce", // plum
+  "The Temple": "#be185d", // rose
+  "Land": "#4d7c0f", // moss
+};
 
-// Deterministic distinct color per unique guest (assigned in appearance order).
-const GUEST_COLOR_MAP: Record<string, string> = (() => {
-  const map: Record<string, string> = {};
-  let i = 0;
-  for (const s of SERVICES) {
-    if (!(s.guest in map)) {
-      map[s.guest] = GUEST_PALETTE[i % GUEST_PALETTE.length];
-      i++;
-    }
-  }
-  return map;
-})();
+const NEUTRAL = "#475569"; // slate for anything without a room
 
-function guestColor(name: string): string {
-  return GUEST_COLOR_MAP[name] ?? GUEST_PALETTE[0];
+function roomColor(room: string): string {
+  return ROOM_COLORS[room] ?? NEUTRAL;
+}
+
+// For finances (guest-level, no room): use the guest's first room of the day.
+function guestRoomColor(guest: string): string {
+  const svc = SERVICES.find((s) => s.guest === guest);
+  return svc ? roomColor(svc.room) : NEUTRAL;
 }
 
 function tint(hex: string, alpha: number): string {
