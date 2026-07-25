@@ -668,12 +668,12 @@ function TodayPage() {
             <div>
               <div className="flex items-center gap-2 text-[11.5px] text-black/45">
                 <LiveDot />
-                <span className="font-medium text-black/65">Live</span>
+                <span className="font-medium text-black/65">{isToday ? "Live" : "Viewing"}</span>
                 <span className="text-black/25">·</span>
-                <span>{date}</span>
+                <DateNavigator value={selectedDate} onChange={setSelectedDate} today={now} />
               </div>
               <h1 className="mt-2 text-[44px] font-semibold leading-[1] tracking-[-0.03em] md:text-[56px]">
-                Today
+                {isToday ? "Today" : selectedDate.toLocaleDateString("en-US", { weekday: "long" })}
               </h1>
             </div>
 
