@@ -158,6 +158,80 @@ const FINANCES = [
   { guest: "Thomas Wren", services: 1, amount: 95, paid: true },
 ];
 
+// Per-guest details — contact, waiver, contraindications keyed to service kind.
+type GuestInfo = {
+  phone: string;
+  email: string;
+  pronouns?: string;
+  waiverSignedOn?: string; // ISO date, undefined = not signed
+  notes?: string;
+  contraindications?: string[];
+};
+
+const GUESTS: Record<string, GuestInfo> = {
+  "Elena Vives": {
+    phone: "+1 (415) 555-0132", email: "elena.vives@hey.com", pronouns: "she/her",
+    waiverSignedOn: "2026-06-14",
+    notes: "Prefers arm rest under IV. Slight vein anxiety — talk her through the tap.",
+    contraindications: ["History of vasovagal response — recline fully", "Avoid B-complex flush at high rate"],
+  },
+  "Nadia Farrow": {
+    phone: "+1 (628) 555-0177", email: "nadia@farrowstudio.com", pronouns: "she/her",
+    waiverSignedOn: "2026-07-02",
+    notes: "Deep pressure OK on shoulders, light on lower back.",
+    contraindications: ["Recent cortisone in right shoulder (May) — avoid direct work", "No cupping over lumbar tattoo (still healing)"],
+  },
+  "Thomas Wren": {
+    phone: "+1 (206) 555-0104", email: "twren@northlight.co",
+    waiverSignedOn: "2026-05-20",
+    contraindications: ["Pacemaker — confirm BEMER protocol distance"],
+  },
+  "Gerald & June Pierce": {
+    phone: "+1 (312) 555-0155", email: "pierces@fastmail.com",
+    waiverSignedOn: "2026-07-25",
+    notes: "25th anniversary. Champagne + card in the room.",
+    contraindications: ["June: right hip replacement 2019 — no deep hip work, side-lying only"],
+  },
+  "Amara Okonkwo": {
+    phone: "+44 20 7946 0432", email: "amara.o@studio.london", pronouns: "she/her",
+    waiverSignedOn: "2026-07-25",
+    notes: "Sensory sensitive. Low light, minimal chat on arrival. Journey of 3.",
+    contraindications: ["Migraine trigger — no strong essential oils in reading room"],
+  },
+  "Marcus Hale": {
+    phone: "+1 (503) 555-0198", email: "marcus.hale@proton.me",
+    waiverSignedOn: undefined,
+    notes: "First visit — greet at the door, walk him through the space.",
+    contraindications: ["Tinnitus — check bowl proximity before session"],
+  },
+  "Priya Anand": {
+    phone: "+1 (917) 555-0121", email: "priya.a@lantern.co",
+    waiverSignedOn: undefined,
+    notes: "Awaiting confirmation on Medicine Walk. Bring water + light jacket.",
+    contraindications: [],
+  },
+  "Lena Costa": {
+    phone: "+1 (415) 555-0187", email: "lena@costafolio.com",
+    waiverSignedOn: "2026-04-11",
+    contraindications: ["Second trimester pregnancy — supine only briefly, side-lying preferred"],
+  },
+};
+
+// Payment state per service (in a real app this would come from the DB).
+// A guest's `paid` flag in FINANCES represents the whole visit;
+// here we mark individual services so the panel can show a payment link.
+const SERVICE_PAID: Record<string, boolean> = {
+  s1: true, s2: true, s3: true, s4: true,
+  s5: false, s6: false, s7: true, s8: false, s9: false,
+  s10: false, s11: false,
+};
+
+const PRICES: Record<string, number> = {
+  s1: 220, s2: 180, s3: 95, s4: 50,
+  s5: 320, s6: 140, s7: 140, s8: 60, s9: 140,
+  s10: 180, s11: 150,
+};
+
 const NAV = [
   { label: "Today", key: "T" },
   { label: "Calendar", key: "C" },
