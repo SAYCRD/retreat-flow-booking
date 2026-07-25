@@ -1067,15 +1067,15 @@ function Timeline({
                 return (
                   <div
                     key={s.id}
-                    className="group absolute inset-x-0 flex flex-col overflow-hidden rounded-none bg-white transition-all hover:z-20"
+                    className="group absolute inset-x-0 flex flex-col rounded-none bg-white transition-all hover:z-20"
                     style={{
                       top: top + 1,
-                      height: Math.max(height - 2, 96),
+                      minHeight: Math.max(height - 2, 96),
                       boxShadow: isLive
-                        ? `0 1px 0 rgba(0,0,0,0.04), 0 6px 20px -8px ${tint(gc, 0.35)}, 0 0 0 1px ${tint(gc, 0.15)}`
+                        ? `2px 3px 0 -1px rgba(15,23,42,0.05), 4px 8px 18px -10px ${tint(gc, 0.45)}, 0 0 0 1px ${tint(gc, 0.15)}`
                         : isRequest
-                          ? "0 1px 0 rgba(0,0,0,0.04), 0 4px 14px -8px rgba(217,119,6,0.35)"
-                          : "0 1px 0 rgba(0,0,0,0.04), 0 2px 10px -4px rgba(15,23,42,0.10)",
+                          ? "2px 3px 0 -1px rgba(15,23,42,0.05), 4px 8px 16px -10px rgba(217,119,6,0.35)"
+                          : "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)",
                       opacity: isPast ? 0.9 : 1,
                     }}
                     title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
@@ -1090,6 +1090,7 @@ function Timeline({
                           : gc,
                       }}
                     />
+
 
                     <div className="flex flex-1 flex-col px-3 pt-3 pb-2.5">
                       {/* Time — from on one line, to on the next, so it reads calmly */}
