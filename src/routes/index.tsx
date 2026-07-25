@@ -507,11 +507,11 @@ function AttentionCard({ item }: { item: Attention }) {
 
 function TimelineLegend() {
   return (
-    <div className="hidden items-center gap-4 text-[11px] text-black/60 md:flex" style={{ fontFamily: MONO }}>
-      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-black/10 bg-white shadow-[inset_3px_0_0_0_#4b5cd6]" />LEFT STRIPE = GUEST</span>
-      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-black/20 bg-[rgba(75,92,214,0.12)] shadow-[inset_4px_0_0_0_#4b5cd6]" />LIVE</span>
-      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-dashed border-amber-600/50 bg-[rgba(255,247,237,0.7)]" />REQUEST</span>
-      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-black/6 bg-[#f5f5f5]" />PAST</span>
+    <div className="hidden items-center gap-4 text-[12px] text-black/65 md:flex" style={{ fontFamily: MONO }}>
+      <span className="flex items-center gap-2"><span className="h-3 w-4 rounded-[3px] border border-black/15 bg-white shadow-[inset_5px_0_0_0_#1d4ed8]" />GUEST STRIPE</span>
+      <span className="flex items-center gap-2"><span className="h-3 w-4 rounded-[3px] border border-black/25 bg-[rgba(29,78,216,0.1)] shadow-[inset_5px_0_0_0_#1d4ed8]" />LIVE</span>
+      <span className="flex items-center gap-2"><span className="h-3 w-4 rounded-[3px] border border-dashed border-amber-600/55 bg-[#fffbeb]" />REQUEST</span>
+      <span className="flex items-center gap-2"><span className="h-3 w-4 rounded-[3px] border border-black/10 bg-[#f7f7f7]" />PAST</span>
     </div>
   );
 }
