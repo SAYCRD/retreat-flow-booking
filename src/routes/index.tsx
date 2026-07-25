@@ -195,6 +195,7 @@ function tint(hex: string, alpha: number): string {
 function TodayPage() {
   const now = useNow();
   const nowMin = DEMO_NOW;
+  const [noticeIdx, setNoticeIdx] = useState(0);
 
   const clock = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const date = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -204,6 +205,10 @@ function TodayPage() {
   const overlaps = 1;
   const revenue = FINANCES.reduce((a, b) => a + b.amount, 0);
   const unpaid = FINANCES.filter((f) => !f.paid).reduce((a, b) => a + b.amount, 0);
+
+  const notice = ATTENTION[noticeIdx];
+  const prevNotice = () => setNoticeIdx((i) => (i - 1 + ATTENTION.length) % ATTENTION.length);
+  const nextNotice = () => setNoticeIdx((i) => (i + 1) % ATTENTION.length);
 
   return (
     <div
@@ -297,44 +302,56 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* The one thing — Steve-Jobs move: name the single next action */}
+      {/* Do this next — cycles through attention items */}
       <section className="border-b border-black/[0.08]" style={{ background: "#fafafa" }}>
         <div className="mx-auto max-w-[1440px] px-6 py-5">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            <span className="text-[11px] uppercase tracking-[0.18em] text-black/45" style={{ fontFamily: MONO }}>
-              Do this next
-            </span>
-            <span className="text-[20px] font-semibold tracking-tight">
-              Set <span style={{ color: guestColor("Amara Okonkwo") }}>The Temple</span> for Amara's tea ceremony
-            </span>
-            <span className="text-[14px] text-black/55" style={{ fontFamily: MONO }}>
-              in 20 min · 2:50 PM
-            </span>
-            <button
-              className="ml-auto rounded-full bg-black px-5 py-2 text-[14px] font-medium text-white hover:bg-black/85"
-            >
-              Mark ready
-            </button>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] uppercase tracking-[0.18em] text-black/45" style={{ fontFamily: MONO }}>
+                Do this next
+              </span>
+              <span
+                className="rounded-[3px] bg-black/[0.06] px-1.5 py-0.5 text-[10px] tabular-nums text-black/55"
+                style={{ fontFamily: MONO }}
+              >
+                {String(noticeIdx + 1).padStart(2, "0")} / {String(ATTENTION.length).padStart(2, "0")}
+              </span>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="text-[20px] font-semibold tracking-tight">{notice.title}</div>
+              <div className="mt-0.5 text-[14px] text-black/60">{notice.detail}</div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {notice.action && (
+                <button className="rounded-full bg-black px-5 py-2 text-[14px] font-medium text-white hover:bg-black/85">
+                  {notice.action}
+                </button>
+              )}
+              <button
+                onClick={prevNotice}
+                aria-label="Previous"
+                className="grid h-9 w-9 place-items-center rounded-full border border-black/10 bg-white text-black/60 hover:border-black/25 hover:text-black"
+              >
+                ‹
+              </button>
+              <button
+                onClick={nextNotice}
+                aria-label="Next"
+                className="grid h-9 w-9 place-items-center rounded-full border border-black/10 bg-white text-black/60 hover:border-black/25 hover:text-black"
+              >
+                ›
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Coming Up (heads-up / attention) */}
+      {/* Timeline (rooms across, time down) */}
       <section className="border-b border-black/[0.08]">
         <div className="mx-auto max-w-[1440px] px-6 py-10">
-          <SectionHeader eyebrow="01" label="Coming Up" count={ATTENTION.length} />
-          <div className="mt-6 grid gap-2 md:grid-cols-2">
-            {ATTENTION.map((a) => (
-              <AttentionCard key={a.id} item={a} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Timeline */}
-      <section className="border-b border-black/[0.08]">
-        <div className="mx-auto max-w-[1440px] px-6 py-10">
-          <SectionHeader eyebrow="02" label="Rooms" count={ROOMS.length} trailing={<TimelineLegend />} />
+          <SectionHeader eyebrow="01" label="Rooms" count={ROOMS.length} trailing={<TimelineLegend />} />
           <div className="mt-6">
             <Timeline nowMin={nowMin} />
           </div>
@@ -345,11 +362,11 @@ function TodayPage() {
       <section className="border-b border-black/[0.08]">
         <div className="mx-auto max-w-[1440px] px-6 py-10">
           <SectionHeader
-            eyebrow="03"
+            eyebrow="02"
             label="Later today"
             count={SERVICES.filter((s) => s.end > nowMin).length}
           />
-          <div className="mt-6 overflow-hidden rounded-[10px] border border-black/[0.08] bg-white">
+          <div className="mt-6 overflow-hidden border-y border-black/[0.08] bg-white">
             {SERVICES.filter((s) => s.end > nowMin)
               .sort((a, b) => a.start - b.start)
               .map((s, i) => (
@@ -363,7 +380,7 @@ function TodayPage() {
       <section>
         <div className="mx-auto max-w-[1440px] px-6 py-10">
           <SectionHeader
-            eyebrow="04"
+            eyebrow="03"
             label="Finances"
             count={FINANCES.length}
             trailing={
