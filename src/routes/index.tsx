@@ -1395,7 +1395,7 @@ function Timeline({
 // Focus overlay — the choreography behind a single cue
 // ------------------------------------------------------------------
 
-function FocusOverlay({ cue, onClose }: { cue: Cue; onClose: () => void }) {
+function FocusOverlay({ cue, onClose }: { cue: Prompt; onClose: () => void }) {
   const service = cue.serviceId ? SERVICES.find((s) => s.id === cue.serviceId) : undefined;
   const rc = cue.room ? roomColor(cue.room) : ACCENT;
 
