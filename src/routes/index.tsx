@@ -809,13 +809,7 @@ function TodayPage() {
             {cue && (
               <>
                 <button
-                  onClick={() => setFocusOpen(true)}
-                  className="text-[13.5px] font-medium text-black/60 underline decoration-black/15 underline-offset-4 transition-colors hover:text-black hover:decoration-black"
-                >
-                  Focus
-                </button>
-                <button
-                  onClick={nextCue}
+                  onClick={confirmCue}
                   className="text-[13.5px] font-medium text-black/85 underline decoration-black/25 underline-offset-4 transition-colors hover:decoration-black"
                 >
                   {cue.primary}
