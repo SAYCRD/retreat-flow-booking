@@ -90,19 +90,26 @@ const ATTENTION: Attention[] = [
   {
     id: "a2",
     severity: "warn",
+    title: "Short turnover · Sofia Park",
+    detail: "Sound Healing in Om Space ends 3:30 PM. Infrared Sauna starts 3:20 PM — 15 min between sessions. Let Sofia know.",
+    action: "Notify Sofia",
+  },
+  {
+    id: "a3",
+    severity: "warn",
+    title: "Short turnover · The Temple",
+    detail: "Ceremonial Tea ends 3:20 PM. Grandmother Crystal Bowl starts 4:30 PM — reset room, low light, clear tea service.",
+    action: "Mark ready",
+  },
+  {
+    id: "a4",
+    severity: "warn",
     title: "Room set required · The Temple",
     detail: "Amara's Ceremonial Tea starts 2:50 PM — 20 min out. Tea service + low light.",
     action: "Mark ready",
   },
   {
-    id: "a3",
-    severity: "info",
-    title: "Sofia Park · back-to-back",
-    detail: "Om Space 2:40 PM → Infrared 3:20 PM. Confirm she's aware.",
-    action: "Notify",
-  },
-  {
-    id: "a4",
+    id: "a5",
     severity: "info",
     title: "Amara · 3-service journey",
     detail: "Reading → Tea → Infrared. Smooth handoff after 3:20 PM.",
@@ -151,38 +158,27 @@ const ACCENT = "#3730ff"; // electric indigo (system accent, not a guest)
 const SURFACE = "#ffffff";
 const INK = "#0a0a0a";
 
-// Curated guest palette — each guest gets a consistent, distinct color that
-// carries through their avatar, their timeline stripe, and their row.
-const GUEST_PALETTE = [
-  "#c2410c", // terracotta
-  "#a16207", // ochre
-  "#4d7c0f", // moss
-  "#0f766e", // teal
-  "#1d4ed8", // indigo
-  "#7e22ce", // plum
-  "#be185d", // rose
-  "#475569", // slate
-  "#b45309", // amber
-  "#0369a1", // deep blue
-  "#65a30d", // olive
-  "#9333ea", // violet
-] as const;
+// Each room has its own color — the color follows the space, not the guest.
+// It carries through the timeline card top-bar, the ledger stripe, and the avatar tint.
+const ROOM_COLORS: Record<string, string> = {
+  "Infrared Room": "#c2410c", // terracotta / warm heat
+  "Buddha Massage": "#0f766e", // deep teal
+  "Ayurveda Room": "#a16207", // ochre
+  "Om Space": "#7e22ce", // plum
+  "The Temple": "#be185d", // rose
+  "Land": "#4d7c0f", // moss
+};
 
-// Deterministic distinct color per unique guest (assigned in appearance order).
-const GUEST_COLOR_MAP: Record<string, string> = (() => {
-  const map: Record<string, string> = {};
-  let i = 0;
-  for (const s of SERVICES) {
-    if (!(s.guest in map)) {
-      map[s.guest] = GUEST_PALETTE[i % GUEST_PALETTE.length];
-      i++;
-    }
-  }
-  return map;
-})();
+const NEUTRAL = "#475569"; // slate for anything without a room
 
-function guestColor(name: string): string {
-  return GUEST_COLOR_MAP[name] ?? GUEST_PALETTE[0];
+function roomColor(room: string): string {
+  return ROOM_COLORS[room] ?? NEUTRAL;
+}
+
+// For finances (guest-level, no room): use the guest's first room of the day.
+function guestRoomColor(guest: string): string {
+  const svc = SERVICES.find((s) => s.guest === guest);
+  return svc ? roomColor(svc.room) : NEUTRAL;
 }
 
 function tint(hex: string, alpha: number): string {
@@ -302,13 +298,13 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* Do this next — cycles through attention items */}
+      {/* Focus on — cycles through attention items */}
       <section className="border-b border-black/[0.08]" style={{ background: "#fafafa" }}>
         <div className="mx-auto max-w-[1440px] px-6 py-5">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div className="flex items-center gap-3">
               <span className="text-[11px] uppercase tracking-[0.18em] text-black/45" style={{ fontFamily: MONO }}>
-                Do this next
+                Focus on
               </span>
               <span
                 className="rounded-[3px] bg-black/[0.06] px-1.5 py-0.5 text-[10px] tabular-nums text-black/55"
@@ -358,23 +354,9 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* Later today */}
-      <section className="border-b border-black/[0.08]">
-        <div className="mx-auto max-w-[1440px] px-6 py-10">
-          <SectionHeader
-            eyebrow="02"
-            label="Later today"
-            count={SERVICES.filter((s) => s.end > nowMin).length}
-          />
-          <div className="mt-6 overflow-hidden border-y border-black/[0.08] bg-white">
-            {SERVICES.filter((s) => s.end > nowMin)
-              .sort((a, b) => a.start - b.start)
-              .map((s, i) => (
-                <ServiceRow key={s.id} s={s} first={i === 0} />
-              ))}
-          </div>
-        </div>
-      </section>
+      {/* Coming Up */}
+      <ComingUp nowMin={nowMin} />
+
 
       {/* Finances */}
       <section>
@@ -395,7 +377,7 @@ function TodayPage() {
           />
           <div className="mt-6 overflow-hidden rounded-[10px] border border-black/[0.08] bg-white">
             {FINANCES.map((f, i) => {
-              const gc = guestColor(f.guest);
+              const gc = guestRoomColor(f.guest);
               return (
                 <div
                   key={f.guest}
@@ -404,9 +386,9 @@ function TodayPage() {
                   } hover:bg-black/[0.015]`}
                 >
                   <div className="col-span-6 flex items-center gap-3">
-                    <Avatar name={f.guest} />
+                    <Avatar name={f.guest} color={gc} />
                     <div>
-                      <div className="text-[15px] font-semibold" style={{ color: gc }}>{f.guest}</div>
+                      <div className="text-[15px] font-semibold text-black">{f.guest}</div>
                       <div className="text-[12px] text-black/50" style={{ fontFamily: MONO }}>
                         {f.services} service{f.services > 1 ? "s" : ""}
                       </div>
@@ -535,7 +517,7 @@ function TimelineLegend() {
 }
 
 function ServiceRow({ s, first }: { s: Service; first: boolean }) {
-  const gc = guestColor(s.guest);
+  const gc = roomColor(s.room);
   return (
     <div
       className={`relative grid grid-cols-12 items-center gap-4 px-5 py-5 pl-7 text-[14px] transition-colors hover:bg-black/[0.015] ${
@@ -555,7 +537,7 @@ function ServiceRow({ s, first }: { s: Service; first: boolean }) {
         </div>
       </div>
       <div className="col-span-5 flex items-center gap-3">
-        <Avatar name={s.guest} />
+        <Avatar name={s.guest} color={gc} />
         <div className="min-w-0">
           <div className="truncate text-[15px] font-semibold tracking-tight text-black">
             {s.guest}
@@ -574,7 +556,7 @@ function ServiceRow({ s, first }: { s: Service; first: boolean }) {
         </div>
       </div>
       <div className="col-span-3">
-        <div className="text-[15px] font-medium">{s.room}</div>
+        <div className="text-[15px] font-medium" style={{ color: gc }}>{s.room}</div>
         <div className="text-[12px] text-black/55" style={{ fontFamily: MONO }}>
           {s.practitioner}
         </div>
@@ -591,21 +573,104 @@ function ServiceRow({ s, first }: { s: Service; first: boolean }) {
   );
 }
 
-function Avatar({ name }: { name: string }) {
+function ComingUp({ nowMin }: { nowMin: number }) {
+  const [sortBy, setSortBy] = useState<"time" | "room">("time");
+  const upcoming = SERVICES.filter((s) => s.end > nowMin);
+
+  const grouped = ROOMS
+    .map((room) => ({
+      room,
+      items: upcoming.filter((s) => s.room === room).sort((a, b) => a.start - b.start),
+    }))
+    .filter((g) => g.items.length > 0);
+
+  const flat = [...upcoming].sort((a, b) => a.start - b.start);
+
+  return (
+    <section className="border-b border-black/[0.08]">
+      <div className="mx-auto max-w-[1440px] px-6 py-10">
+        <SectionHeader
+          eyebrow="02"
+          label="Coming Up"
+          count={upcoming.length}
+          trailing={
+            <div
+              className="inline-flex items-center gap-0 overflow-hidden rounded-full border border-black/10 bg-white p-0.5 text-[12px]"
+              style={{ fontFamily: MONO }}
+            >
+              {(["time", "room"] as const).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setSortBy(k)}
+                  className={`rounded-full px-3 py-1 uppercase tracking-[0.14em] transition-colors ${
+                    sortBy === k
+                      ? "bg-black text-white"
+                      : "text-black/55 hover:text-black"
+                  }`}
+                >
+                  {k}
+                </button>
+              ))}
+            </div>
+          }
+        />
+
+        {sortBy === "time" ? (
+          <div className="mt-6 overflow-hidden border-y border-black/[0.08] bg-white">
+            {flat.map((s, i) => (
+              <ServiceRow key={s.id} s={s} first={i === 0} />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-6 space-y-6">
+            {grouped.map((g) => {
+              const rc = roomColor(g.room);
+              return (
+                <div key={g.room}>
+                  <div className="mb-2 flex items-baseline gap-3 px-1">
+                    <span
+                      className="inline-block h-2.5 w-2.5 rounded-full"
+                      style={{ background: rc }}
+                    />
+                    <h3 className="text-[18px] font-semibold tracking-tight" style={{ color: rc }}>
+                      {g.room}
+                    </h3>
+                    <span
+                      className="text-[12px] tabular-nums text-black/45"
+                      style={{ fontFamily: MONO }}
+                    >
+                      {String(g.items.length).padStart(2, "0")}
+                    </span>
+                  </div>
+                  <div className="overflow-hidden border-y border-black/[0.08] bg-white">
+                    {g.items.map((s, i) => (
+                      <ServiceRow key={s.id} s={s} first={i === 0} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Avatar({ name, color = NEUTRAL }: { name: string; color?: string }) {
   const initials = name
     .split(/\s+/)
     .slice(0, 2)
     .map((w) => w[0])
     .join("")
     .toUpperCase();
-  const gc = guestColor(name);
   return (
     <div
       className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[13px] font-semibold"
       style={{
-        background: tint(gc, 0.16),
-        color: gc,
-        boxShadow: `inset 0 0 0 1.5px ${tint(gc, 0.45)}`,
+        background: tint(color, 0.16),
+        color,
+        boxShadow: `inset 0 0 0 1.5px ${tint(color, 0.45)}`,
       }}
     >
       {initials}
@@ -760,7 +825,7 @@ function Timeline({ nowMin }: { nowMin: number }) {
                 const height = (s.end - s.start) * PX_PER_MIN;
                 const isPast = s.end <= nowMin;
                 const isLive = s.start <= nowMin && s.end > nowMin;
-                const gc = guestColor(s.guest);
+                const gc = roomColor(s.room);
 
                 const style: React.CSSProperties = (() => {
                   if (s.status === "requested")
