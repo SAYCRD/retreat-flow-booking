@@ -354,23 +354,9 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* Later today */}
-      <section className="border-b border-black/[0.08]">
-        <div className="mx-auto max-w-[1440px] px-6 py-10">
-          <SectionHeader
-            eyebrow="02"
-            label="Later today"
-            count={SERVICES.filter((s) => s.end > nowMin).length}
-          />
-          <div className="mt-6 overflow-hidden border-y border-black/[0.08] bg-white">
-            {SERVICES.filter((s) => s.end > nowMin)
-              .sort((a, b) => a.start - b.start)
-              .map((s, i) => (
-                <ServiceRow key={s.id} s={s} first={i === 0} />
-              ))}
-          </div>
-        </div>
-      </section>
+      {/* Coming Up */}
+      <ComingUp nowMin={nowMin} />
+
 
       {/* Finances */}
       <section>
