@@ -1092,15 +1092,14 @@ function Timeline({
                     />
 
                     <div className="flex flex-1 flex-col px-3 pt-3 pb-2.5">
-                      {/* Time — big, monospace, sits at the top so it reads first */}
-                      <div className="flex items-baseline justify-between gap-2">
+                      {/* Time — from on one line, to on the next, so it reads calmly */}
+                      <div className="flex items-start justify-between gap-2">
                         <div
-                          className="whitespace-nowrap text-[14px] font-semibold tabular-nums leading-none tracking-tight"
+                          className="whitespace-nowrap text-[15px] font-semibold tabular-nums leading-[1.15] tracking-tight"
                           style={{ color: metaColor, fontFamily: MONO }}
                         >
-                          {fmt(s.start)}
-                          <span className="mx-1 opacity-40">–</span>
-                          {fmt(s.end)}
+                          <div>{fmt(s.start)}</div>
+                          <div style={{ opacity: 0.55 }}>{fmt(s.end)}</div>
                         </div>
                         <div
                           className="shrink-0 whitespace-nowrap text-[10.5px] font-semibold tabular-nums tracking-[0.08em]"
@@ -1109,6 +1108,7 @@ function Timeline({
                           {duration}m
                         </div>
                       </div>
+
 
                       {/* Service — the offering, in the room's chroma */}
                       <div
