@@ -1025,10 +1025,10 @@ function Timeline({
                 ].join(","),
               }}
             >
-              {/* Now line — barely visible */}
+              {/* Now line — almost invisible */}
               <div
                 className="pointer-events-none absolute inset-x-0 z-10 h-px"
-                style={{ top: nowTop, background: ACCENT, opacity: 0.28 }}
+                style={{ top: nowTop, background: ACCENT, opacity: 0.09 }}
               />
 
 
