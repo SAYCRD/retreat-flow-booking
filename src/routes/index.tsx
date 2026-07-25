@@ -1337,18 +1337,32 @@ function Timeline({
                 const activeWhisper = (whispersByService[s.id] ?? []).find(
                   (w) => w.id === activeCueId,
                 );
-                const preSessionKinds: WhisperKind[] = ["checkin", "escort", "turnover", "setup", "elixir"];
+                const preSessionKinds: WhisperKind[] = ["notify", "checkin", "escort", "turnover", "setup", "elixir", "pickup"];
                 const gapWhisper = activeWhisper && preSessionKinds.includes(activeWhisper.kind) ? activeWhisper : null;
                 const badgeWhisper = activeWhisper && !gapWhisper ? activeWhisper : null;
                 const gapWhisperLabel = gapWhisper
                   ? (gapWhisper.kind === "turnover" || gapWhisper.kind === "setup"
                       ? s.room
-                      : firstName(s.guest))
+                      : gapWhisper.kind === "notify"
+                        ? s.practitioner.replace(/^(Dr\.?|Mr\.?|Ms\.?)\s+/i, "").split(/\s+/)[0]
+                        : firstName(s.guest))
+                  : null;
+                const gapWhisperVerb = gapWhisper
+                  ? ({
+                      notify: "Notify",
+                      checkin: "Check in",
+                      escort: "Walk in",
+                      turnover: "Reset",
+                      setup: "Set up",
+                      elixir: "Tea for",
+                      pickup: "Pick up",
+                    } as Record<WhisperKind, string>)[gapWhisper.kind]
                   : null;
 
                 return (
                   <div
                     key={s.id}
+                    id={`svc-${s.id}`}
                     className="group absolute inset-x-0 flex flex-col rounded-none bg-white transition-[transform,box-shadow] duration-200 ease-out will-change-transform hover:z-20 hover:-translate-y-[1px] cursor-pointer"
                     style={{
                       top: top + 1,
@@ -1376,37 +1390,49 @@ function Timeline({
                       }}
                     />
 
-                    {/* Gap whisper — labeled pill in the pre-session space
-                        (footprints + guest, broom + room, cocktail + guest…).
-                        Only visible when this cue is the one being shown. */}
+                    {/* Gap whisper — candy-pill sitting fully above the card
+                        in the pre-session space (Set up · Om Space, Walk in ·
+                        Amara, Tea for · Marcus…). Only visible when this cue
+                        is the one being shown in Coming Up. */}
                     {gapWhisper && (() => {
                       const WIcon = WHISPER_ICON[gapWhisper.kind];
                       return (
                         <div
                           aria-hidden
-                          className="pointer-events-none absolute left-2 z-30 flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-2 py-1"
+                          className="pointer-events-none absolute left-2 z-30 flex items-center gap-2 whitespace-nowrap rounded-full pl-2 pr-3.5 py-1.5"
                           style={{
-                            top: -14,
+                            bottom: "100%",
+                            marginBottom: 8,
+                            background: `linear-gradient(180deg, #ffffff 0%, ${tint(gc, 0.14)} 100%)`,
                             color: gc,
-                            boxShadow: `0 2px 8px -2px ${tint(gc, 0.45)}, 0 0 0 1.5px ${tint(gc, 0.35)}`,
+                            boxShadow: `0 6px 18px -6px ${tint(gc, 0.55)}, 0 2px 4px -2px ${tint(gc, 0.35)}, inset 0 0 0 1.5px ${tint(gc, 0.4)}, inset 0 1px 0 rgba(255,255,255,0.8)`,
                           }}
                         >
-                          <WIcon size={13} strokeWidth={2.25} />
                           <span
-                            className="text-[11.5px] font-semibold tracking-tight"
+                            className="grid h-6 w-6 place-items-center rounded-full"
+                            style={{ background: tint(gc, 0.22), color: gc }}
+                          >
+                            <WIcon size={14} strokeWidth={2.25} />
+                          </span>
+                          <span
+                            className="text-[12.5px] font-semibold tracking-tight"
                             style={{ color: "#0a0a0a" }}
                           >
+                            <span style={{ color: gc, opacity: 0.85 }}>{gapWhisperVerb}</span>
+                            <span className="mx-1 text-black/30">·</span>
                             {gapWhisperLabel}
                           </span>
                           {gapWhisper.urgent && (
                             <span
                               aria-hidden
-                              className="ml-0.5 h-1.5 w-1.5 rounded-full bg-amber-500"
+                              className="ml-0.5 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white"
                             />
                           )}
                         </div>
                       );
                     })()}
+
+
 
                     {/* Badge whisper — for non-gap kinds (payment, message, handoff, conflict)
                         floats a small dot in the top-right of the card. */}
