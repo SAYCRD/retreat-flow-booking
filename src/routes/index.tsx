@@ -8,7 +8,7 @@ const WHISPER_ICON = {
   escort: Footprints,
   checkin: HandHeart,
   turnover: Wind,
-  reset: Feather,
+  reset: BellRing,
   setup: Flower2,
   pickup: Hand,
   handoff: Wand2,
@@ -230,8 +230,8 @@ function generatePrompts(nowMin: number): Prompt[] {
   });
 
   // 2b. Room resets — EVERY completed session needs the room reset. Fires the
-  // moment a session ends and stays live for ~45 minutes so housekeeping has a
-  // clear signal even when no back-to-back booking follows.
+  // moment a session ends and stays live for ~45 minutes as a generic notify cue
+  // so the right person (practitioner, front desk, or later-defined role) can act.
   SERVICES.filter((s) => s.end <= nowMin + 2 && s.end > nowMin - 45).forEach((s) => {
     // Skip if a turnover prompt already exists for this ended session (it
     // covers the same reset action ahead of a tight follow-on booking).
@@ -242,11 +242,11 @@ function generatePrompts(nowMin: number): Prompt[] {
     out.push({
       id: `reset-${s.id}`,
       kind: "reset",
-      headline: `Reset ${s.room} after ${firstName(s.guest)}`,
-      reason: `${s.service} ended ${fmt(s.end)} · notify housekeeping`,
+      headline: `Notify — ${s.room} session ended`,
+      reason: `${s.service} ended ${fmt(s.end)}`,
       room: s.room,
       serviceId: s.id,
-      primary: "Room reset",
+      primary: "Notified",
     });
   });
 
@@ -1344,7 +1344,7 @@ function Timeline({
       checkin: "Check in",
       escort: "Walk in",
       turnover: "Reset",
-      reset: "Reset room",
+      reset: "Notify",
       setup: "Set up",
       elixir: "Tea for",
       pickup: "Pick up",
@@ -1849,7 +1849,7 @@ function FocusOverlay({ cue, onClose }: { cue: Prompt; onClose: () => void }) {
       case "turnover":
         base.push(
           { icon: DoorOpen, label: "Close out prior session", hint: "Escort guest out, collect linens." },
-          { icon: RefreshCcw, label: "Room reset", hint: "Reset props, ventilate, wipe surfaces." },
+          { icon: BellRing, label: "Notify reset", hint: "Let the right person know the room needs refreshing." },
           { icon: Sparkles, label: "Set for next service", hint: service ? `Prepare for ${service.service}` : "Prepare space" },
         );
         break;
@@ -1877,7 +1877,7 @@ function FocusOverlay({ cue, onClose }: { cue: Prompt; onClose: () => void }) {
       case "handoff":
         base.push(
           { icon: Waves, label: "Notify practitioner", hint: service ? `${service.practitioner} — short turnover` : "Short turnover heads-up" },
-          { icon: RefreshCcw, label: "Fast room reset", hint: "Skip full ventilation, refresh linens only." },
+          { icon: BellRing, label: "Fast notify reset", hint: "Quick heads-up: room needs a fast refresh." },
           { icon: UserCheck, label: "Guide next guest in", hint: "Signal ready to front desk." },
         );
         break;
