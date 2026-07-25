@@ -415,7 +415,26 @@ function TodayPage() {
               {cue.primary}
             </button>
           </div>
+
+          {/* Arrows anchored bottom-right of the strip — larger, easier to reach */}
+          <div className="mx-auto flex max-w-[1440px] items-center justify-end gap-1 px-6 pb-3">
+            <button
+              onClick={prevCue}
+              aria-label="Previous cue"
+              className="grid h-9 w-9 place-items-center rounded-full text-[18px] text-black/45 transition-colors hover:bg-black/[0.04] hover:text-black"
+            >
+              ‹
+            </button>
+            <button
+              onClick={nextCue}
+              aria-label="Next cue"
+              className="grid h-9 w-9 place-items-center rounded-full text-[18px] text-black/45 transition-colors hover:bg-black/[0.04] hover:text-black"
+            >
+              ›
+            </button>
+          </div>
         </div>
+
       </section>
 
 
