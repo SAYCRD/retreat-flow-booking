@@ -524,8 +524,8 @@ function TodayPage() {
     if (!cue?.serviceId) return;
     const el = document.getElementById(`svc-${cue.serviceId}`);
     if (!el) return;
-    // header (48) + Coming Up strip (~68) + room headers (64) + whisper space.
-    const stickyOffset = 48 + 68 + 64 + 48;
+    // header (~44) + Coming Up strip (~88) + room headers (64) + whisper space.
+    const stickyOffset = 44 + 88 + 64 + 48;
     const rect = el.getBoundingClientRect();
     const target = window.scrollY + rect.top - stickyOffset;
     window.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
@@ -539,31 +539,31 @@ function TodayPage() {
       className="min-h-screen antialiased"
       style={{ background: SURFACE, color: INK, fontFamily: DISPLAY }}
     >
-      {/* Top bar */}
-      <header className="sticky top-0 z-30 border-b border-black/[0.08] backdrop-blur-md" style={{ background: "rgba(255,255,255,0.85)" }}>
-        <div className="mx-auto flex max-w-[1440px] items-center gap-8 px-6 py-3">
+      {/* Top bar — quiet, receded navigation so the broadcast bar owns attention */}
+      <header className="sticky top-0 z-30 border-b border-black/[0.06] backdrop-blur-md" style={{ background: "rgba(255,255,255,0.72)" }}>
+        <div className="mx-auto flex max-w-[1440px] items-center gap-6 px-6 py-2.5">
           <div className="flex items-center gap-2">
             <div
-              className="grid h-6 w-6 place-items-center rounded-[6px] text-[11px] font-semibold text-white"
+              className="grid h-5 w-5 place-items-center rounded-[5px] text-[10px] font-semibold text-white"
               style={{ background: INK }}
             >
               S
             </div>
-            <span className="text-[14px] font-semibold tracking-tight">Seondya</span>
+            <span className="text-[13px] font-medium tracking-tight text-black/80">Seondya</span>
           </div>
 
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-0.5 md:flex">
             {NAV.map((item, i) => (
               <button
                 key={item.label}
-                className={`group flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[13px] transition-colors ${
-                  i === 0 ? "bg-black/[0.06] text-black" : "text-black/55 hover:bg-black/[0.04] hover:text-black"
+                className={`group flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[12px] transition-colors ${
+                  i === 0 ? "bg-black/[0.05] text-black" : "text-black/45 hover:bg-black/[0.03] hover:text-black/70"
                 }`}
               >
                 {item.label}
                 <span
                   className={`hidden rounded-[3px] px-1 text-[9px] font-medium tracking-wide md:inline ${
-                    i === 0 ? "bg-black/10 text-black/60" : "bg-black/[0.04] text-black/35 group-hover:bg-black/[0.08]"
+                    i === 0 ? "bg-black/10 text-black/55" : "bg-black/[0.03] text-black/30 group-hover:bg-black/[0.06]"
                   }`}
                   style={{ fontFamily: MONO }}
                 >
@@ -575,49 +575,49 @@ function TodayPage() {
 
           <div className="ml-auto flex items-center gap-2">
             <button
-              className="flex items-center gap-2 rounded-[6px] border border-black/10 bg-white px-2.5 py-1.5 text-[12px] text-black/55 shadow-[0_1px_0_rgba(0,0,0,0.02)] hover:text-black"
+              className="flex items-center gap-2 rounded-[6px] border border-black/10 bg-white/70 px-2 py-1 text-[11.5px] text-black/45 shadow-[0_1px_0_rgba(0,0,0,0.02)] hover:bg-white hover:text-black/60"
             >
-              <span>Search or command</span>
+              <span>Search</span>
               <span
-                className="rounded-[3px] border border-black/10 bg-black/[0.03] px-1 py-px text-[10px] text-black/50"
+                className="rounded-[3px] border border-black/10 bg-black/[0.03] px-1 py-px text-[9.5px] text-black/45"
                 style={{ fontFamily: MONO }}
               >
                 ⌘K
               </span>
             </button>
-            <div className="h-6 w-px bg-black/10" />
-            <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-gradient-to-br from-[#ffb98a] to-[#e06b5c] ring-1 ring-black/10" />
-              <span className="text-[13px] font-medium">Alba</span>
+            <div className="h-5 w-px bg-black/8" />
+            <div className="flex items-center gap-1.5">
+              <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#ffb98a] to-[#e06b5c] ring-1 ring-black/10" />
+              <span className="text-[12px] font-medium text-black/70">Alba</span>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="border-b border-black/[0.08]">
-        <div className="mx-auto max-w-[1440px] px-6 pt-10 pb-8">
-          <div className="flex flex-wrap items-end justify-between gap-6">
+      {/* Hero — lighter and more compact so the broadcast bar can breathe */}
+      <section className="border-b border-black/[0.06]">
+        <div className="mx-auto max-w-[1440px] px-6 pt-8 pb-6">
+          <div className="flex flex-wrap items-end justify-between gap-5">
             <div>
-              <div className="flex items-center gap-2 text-[12px] text-black/50">
+              <div className="flex items-center gap-2 text-[11.5px] text-black/45">
                 <LiveDot />
-                <span className="font-medium text-black/70">Live</span>
-                <span className="text-black/30">·</span>
+                <span className="font-medium text-black/65">Live</span>
+                <span className="text-black/25">·</span>
                 <span>{date}</span>
               </div>
-              <h1 className="mt-3 text-[52px] font-semibold leading-[1] tracking-[-0.035em] md:text-[64px]">
+              <h1 className="mt-2 text-[44px] font-semibold leading-[1] tracking-[-0.03em] md:text-[56px]">
                 Today
               </h1>
             </div>
 
-            <div className="flex items-end gap-8">
+            <div className="flex items-end gap-6">
               <Stat label="In session" value={inSession} />
               <Stat label="To come" value={stillToCome} />
               <Stat label="Conflicts" value={overlaps} accent />
-              <div className="hidden h-16 w-px bg-black/10 md:block" />
+              <div className="hidden h-12 w-px bg-black/8 md:block" />
               <div className="text-right">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-black/45" style={{ fontFamily: MONO }}>Now</div>
-                <div className="mt-1 text-[32px] font-semibold tabular-nums leading-none tracking-tight" style={{ fontFamily: DISPLAY }}>
+                <div className="text-[10.5px] uppercase tracking-[0.14em] text-black/40" style={{ fontFamily: MONO }}>Now</div>
+                <div className="mt-0.5 text-[28px] font-semibold tabular-nums leading-none tracking-tight" style={{ fontFamily: DISPLAY }}>
                   {clock}
                 </div>
               </div>
@@ -626,15 +626,19 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* Coming up — tall sticky broadcast bar pinned just below the header */}
+      {/* Coming up — distinct notification layer separated from navigation */}
       <section
-        className="sticky z-20 border-y border-black/[0.08] bg-white/95 backdrop-blur-md shadow-[0_12px_40px_-16px_rgba(0,0,0,0.12)]"
-        style={{ top: 48 }}
+        className="sticky z-20 border-y border-black/[0.08] backdrop-blur-md"
+        style={{
+          top: 44,
+          background: "rgba(255,253,244,0.97)",
+          boxShadow: "0 1px 0 rgba(253,224,71,0.35) inset, 0 18px 50px -20px rgba(0,0,0,0.18)",
+        }}
       >
-        <div className="mx-auto flex max-w-[1440px] items-center gap-4 px-6 py-5">
+        <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-6 py-6">
           {/* broadcast label */}
           <div className="flex shrink-0 items-center gap-2.5">
-            <span className="relative grid h-8 w-8 place-items-center text-black/70">
+            <span className="relative grid h-9 w-9 place-items-center text-black/75">
               <span
                 aria-hidden
                 key={cue?.id ?? "empty"}
@@ -647,26 +651,28 @@ function TodayPage() {
               />
               <span
                 aria-hidden
-                className="absolute inset-0 rounded-full opacity-[0.12]"
-                style={{ background: "#fde047", boxShadow: "0 0 16px #fde047" }}
+                className="absolute inset-0 rounded-full opacity-[0.14]"
+                style={{ background: "#fde047", boxShadow: "0 0 18px #fde047" }}
               />
-              <Radio size={18} strokeWidth={2} className="relative z-10" />
+              <Radio size={20} strokeWidth={2} className="relative z-10" />
             </span>
-            <span className="text-[14px] font-semibold tracking-tight text-black">
-              <Highlight color="#fde047">Coming up</Highlight>
-            </span>
-            <span
-              className="hidden text-[12px] tabular-nums text-black/45 sm:inline"
-              style={{ fontFamily: MONO }}
-            >
-              {String(cueIdx + 1).padStart(2, "0")}/{String(prompts.length).padStart(2, "0")}
-            </span>
+            <div className="flex flex-col">
+              <span className="text-[14px] font-semibold tracking-tight text-black">
+                <Highlight color="#fde047">Coming up</Highlight>
+              </span>
+              <span
+                className="hidden text-[11px] tabular-nums text-black/40 sm:inline"
+                style={{ fontFamily: MONO }}
+              >
+                {String(cueIdx + 1).padStart(2, "0")}/{String(prompts.length).padStart(2, "0")}
+              </span>
+            </div>
           </div>
 
-          <span className="h-7 w-px shrink-0 bg-black/10" />
+          <span className="h-10 w-px shrink-0 bg-black/10" />
 
           {/* cue body */}
-          <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3.5">
             {cue ? (() => {
               const Icon = WHISPER_ICON[cue.kind];
               const tint = cue.room ? roomColor(cue.room) : "#0a0a0a";
@@ -675,10 +681,10 @@ function TodayPage() {
                   <span className="relative shrink-0">
                     <span
                       aria-hidden
-                      className="grid h-8 w-8 place-items-center rounded-full"
+                      className="grid h-9 w-9 place-items-center rounded-full"
                       style={{ background: `${tint}14`, color: tint }}
                     >
-                      <Icon size={16} strokeWidth={2} />
+                      <Icon size={18} strokeWidth={2} />
                     </span>
                     {cue.urgent && (
                       <span aria-hidden className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
@@ -690,7 +696,7 @@ function TodayPage() {
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline gap-2">
-                      <h3 className="truncate text-[16px] font-semibold tracking-tight text-black">
+                      <h3 className="truncate text-[17px] font-semibold tracking-tight text-black">
                         {cue.headline}
                       </h3>
                       {cue.urgent && (
@@ -744,14 +750,14 @@ function TodayPage() {
               <button
                 onClick={prevCue}
                 aria-label="Previous cue"
-                className="grid h-8 w-8 place-items-center rounded-full text-[17px] leading-none text-black/45 transition-colors hover:bg-black/[0.05] hover:text-black"
+                className="grid h-9 w-9 place-items-center rounded-full text-[19px] leading-none text-black/45 transition-colors hover:bg-black/[0.05] hover:text-black"
               >
                 ‹
               </button>
               <button
                 onClick={nextCue}
                 aria-label="Next cue"
-                className="grid h-8 w-8 place-items-center rounded-full text-[17px] leading-none text-black/45 transition-colors hover:bg-black/[0.05] hover:text-black"
+                className="grid h-9 w-9 place-items-center rounded-full text-[19px] leading-none text-black/45 transition-colors hover:bg-black/[0.05] hover:text-black"
               >
                 ›
               </button>
@@ -1210,7 +1216,7 @@ function Timeline({
       {/* Room headers — stick under the top bar + Coming Up strip while the calendar scrolls */}
       <div
         className="sticky z-10 flex border-b border-black/[0.08] bg-white/95 backdrop-blur-md"
-        style={{ height: HEADER_H, top: 120 }}
+        style={{ height: HEADER_H, top: 136 }}
       >
         <div
           className="flex shrink-0 items-center justify-end border-r border-black/[0.06] pr-4 text-[11px] uppercase tracking-[0.14em] text-black/45"
