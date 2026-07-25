@@ -972,16 +972,25 @@ function Timeline({
                 const isLive = s.start <= nowMin && s.end > nowMin;
                 const isRequest = s.status === "requested";
                 const gc = roomColor(s.room);
+                const duration = Math.round(s.end - s.start);
+                const paid = FINANCES.find((f) => f.guest === s.guest)?.paid ?? false;
+                const practInitials = s.practitioner
+                  .replace(/^(Dr\.?|Mr\.?|Ms\.?)\s+/i, "")
+                  .split(/\s+/)
+                  .slice(0, 2)
+                  .map((w) => w[0])
+                  .join("")
+                  .toUpperCase();
 
-                // Clean card: transparent body, strong left color rail, no fills.
+                // Clean card: transparent body, thin colored rails, dark text.
                 const rail = isRequest
                   ? "repeating-linear-gradient(to bottom, #d97706 0 6px, transparent 6px 10px)"
                   : isPast
-                    ? tint(gc, 0.55)
+                    ? tint(gc, 0.5)
                     : gc;
-                const guestColor = isPast ? "rgba(0,0,0,0.42)" : "#0a0a0a";
-                const serviceColor = isPast ? "rgba(0,0,0,0.38)" : gc;
-                const metaColor = isPast ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.55)";
+                const nameColor = isPast ? "rgba(0,0,0,0.45)" : "#111111";
+                const serviceColor = isPast ? "rgba(0,0,0,0.42)" : gc;
+                const metaColor = isPast ? "rgba(0,0,0,0.40)" : "#3a3a3a";
 
                 const isHighlighted = highlightServiceId === s.id;
                 const HighlightIcon = highlightKind ? CUE_ICON[highlightKind] : null;
@@ -990,18 +999,19 @@ function Timeline({
                 return (
                   <div
                     key={s.id}
-                    className="group absolute left-1 right-1 flex flex-col overflow-hidden pl-4 pr-3 pt-2.5 pb-2 transition-colors hover:z-20 hover:bg-black/[0.02]"
+                    className="group absolute left-1 right-1 flex flex-col overflow-hidden pl-3 pr-3 pt-2.5 pb-2 transition-colors hover:z-20 hover:bg-black/[0.02]"
                     style={{
                       top: top + 2,
-                      height: Math.max(height - 4, 60),
-                      background: isLive ? tint(gc, 0.06) : "transparent",
+                      height: Math.max(height - 4, 72),
+                      background: isLive ? tint(gc, 0.05) : "transparent",
+                      borderTop: `1px solid ${rail}`,
                     }}
                     title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
                   >
-                    {/* Left color rail */}
+                    {/* Left color rail — very thin */}
                     <span
                       aria-hidden
-                      className="absolute left-0 top-1 bottom-1 w-[3px] rounded-full"
+                      className="absolute left-0 top-0 bottom-0 w-[2px]"
                       style={{ background: rail }}
                     />
 
@@ -1015,6 +1025,7 @@ function Timeline({
                       </span>
                     )}
 
+                    {/* Guest name + live dot */}
                     <div className="flex items-center gap-1.5">
                       {isLive && (
                         <span className="relative inline-flex h-2 w-2 shrink-0">
@@ -1029,8 +1040,8 @@ function Timeline({
                         </span>
                       )}
                       <div
-                        className="truncate text-[13.5px] font-semibold leading-tight tracking-[-0.01em]"
-                        style={{ color: guestColor, fontFamily: DISPLAY }}
+                        className="truncate text-[14px] font-semibold leading-tight tracking-[-0.01em]"
+                        style={{ color: nameColor, fontFamily: DISPLAY }}
                       >
                         {s.guest}
                         {s.partySize ? ` +${s.partySize - 1}` : ""}
@@ -1044,23 +1055,66 @@ function Timeline({
                         </span>
                       )}
                     </div>
+
+                    {/* Service — the chroma color */}
                     <div
                       className="mt-1 text-[17px] font-semibold leading-[1.1] tracking-[-0.02em]"
                       style={{ color: serviceColor, fontFamily: DISPLAY }}
                     >
                       {s.service}
                     </div>
-                    <div
-                      className="mt-1 truncate text-[12px] leading-tight"
-                      style={{ color: metaColor }}
-                    >
-                      {s.practitioner}
+
+                    {/* Practitioner row: initials chip + name */}
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <span
+                        className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[9.5px] font-bold"
+                        style={{
+                          background: tint(gc, 0.18),
+                          color: isPast ? metaColor : "#111111",
+                          boxShadow: `inset 0 0 0 1px ${tint(gc, 0.4)}`,
+                          fontFamily: DISPLAY,
+                        }}
+                      >
+                        {practInitials}
+                      </span>
+                      <span
+                        className="truncate text-[12.5px] font-medium leading-tight"
+                        style={{ color: metaColor }}
+                      >
+                        {s.practitioner}
+                      </span>
                     </div>
+
+                    {/* Footer: time · duration · paid */}
                     <div
-                      className="mt-auto pt-2 text-[11px] font-semibold tabular-nums"
+                      className="mt-auto flex items-center gap-2 pt-2 text-[11px] font-semibold tabular-nums"
                       style={{ color: metaColor, fontFamily: MONO }}
                     >
-                      {fmt(s.start)} – {fmt(s.end)}
+                      <span>{fmt(s.start)} – {fmt(s.end)}</span>
+                      <span className="opacity-40">·</span>
+                      <span>{duration}m</span>
+                      <span className="ml-auto" title={paid ? "Paid" : "Unpaid"}>
+                        {paid ? (
+                          <span
+                            className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold"
+                            style={{ background: "rgba(16,185,129,0.14)", color: "#059669" }}
+                          >
+                            $
+                          </span>
+                        ) : (
+                          <span
+                            className="relative inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold"
+                            style={{ background: "rgba(0,0,0,0.05)", color: "rgba(0,0,0,0.45)" }}
+                          >
+                            $
+                            <span
+                              aria-hidden
+                              className="absolute left-1/2 top-1/2 h-[1.5px] w-[14px] -translate-x-1/2 -translate-y-1/2 rotate-45"
+                              style={{ background: "rgba(0,0,0,0.55)" }}
+                            />
+                          </span>
+                        )}
+                      </span>
                     </div>
                   </div>
                 );
