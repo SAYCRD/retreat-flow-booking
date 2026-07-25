@@ -8,6 +8,7 @@ const WHISPER_ICON = {
   escort: Footprints,
   checkin: ClipboardCheck,
   turnover: Brush,
+  reset: Brush,
   setup: Sparkles,
   pickup: ArrowRight,
   handoff: Radio,
