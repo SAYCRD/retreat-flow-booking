@@ -133,6 +133,7 @@ const CUES: Cue[] = [
     reason: "Sound Healing ends 3:30 · Infrared Sauna starts 3:20",
     room: "Infrared Room",
     primary: "Notified",
+    urgent: true,
   },
 ];
 
