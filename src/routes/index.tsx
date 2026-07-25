@@ -1337,8 +1337,24 @@ function Timeline({
     } as Record<WhisperKind, string>)[activeCue.kind];
 
 
-    return { topMin, label, verb, after, overlapsNext, kind: activeCue.kind, room: s.room, gc: roomColor(s.room) };
+    return { topMin, label, verb, after, overlapsNext, kind: activeCue.kind, room: s.room, gc: roomColor(s.room), serviceId: s.id };
   }, [activeCue]);
+
+  // After-markers (checkout, reset) must sit BELOW the actual rendered card,
+  // not just below the card's time-block. Cards use minHeight and grow when
+  // notes push content down, so a time-based topMin can land inside the card.
+  // Measure the referenced card's DOM bottom after render and use that.
+  const [afterTopPx, setAfterTopPx] = useState<number | null>(null);
+  useEffect(() => {
+    if (!cueMarker?.after || !cueMarker.serviceId) { setAfterTopPx(null); return; }
+    const el = document.getElementById(`svc-${cueMarker.serviceId}`);
+    if (!el) { setAfterTopPx(null); return; }
+    const measure = () => setAfterTopPx(el.offsetTop + el.offsetHeight + 8);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [cueMarker?.after, cueMarker?.serviceId]);
 
 
   const hours = useMemo(() => {
@@ -1470,12 +1486,18 @@ function Timeline({
               {cueMarker && cueMarker.room === room && (() => {
                 const Icon = WHISPER_ICON[cueMarker.kind];
                 const wash = `color-mix(in oklab, ${cueMarker.gc} 34%, white)`;
-                const shift = cueMarker.overlapsNext ? "translateY(-28px)" : undefined;
+                // For after-markers, anchor to the card's actual rendered
+                // bottom (cards grow past their time-block when notes wrap).
+                // Fall back to time-based placement until measurement lands.
+                const topPx = cueMarker.after && afterTopPx != null
+                  ? afterTopPx
+                  : cueMarker.topMin * PX_PER_MIN;
+                const shift = cueMarker.overlapsNext && afterTopPx == null ? "translateY(-28px)" : undefined;
                 return (
                   <div
                     id="active-cue-marker"
                     className="pointer-events-none absolute inset-x-0 z-30"
-                    style={{ top: cueMarker.topMin * PX_PER_MIN, transform: shift }}
+                    style={{ top: topPx, transform: shift }}
                   >
                     <div className="mx-2 flex w-fit items-center gap-2 px-2 py-1"
                       style={{
