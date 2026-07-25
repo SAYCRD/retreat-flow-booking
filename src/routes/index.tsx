@@ -109,6 +109,20 @@ function formatCurrency(n: number) {
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
+function smoothScrollTo(targetY: number, duration = 900) {
+  const startY = window.scrollY;
+  const delta = targetY - startY;
+  const startTime = performance.now();
+  function step(now: number) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    window.scrollTo(0, startY + delta * eased);
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+
 function generatePrompts(nowMin: number): Prompt[] {
   const out: Prompt[] = [];
 
