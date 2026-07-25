@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy } from "lucide-react";
+import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush } from "lucide-react";
 
-const CUE_ICON = {
+const WHISPER_ICON = {
   message: MessageSquare,
   escort: Footprints,
-  turnover: RefreshCcw,
+  turnover: Brush,
   setup: Sparkles,
   handoff: Radio,
+  elixir: Coffee,
+  payment: CreditCard,
+  conflict: AlertTriangle,
 } as const;
 
 
@@ -44,16 +47,16 @@ type Service = {
   note?: string;
 };
 
-type CueKind = "message" | "escort" | "turnover" | "setup" | "handoff";
-type Cue = {
+type WhisperKind = "message" | "escort" | "turnover" | "setup" | "handoff" | "elixir" | "payment" | "conflict";
+type Prompt = {
   id: string;
-  kind: CueKind;
-  headline: string;      // verb-first
+  kind: WhisperKind;
+  headline: string;      // poetic, fun, operational
   reason: string;        // quiet reason line
   room?: string;         // for accent color
   primary: string;       // primary action label
   urgent?: boolean;      // shows priority pulse + Urgent tag
-  serviceId?: string;    // links cue to a booking card on the timeline
+  serviceId?: string;    // links prompt to a booking card on the timeline
 };
 
 
@@ -95,54 +98,117 @@ const SERVICES: Service[] = [
   { id: "s11", guest: "Lena Costa", service: "Grandmother Crystal Bowl", room: "The Temple", practitioner: "Uqualla", start: t(16, 30), end: t(17, 15), status: "confirmed" },
 ];
 
-const CUES: Cue[] = [
-  {
-    id: "c1",
-    kind: "message",
-    headline: "Text Amara — arrival window open",
-    reason: "Intuitive Reading · Om Space · 2:00 PM",
-    room: "Om Space",
-    primary: "Mark done",
-    serviceId: "s6",
-  },
-  {
-    id: "c2",
-    kind: "escort",
-    headline: "Walk Amara to Om Space",
-    reason: "Session begins in 5 min · low light, quiet arrival",
-    room: "Om Space",
-    primary: "Walked in",
-    serviceId: "s6",
-  },
-  {
-    id: "c3",
-    kind: "turnover",
-    headline: "Turn Om Space for Sound Healing",
-    reason: "Amara's reading ends 2:50 PM · Marcus arrives 2:40 PM",
-    room: "Om Space",
-    primary: "Room ready",
-    serviceId: "s7",
-  },
-  {
-    id: "c4",
-    kind: "setup",
-    headline: "Set The Temple for Ceremonial Tea",
-    reason: "Amara arrives 2:50 PM · tea service, low light",
-    room: "The Temple",
-    primary: "Room ready",
-    serviceId: "s8",
-  },
-  {
-    id: "c5",
-    kind: "handoff",
-    headline: "Let Sofia know about short turnover",
-    reason: "Sound Healing ends 3:30 · Infrared Sauna starts 3:20",
-    room: "Infrared Room",
-    primary: "Notified",
-    urgent: true,
-    serviceId: "s9",
-  },
-];
+function firstName(guest: string) {
+  return guest.split(" ")[0];
+}
+
+function formatCurrency(n: number) {
+  return `$${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
+function generatePrompts(nowMin: number): Prompt[] {
+  const out: Prompt[] = [];
+
+  // 1. Arrivals — services starting in the next 30 minutes.
+  SERVICES.filter((s) => s.start > nowMin && s.start <= nowMin + 30).forEach((s) => {
+    const mins = Math.round(s.start - nowMin);
+    const name = firstName(s.guest);
+    out.push({
+      id: `arrival-${s.id}`,
+      kind: "escort",
+      headline: mins <= 5
+        ? `Walk ${name} to ${s.room}`
+        : mins <= 15
+          ? `${name} arrives in ${mins} minutes — get ${s.room} ready`
+          : `Prepare ${s.room} for ${name}'s arrival`,
+      reason: `${s.service} · ${fmt(s.start)} · with ${s.practitioner}`,
+      room: s.room,
+      serviceId: s.id,
+      primary: mins <= 5 ? "Walked in" : "Ready",
+      urgent: mins <= 5,
+    });
+  });
+
+  // 2. Turnovers & setups — back-to-back services in the same room.
+  ROOMS.forEach((room) => {
+    const roomServices = SERVICES.filter((s) => s.room === room).sort((a, b) => a.start - b.start);
+    for (let i = 0; i < roomServices.length - 1; i++) {
+      const prev = roomServices[i];
+      const next = roomServices[i + 1];
+      const gap = next.start - prev.end;
+      if (gap < 30 && next.end > nowMin) {
+        const urgent = gap < 10;
+        out.push({
+          id: `turnover-${prev.id}-${next.id}`,
+          kind: urgent ? "turnover" : "setup",
+          headline: urgent
+            ? `${room} needs a quick reset before ${firstName(next.guest)}`
+            : `Set ${room} for ${next.service}`,
+          reason: `${prev.service} ends ${fmt(prev.end)} · ${next.service} at ${fmt(next.start)}`,
+          room,
+          serviceId: next.id,
+          primary: "Room ready",
+          urgent,
+        });
+      }
+    }
+  });
+
+  // 3. Elixir windows — a guest has a break between two services.
+  const byGuest: Record<string, Service[]> = {};
+  SERVICES.forEach((s) => {
+    byGuest[s.guest] = byGuest[s.guest] ?? [];
+    byGuest[s.guest].push(s);
+  });
+  Object.entries(byGuest).forEach(([guest, svcs]) => {
+    if (svcs.length < 2) return;
+    const sorted = [...svcs].sort((a, b) => a.start - b.start);
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const a = sorted[i];
+      const b = sorted[i + 1];
+      const gap = b.start - a.end;
+      if (gap >= 5 && gap <= 60 && b.start > nowMin) {
+        out.push({
+          id: `elixir-${a.id}-${b.id}`,
+          kind: "elixir",
+          headline: `A quiet window opens for ${firstName(guest)}`,
+          reason: `${fmt(a.end)}–${fmt(b.start)} between ${a.service} and ${b.service}`,
+          room: b.room,
+          serviceId: b.id,
+          primary: "Tea ready",
+        });
+      }
+    }
+  });
+
+  // 4. Payment whispers — unpaid services that are current or upcoming.
+  SERVICES.filter((s) => !SERVICE_PAID[s.id] && s.start > nowMin - 15).forEach((s) => {
+    out.push({
+      id: `payment-${s.id}`,
+      kind: "payment",
+      headline: `${firstName(s.guest)}'s ${s.service} needs checkout`,
+      reason: `$${PRICES[s.id]} · ${s.room} · ${fmt(s.start)}`,
+      room: s.room,
+      serviceId: s.id,
+      primary: "Send link",
+    });
+  });
+
+  // 5. Conflicts — overlapping services in the same room.
+  detectConflicts(SERVICES).forEach((c, i) => {
+    out.push({
+      id: `conflict-${i}`,
+      kind: "conflict",
+      headline: `Two sessions want ${c.a.room}`,
+      reason: `${c.a.service} (${fmt(c.a.start)}–${fmt(c.a.end)}) overlaps ${c.b.service}`,
+      room: c.a.room,
+      primary: "Resolve",
+      urgent: true,
+    });
+  });
+
+  return out;
+}
 
 
 
@@ -332,12 +398,11 @@ function TodayPage() {
   const inSession = SERVICES.filter((s) => s.start <= nowMin && s.end > nowMin).length;
   const stillToCome = SERVICES.filter((s) => s.start > nowMin).length;
   const overlaps = conflicts.length;
-  const revenue = FINANCES.reduce((a, b) => a + b.amount, 0);
-  const unpaid = FINANCES.filter((f) => !f.paid).reduce((a, b) => a + b.amount, 0);
 
-  const cue = CUES[cueIdx];
-  const prevCue = () => setCueIdx((i) => (i - 1 + CUES.length) % CUES.length);
-  const nextCue = () => setCueIdx((i) => (i + 1) % CUES.length);
+  const prompts = useMemo(() => generatePrompts(nowMin), [nowMin]);
+  const cue = prompts[cueIdx] ?? null;
+  const prevCue = () => setCueIdx((i) => (i - 1 + prompts.length) % prompts.length);
+  const nextCue = () => setCueIdx((i) => (i + 1) % prompts.length);
 
 
 
@@ -447,82 +512,89 @@ function TodayPage() {
             <Highlight color="#fde047">Coming up</Highlight>
           </h2>
           <span className="text-[13px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
-            {String(cueIdx + 1).padStart(2, "0")} / {String(CUES.length).padStart(2, "0")}
+            {String(cueIdx + 1).padStart(2, "0")} / {String(prompts.length).padStart(2, "0")}
           </span>
         </div>
 
         {/* the strip itself — hairline top and bottom, information-first */}
         <div className="border-y border-black/[0.08]">
           <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-6 py-5">
-            {(() => {
-              const Icon = CUE_ICON[cue.kind];
+            {cue ? (() => {
+              const Icon = WHISPER_ICON[cue.kind];
               const tint = cue.room ? roomColor(cue.room) : "#0a0a0a";
               return (
-                <span className="relative shrink-0">
-                  <span
-                    aria-hidden
-                    className="grid h-10 w-10 place-items-center rounded-full"
-                    style={{ background: `${tint}14`, color: tint }}
-                  >
-                    <Icon size={18} strokeWidth={2} />
-                  </span>
-                  {cue.urgent && (
+                <>
+                  <span className="relative shrink-0">
                     <span
                       aria-hidden
-                      className="absolute -right-0.5 -top-0.5 flex h-3 w-3"
+                      className="grid h-10 w-10 place-items-center rounded-full"
+                      style={{ background: `${tint}14`, color: tint }}
                     >
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-70" />
-                      <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-500 ring-2 ring-white" />
+                      <Icon size={18} strokeWidth={2} />
                     </span>
-                  )}
-                </span>
-              );
-            })()}
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2.5">
-                <span
-                  className="shrink-0 text-[12px] font-semibold tabular-nums text-black/35"
-                  style={{ fontFamily: MONO }}
-                >
-                  #{String(cueIdx + 1).padStart(2, "0")}
-                </span>
-                <h3 className="truncate text-[20px] font-semibold tracking-tight text-black">
-                  {cue.headline}
-                </h3>
-                {cue.urgent && (
-                  <span className="shrink-0 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-tight text-amber-700">
-                    Urgent
+                    {cue.urgent && (
+                      <span
+                        aria-hidden
+                        className="absolute -right-0.5 -top-0.5 flex h-3 w-3"
+                      >
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-70" />
+                        <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-500 ring-2 ring-white" />
+                      </span>
+                    )}
                   </span>
-                )}
-              </div>
-              <div className="mt-0.5 flex items-center gap-2 truncate text-[13.5px] text-black/55">
-                {cue.room && (
-                  <>
-                    <span style={{ color: roomColor(cue.room), fontFamily: MONO }}>
-                      {cue.room}
-                    </span>
-                    <span className="text-black/25">·</span>
-                  </>
-                )}
-                <span className="truncate">{cue.reason}</span>
-              </div>
-            </div>
 
-            <div className="flex shrink-0 items-center gap-4">
-              <button
-                onClick={() => setFocusOpen(true)}
-                className="text-[13.5px] font-medium text-black/60 underline decoration-black/15 underline-offset-4 transition-colors hover:text-black hover:decoration-black"
-              >
-                Focus
-              </button>
-              <button
-                className="text-[13.5px] font-medium text-black/80 underline decoration-black/20 underline-offset-4 transition-colors hover:decoration-black"
-                onClick={nextCue}
-              >
-                {cue.primary}
-              </button>
-            </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="shrink-0 text-[12px] font-semibold tabular-nums text-black/35"
+                        style={{ fontFamily: MONO }}
+                      >
+                        #{String(cueIdx + 1).padStart(2, "0")}
+                      </span>
+                      <h3 className="truncate text-[20px] font-semibold tracking-tight text-black">
+                        {cue.headline}
+                      </h3>
+                      {cue.urgent && (
+                        <span className="shrink-0 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-tight text-amber-700">
+                          Urgent
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-2 truncate text-[13.5px] text-black/55">
+                      {cue.room && (
+                        <>
+                          <span style={{ color: roomColor(cue.room), fontFamily: MONO }}>
+                            {cue.room}
+                          </span>
+                          <span className="text-black/25">·</span>
+                        </>
+                      )}
+                      <span className="truncate">{cue.reason}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-4">
+                    <button
+                      onClick={() => setFocusOpen(true)}
+                      className="text-[13.5px] font-medium text-black/60 underline decoration-black/15 underline-offset-4 transition-colors hover:text-black hover:decoration-black"
+                    >
+                      Focus
+                    </button>
+                    <button
+                      className="text-[13.5px] font-medium text-black/80 underline decoration-black/20 underline-offset-4 transition-colors hover:decoration-black"
+                      onClick={nextCue}
+                    >
+                      {cue.primary}
+                    </button>
+                  </div>
+                </>
+              );
+            })() : (
+              <div className="flex items-center gap-3 text-[15px] text-black/50">
+                <Sparkles size={18} strokeWidth={1.75} />
+                <span>All caught up. The day is flowing.</span>
+              </div>
+            )}
           </div>
 
           {/* Arrows anchored bottom-right of the strip — larger, easier to reach */}
@@ -589,9 +661,9 @@ function TodayPage() {
           <div className="mt-6">
             <Timeline
               nowMin={nowMin}
-              highlightServiceId={cue.serviceId}
-              highlightKind={cue.kind}
-              highlightUrgent={cue.urgent}
+              highlightServiceId={cue?.serviceId}
+              highlightKind={cue?.kind}
+              highlightUrgent={cue?.urgent}
               activeRoom={activeRoom}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
@@ -600,69 +672,11 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* Coming Up */}
-      <ComingUp nowMin={nowMin} />
-
-
-      {/* Finances */}
-      <section>
-        <div className="mx-auto max-w-[1440px] px-6 py-10">
-          <SectionHeader
-            eyebrow="03"
-            label="Finances"
-            count={FINANCES.length}
-            trailing={
-              <div className="flex items-baseline gap-4 text-[13px]">
-                <span className="text-black/50">Booked</span>
-                <span className="tabular-nums font-semibold">${revenue.toLocaleString()}</span>
-                <span className="text-black/20">·</span>
-                <span className="text-black/50">Unpaid</span>
-                <span className="tabular-nums font-semibold" style={{ color: ACCENT }}>${unpaid.toLocaleString()}</span>
-              </div>
-            }
-          />
-          <div className="mt-6 overflow-hidden rounded-[10px] border border-black/[0.08] bg-white">
-            {FINANCES.map((f, i) => {
-              const gc = guestRoomColor(f.guest);
-              return (
-                <div
-                  key={f.guest}
-                  className={`grid grid-cols-12 items-center gap-4 px-5 py-4 text-[14px] ${
-                    i > 0 ? "border-t border-black/[0.06]" : ""
-                  } hover:bg-black/[0.015]`}
-                >
-                  <div className="col-span-6 flex items-center gap-3">
-                    <Avatar name={f.guest} color={gc} />
-                    <div>
-                      <div className="text-[15px] font-semibold text-black">{f.guest}</div>
-                      <div className="text-[12px] text-black/50" style={{ fontFamily: MONO }}>
-                        {f.services} service{f.services > 1 ? "s" : ""}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-span-2 text-[15px] tabular-nums font-semibold" style={{ fontFamily: MONO }}>
-                    ${f.amount}
-                  </div>
-                  <div className="col-span-2">
-                    <PaidPill paid={f.paid} />
-                  </div>
-                  <div className="col-span-2 text-right">
-                    <button className="rounded-[6px] px-2.5 py-1 text-[13px] text-black/65 hover:bg-black/[0.05] hover:text-black">
-                      Invoice ↗
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       <footer className="py-8 text-center text-[11px] text-black/35" style={{ fontFamily: MONO }}>
         SEONDYA · SHIFT 09:00 — 20:00
       </footer>
 
-      {focusOpen && (
+      {focusOpen && cue && (
         <FocusOverlay cue={cue} onClose={() => setFocusOpen(false)} />
       )}
 
@@ -995,7 +1009,7 @@ function Timeline({
 }: {
   nowMin: number;
   highlightServiceId?: string;
-  highlightKind?: CueKind;
+  highlightKind?: WhisperKind;
   highlightUrgent?: boolean;
   activeRoom?: string | null;
   onRoomClick?: (room: string) => void;
@@ -1334,7 +1348,7 @@ function Timeline({
 // Focus overlay — the choreography behind a single cue
 // ------------------------------------------------------------------
 
-function FocusOverlay({ cue, onClose }: { cue: Cue; onClose: () => void }) {
+function FocusOverlay({ cue, onClose }: { cue: Prompt; onClose: () => void }) {
   const service = cue.serviceId ? SERVICES.find((s) => s.id === cue.serviceId) : undefined;
   const rc = cue.room ? roomColor(cue.room) : ACCENT;
 
@@ -1375,6 +1389,27 @@ function FocusOverlay({ cue, onClose }: { cue: Cue; onClose: () => void }) {
           { icon: Waves, label: "Notify practitioner", hint: service ? `${service.practitioner} — short turnover` : "Short turnover heads-up" },
           { icon: RefreshCcw, label: "Fast room reset", hint: "Skip full ventilation, refresh linens only." },
           { icon: UserCheck, label: "Guide next guest in", hint: "Signal ready to front desk." },
+        );
+        break;
+      case "elixir":
+        base.push(
+          { icon: Coffee, label: "Prepare the pause", hint: "Warm tea, water, light snack if wanted." },
+          { icon: DoorOpen, label: "Show guest to lounge", hint: service ? `Between ${service.service} legs` : "Between services" },
+          { icon: CalendarRange, label: "Confirm next room", hint: service ? `Next: ${service.room}` : "Confirm next room" },
+        );
+        break;
+      case "payment":
+        base.push(
+          { icon: CreditCard, label: "Open checkout", hint: service ? `${service.guest} · ${formatCurrency(PRICES[service.id] ?? 0)}` : "Open checkout" },
+          { icon: MessageSquare, label: "Send payment link", hint: "Text/email secure link before guest leaves." },
+          { icon: Check, label: "Mark as paid", hint: "Update once payment clears." },
+        );
+        break;
+      case "conflict":
+        base.push(
+          { icon: AlertTriangle, label: "Review overlap", hint: service ? `${service.room} · ${fmt(service.start)}` : "Review overlap" },
+          { icon: UserCheck, label: "Call affected guest", hint: "Offer reschedule or alternate room." },
+          { icon: CalendarRange, label: "Update booking", hint: "Move or split the reservation." },
         );
         break;
     }
