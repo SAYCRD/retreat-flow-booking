@@ -447,9 +447,16 @@ function TodayPage() {
       {/* Timeline (rooms across, time down) */}
       <section className="border-b border-black/[0.08]">
         <div className="mx-auto max-w-[1440px] px-6 py-10">
-          <SectionHeader eyebrow="01" label="Rooms" count={ROOMS.length} highlightColor="#fde68a" trailing={<TimelineLegend />} />
+          <SectionHeader eyebrow="01" label="Reservations" count={ROOMS.length} highlightColor="#86efac" icon={CalendarRange} trailing={<TimelineLegend />} />
           <div className="mt-6">
-            <Timeline nowMin={nowMin} highlightServiceId={cue.serviceId} highlightKind={cue.kind} highlightUrgent={cue.urgent} />
+            <Timeline
+              nowMin={nowMin}
+              highlightServiceId={cue.serviceId}
+              highlightKind={cue.kind}
+              highlightUrgent={cue.urgent}
+              activeRoom={activeRoom}
+              onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
+            />
           </div>
         </div>
       </section>
