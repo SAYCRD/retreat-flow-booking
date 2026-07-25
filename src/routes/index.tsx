@@ -545,7 +545,7 @@ function detectConflicts(services: Service[]) {
 
 function TodayPage() {
   const now = useNow();
-  const nowMin = DEMO_NOW;
+  const nowMin = useNowMin();
   const [cueIdx, setCueIdx] = useState(0);
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
   const [focusOpen, setFocusOpen] = useState(false);
