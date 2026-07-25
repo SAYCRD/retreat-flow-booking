@@ -578,11 +578,11 @@ function Avatar({ name }: { name: string }) {
   const gc = guestColor(name);
   return (
     <div
-      className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold"
+      className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[13px] font-semibold"
       style={{
-        background: tint(gc, 0.14),
+        background: tint(gc, 0.16),
         color: gc,
-        boxShadow: `inset 0 0 0 1px ${tint(gc, 0.35)}`,
+        boxShadow: `inset 0 0 0 1.5px ${tint(gc, 0.45)}`,
       }}
     >
       {initials}
