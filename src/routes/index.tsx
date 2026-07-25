@@ -284,10 +284,32 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* Attention */}
+      {/* The one thing — Steve-Jobs move: name the single next action */}
+      <section className="border-b border-black/[0.08]" style={{ background: "#fafafa" }}>
+        <div className="mx-auto max-w-[1440px] px-6 py-5">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-black/45" style={{ fontFamily: MONO }}>
+              Do this next
+            </span>
+            <span className="text-[18px] font-semibold tracking-tight">
+              Set <span style={{ color: guestColor("Amara Okonkwo") }}>The Temple</span> for Amara's tea ceremony
+            </span>
+            <span className="text-[13px] text-black/50" style={{ fontFamily: MONO }}>
+              in 20 min · 2:50 PM
+            </span>
+            <button
+              className="ml-auto rounded-full bg-black px-4 py-1.5 text-[12px] font-medium text-white hover:bg-black/85"
+            >
+              Mark ready
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Coming Up (heads-up / attention) */}
       <section className="border-b border-black/[0.08]">
         <div className="mx-auto max-w-[1440px] px-6 py-10">
-          <SectionHeader eyebrow="01" label="Needs attention" count={ATTENTION.length} />
+          <SectionHeader eyebrow="01" label="Coming Up" count={ATTENTION.length} />
           <div className="mt-6 grid gap-2 md:grid-cols-2">
             {ATTENTION.map((a) => (
               <AttentionCard key={a.id} item={a} />
@@ -306,12 +328,12 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* Remainder */}
+      {/* Later today */}
       <section className="border-b border-black/[0.08]">
         <div className="mx-auto max-w-[1440px] px-6 py-10">
           <SectionHeader
             eyebrow="03"
-            label="Coming up"
+            label="Later today"
             count={SERVICES.filter((s) => s.end > nowMin).length}
           />
           <div className="mt-6 overflow-hidden rounded-[10px] border border-black/[0.08] bg-white">
