@@ -1229,11 +1229,29 @@ function Timeline({
   onOpenService?: (id: string) => void;
 }) {
   const PX_PER_MIN = 4; // 240px per hour vertical — gives 15/30-min slots room to breathe
+  const TAIL_PX_PER_MIN = 1.2; // compress the quiet evening tail so midnight doesn't feel empty
   const TIME_COL = 88;
   const HEADER_H = 64;
-  const trackHeight = DAY_SPAN * PX_PER_MIN;
   const gridRef = useRef<HTMLDivElement>(null);
   const scrolledRef = useRef(false);
+
+  // Keep the busy part of the day at full scale; compress the empty evening
+  // tail so the calendar reaches midnight without a huge white void.
+  const lastEnd = useMemo(() => Math.max(...SERVICES.map((s) => s.end)), []);
+  const compressAfter = useMemo(() => {
+    const buffer = Math.max(nowMin + 60, lastEnd + 30);
+    return Math.min(Math.max(buffer, DAY_SPAN * 0.5), DAY_SPAN);
+  }, [nowMin, lastEnd]);
+
+  const minToPx = useMemo(() => {
+    const fullPx = compressAfter * PX_PER_MIN;
+    return (m: number) => {
+      if (m <= compressAfter) return m * PX_PER_MIN;
+      return fullPx + (m - compressAfter) * TAIL_PX_PER_MIN;
+    };
+  }, [compressAfter]);
+
+  const trackHeight = minToPx(DAY_SPAN);
 
   // Group whispers by the service they touch, so the calendar can render
   // little living notes right above each card ("footprints", "broom", "tea").
