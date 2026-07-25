@@ -1,13 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush, ClipboardCheck } from "lucide-react";
+import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush, ClipboardCheck, Bell, ArrowRight } from "lucide-react";
 
 const WHISPER_ICON = {
   message: MessageSquare,
+  notify: Bell,
   escort: Footprints,
   checkin: ClipboardCheck,
   turnover: Brush,
   setup: Sparkles,
+  pickup: ArrowRight,
   handoff: Radio,
   elixir: Coffee,
   payment: CreditCard,
@@ -48,7 +50,7 @@ type Service = {
   note?: string;
 };
 
-type WhisperKind = "message" | "escort" | "checkin" | "turnover" | "setup" | "handoff" | "elixir" | "payment" | "conflict";
+type WhisperKind = "message" | "notify" | "escort" | "checkin" | "turnover" | "setup" | "pickup" | "handoff" | "elixir" | "payment" | "conflict";
 type Prompt = {
   id: string;
   kind: WhisperKind;
@@ -140,6 +142,48 @@ function generatePrompts(nowMin: number): Prompt[] {
       primary: mins <= 5 ? "Walked in" : "Ready",
       urgent: mins <= 5,
     });
+  });
+
+  // 1c. Practitioner notifications — 15–25 min before session, give the
+  // practitioner a quiet heads-up so they can wrap prep / arrive on floor.
+  SERVICES.filter((s) => s.start > nowMin + 15 && s.start <= nowMin + 25).forEach((s) => {
+    out.push({
+      id: `notify-${s.id}`,
+      kind: "notify",
+      headline: `Notify ${s.practitioner} — ${firstName(s.guest)} at ${fmt(s.start)}`,
+      reason: `${s.service} · ${s.room} · quiet heads-up`,
+      room: s.room,
+      serviceId: s.id,
+      primary: "Notified",
+    });
+  });
+
+  // 1d. Pickup / handoff — same guest has back-to-back sessions with a tight
+  // gap (≤ 15 min). Walk them from the ending room to the next one.
+  const guestSorted: Record<string, Service[]> = {};
+  SERVICES.forEach((s) => (guestSorted[s.guest] ??= []).push(s));
+  Object.values(guestSorted).forEach((svcs) => {
+    if (svcs.length < 2) return;
+    const sorted = [...svcs].sort((a, b) => a.start - b.start);
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const a = sorted[i];
+      const b = sorted[i + 1];
+      const gap = b.start - a.end;
+      // Fire while the prior session is closing (within 10 min of ending) or
+      // just ended, and the gap is short enough to feel like a hand-off.
+      if (gap < 15 && a.end > nowMin - 5 && a.end <= nowMin + 10 && b.start > nowMin) {
+        out.push({
+          id: `pickup-${a.id}-${b.id}`,
+          kind: "pickup",
+          headline: `Pick up ${firstName(a.guest)} from ${a.room} — take to ${b.room}`,
+          reason: `${a.service} ends ${fmt(a.end)} · ${b.service} at ${fmt(b.start)}`,
+          room: b.room,
+          serviceId: b.id,
+          primary: "Handed off",
+          urgent: gap < 5,
+        });
+      }
+    }
   });
 
   // 2. Turnovers & setups — back-to-back services in the same room.
@@ -471,6 +515,21 @@ function TodayPage() {
   const cue = prompts[cueIdx] ?? null;
   const prevCue = () => setCueIdx((i) => (i - 1 + prompts.length) % prompts.length);
   const nextCue = () => setCueIdx((i) => (i + 1) % prompts.length);
+
+  // When the active cue changes, scroll the linked reservation card into view
+  // so the operator's eyes travel to the exact card the notification is about.
+  useEffect(() => {
+    if (!cue?.serviceId) return;
+    const el = document.getElementById(`svc-${cue.serviceId}`);
+    if (!el) return;
+    // Account for the sticky header (~48) + Coming Up strip (~49) + room
+    // headers (~64) so the card lands just below them with breathing room.
+    const stickyOffset = 48 + 49 + 64 + 24;
+    const rect = el.getBoundingClientRect();
+    const target = window.scrollY + rect.top - stickyOffset;
+    window.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+  }, [cue?.id, cue?.serviceId]);
+
 
 
 
@@ -1278,18 +1337,32 @@ function Timeline({
                 const activeWhisper = (whispersByService[s.id] ?? []).find(
                   (w) => w.id === activeCueId,
                 );
-                const preSessionKinds: WhisperKind[] = ["checkin", "escort", "turnover", "setup", "elixir"];
+                const preSessionKinds: WhisperKind[] = ["notify", "checkin", "escort", "turnover", "setup", "elixir", "pickup"];
                 const gapWhisper = activeWhisper && preSessionKinds.includes(activeWhisper.kind) ? activeWhisper : null;
                 const badgeWhisper = activeWhisper && !gapWhisper ? activeWhisper : null;
                 const gapWhisperLabel = gapWhisper
                   ? (gapWhisper.kind === "turnover" || gapWhisper.kind === "setup"
                       ? s.room
-                      : firstName(s.guest))
+                      : gapWhisper.kind === "notify"
+                        ? s.practitioner.replace(/^(Dr\.?|Mr\.?|Ms\.?)\s+/i, "").split(/\s+/)[0]
+                        : firstName(s.guest))
+                  : null;
+                const gapWhisperVerb = gapWhisper
+                  ? ({
+                      notify: "Notify",
+                      checkin: "Check in",
+                      escort: "Walk in",
+                      turnover: "Reset",
+                      setup: "Set up",
+                      elixir: "Tea for",
+                      pickup: "Pick up",
+                    } as Record<WhisperKind, string>)[gapWhisper.kind]
                   : null;
 
                 return (
                   <div
                     key={s.id}
+                    id={`svc-${s.id}`}
                     className="group absolute inset-x-0 flex flex-col rounded-none bg-white transition-[transform,box-shadow] duration-200 ease-out will-change-transform hover:z-20 hover:-translate-y-[1px] cursor-pointer"
                     style={{
                       top: top + 1,
@@ -1317,37 +1390,49 @@ function Timeline({
                       }}
                     />
 
-                    {/* Gap whisper — labeled pill in the pre-session space
-                        (footprints + guest, broom + room, cocktail + guest…).
-                        Only visible when this cue is the one being shown. */}
+                    {/* Gap whisper — candy-pill sitting fully above the card
+                        in the pre-session space (Set up · Om Space, Walk in ·
+                        Amara, Tea for · Marcus…). Only visible when this cue
+                        is the one being shown in Coming Up. */}
                     {gapWhisper && (() => {
                       const WIcon = WHISPER_ICON[gapWhisper.kind];
                       return (
                         <div
                           aria-hidden
-                          className="pointer-events-none absolute left-2 z-30 flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-2 py-1"
+                          className="pointer-events-none absolute left-2 z-30 flex items-center gap-2 whitespace-nowrap rounded-full pl-2 pr-3.5 py-1.5"
                           style={{
-                            top: -14,
+                            bottom: "100%",
+                            marginBottom: 8,
+                            background: `linear-gradient(180deg, #ffffff 0%, ${tint(gc, 0.14)} 100%)`,
                             color: gc,
-                            boxShadow: `0 2px 8px -2px ${tint(gc, 0.45)}, 0 0 0 1.5px ${tint(gc, 0.35)}`,
+                            boxShadow: `0 6px 18px -6px ${tint(gc, 0.55)}, 0 2px 4px -2px ${tint(gc, 0.35)}, inset 0 0 0 1.5px ${tint(gc, 0.4)}, inset 0 1px 0 rgba(255,255,255,0.8)`,
                           }}
                         >
-                          <WIcon size={13} strokeWidth={2.25} />
                           <span
-                            className="text-[11.5px] font-semibold tracking-tight"
+                            className="grid h-6 w-6 place-items-center rounded-full"
+                            style={{ background: tint(gc, 0.22), color: gc }}
+                          >
+                            <WIcon size={14} strokeWidth={2.25} />
+                          </span>
+                          <span
+                            className="text-[12.5px] font-semibold tracking-tight"
                             style={{ color: "#0a0a0a" }}
                           >
+                            <span style={{ color: gc, opacity: 0.85 }}>{gapWhisperVerb}</span>
+                            <span className="mx-1 text-black/30">·</span>
                             {gapWhisperLabel}
                           </span>
                           {gapWhisper.urgent && (
                             <span
                               aria-hidden
-                              className="ml-0.5 h-1.5 w-1.5 rounded-full bg-amber-500"
+                              className="ml-0.5 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white"
                             />
                           )}
                         </div>
                       );
                     })()}
+
+
 
                     {/* Badge whisper — for non-gap kinds (payment, message, handoff, conflict)
                         floats a small dot in the top-right of the card. */}
@@ -1570,6 +1655,20 @@ function FocusOverlay({ cue, onClose }: { cue: Prompt; onClose: () => void }) {
           { icon: Sparkles, label: "Set the room", hint: service ? `${service.service} — ${service.room}` : "Set room" },
           { icon: Coffee, label: "Elixir / tea break window", hint: "If part of an orchestration, offer between-service pause." },
           { icon: UserCheck, label: "Cue guest arrival", hint: "Bring guest 2 min before start." },
+        );
+        break;
+      case "notify":
+        base.push(
+          { icon: Bell, label: service ? `Give ${service.practitioner} a heads-up` : "Notify practitioner", hint: service ? `${service.service} at ${fmt(service.start)} · ${service.room}` : "Quiet heads-up before session" },
+          { icon: Sparkles, label: "Confirm room is ready", hint: service ? `${service.room} — props, linens, ventilation` : "Room ready" },
+          { icon: ClipboardCheck, label: "Check guest is here", hint: service ? `${service.guest} — arrival window open` : "Confirm arrival" },
+        );
+        break;
+      case "pickup":
+        base.push(
+          { icon: DoorOpen, label: "Collect guest from ending room", hint: service ? `Meet at door as ${service.service} closes` : "Meet at door" },
+          { icon: Footprints, label: service ? `Walk to ${service.room}` : "Walk to next room", hint: "Unhurried pace, offer water on the way." },
+          { icon: Sparkles, label: "Hand off to next practitioner", hint: service ? `${service.practitioner} — ready to begin` : "Signal ready" },
         );
         break;
       case "handoff":
