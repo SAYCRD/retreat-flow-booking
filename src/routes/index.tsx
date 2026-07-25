@@ -283,6 +283,61 @@ const GUESTS: Record<string, GuestInfo> = {
   },
 };
 
+// Session protocols — cautions tied to the SERVICE (modality), not the person.
+// These are the things the practitioner must brief the guest on, or confirm before starting.
+// The waiver is auto-composed from the applicable protocols + the guest's disclosures.
+type Protocol = { text: string; severity: "brief" | "confirm" | "block" };
+const SESSION_PROTOCOLS: Record<string, Protocol[]> = {
+  "Myers Cocktail IV": [
+    { text: "Confirm no recent kidney issues or dialysis", severity: "confirm" },
+    { text: "Brief guest on cold sensation & metallic taste during push", severity: "brief" },
+    { text: "Vasovagal risk — recline fully before insertion", severity: "confirm" },
+  ],
+  "Deep Tissue Massage": [
+    { text: "Check pressure at 5 min and again at 15 min", severity: "brief" },
+    { text: "Avoid areas of recent injection, cortisone, or fresh ink", severity: "block" },
+    { text: "No deep work over replaced joints or acute inflammation", severity: "block" },
+  ],
+  "BEMER Session": [
+    { text: "Pacemaker / ICD — maintain protocol distance, confirm model", severity: "block" },
+    { text: "Not for active pregnancy first trimester", severity: "block" },
+  ],
+  "Cupping": [
+    { text: "No cupping over tattoos <6 weeks, moles, or broken skin", severity: "block" },
+    { text: "Brief on marking — lasts 3–7 days", severity: "brief" },
+  ],
+  "Couples Ayurvedic Massage": [
+    { text: "Confirm oil allergies with both guests", severity: "confirm" },
+    { text: "Side-lying only for hip replacement or late pregnancy", severity: "confirm" },
+  ],
+  "Intuitive Reading": [
+    { text: "Confirm guest is not in acute grief or crisis — offer reschedule", severity: "confirm" },
+  ],
+  "Sound Healing": [
+    { text: "Tinnitus — position bowls at safe distance, check before start", severity: "confirm" },
+    { text: "Photosensitive epilepsy — no strobe elements", severity: "block" },
+  ],
+  "Ceremonial Tea & Integration": [
+    { text: "Confirm no MAOI medications in last 14 days", severity: "block" },
+    { text: "Brief on tea composition & duration", severity: "brief" },
+  ],
+  "Infrared Sauna": [
+    { text: "Hydration check before entry — offer electrolytes", severity: "brief" },
+    { text: "No entry with fever, alcohol, or first-trimester pregnancy", severity: "block" },
+  ],
+  "Medicine Walk": [
+    { text: "Confirm mobility & footwear — 90 min terrain", severity: "confirm" },
+    { text: "Brief on weather, water, and sun exposure", severity: "brief" },
+  ],
+  "Grandmother Crystal Bowl": [
+    { text: "Photosensitivity & tinnitus — confirm before start", severity: "confirm" },
+  ],
+};
+
+function getProtocols(serviceName: string): Protocol[] {
+  return SESSION_PROTOCOLS[serviceName] ?? [];
+}
+
 // Payment state per service (in a real app this would come from the DB).
 // A guest's `paid` flag in FINANCES represents the whole visit;
 // here we mark individual services so the panel can show a payment link.
@@ -1778,91 +1833,161 @@ function ReservationPanel({
                 </PanelSection>
               )}
 
-              {/* Contraindications */}
+              {/* Session protocol — cautions about the SERVICE itself */}
+              {(() => {
+                const protocols = getProtocols(s.service);
+                const sevMeta = {
+                  block:   { label: "Blocker",  bg: "bg-rose-50/70",   border: "border-rose-200/70",   dot: "bg-rose-500",   text: "text-rose-900",   chipBg: "bg-rose-100",    chipText: "text-rose-700" },
+                  confirm: { label: "Confirm",  bg: "bg-amber-50/60",  border: "border-amber-200/70",  dot: "bg-amber-500",  text: "text-amber-900",  chipBg: "bg-amber-100",   chipText: "text-amber-700" },
+                  brief:   { label: "Brief",    bg: "bg-sky-50/60",    border: "border-sky-200/70",    dot: "bg-sky-500",    text: "text-sky-900",    chipBg: "bg-sky-100",     chipText: "text-sky-700" },
+                } as const;
+                return (
+                  <PanelSection
+                    eyebrow="Session protocol"
+                    trailing={
+                      protocols.length > 0 ? (
+                        <span
+                          className="text-[11px] text-black/45"
+                          style={{ fontFamily: MONO }}
+                        >
+                          {protocols.length} item{protocols.length === 1 ? "" : "s"}
+                        </span>
+                      ) : null
+                    }
+                  >
+                    <p className="mb-2.5 text-[12px] leading-snug text-black/55">
+                      What to brief or confirm for <span className="text-black/75">{s.service}</span>.
+                    </p>
+                    {protocols.length > 0 ? (
+                      <ul className="space-y-2">
+                        {protocols.map((p, i) => {
+                          const m = sevMeta[p.severity];
+                          return (
+                            <li
+                              key={i}
+                              className={`flex items-start gap-2.5 rounded-[8px] border ${m.border} ${m.bg} px-3 py-2.5`}
+                            >
+                              <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${m.dot}`} />
+                              <div className="min-w-0 flex-1">
+                                <div className={`text-[13px] leading-snug ${m.text}`}>{p.text}</div>
+                              </div>
+                              <span
+                                className={`shrink-0 rounded-full ${m.chipBg} ${m.chipText} px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em]`}
+                              >
+                                {m.label}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="text-[13px] text-black/50">No protocol on file for this service.</p>
+                    )}
+                  </PanelSection>
+                );
+              })()}
+
+              {/* Client disclosures — what the CLIENT has shared */}
               <PanelSection
-                eyebrow="Contraindications"
+                eyebrow="Client disclosures"
                 trailing={
                   guest?.contraindications && guest.contraindications.length > 0 ? (
                     <span
-                      className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-amber-700"
+                      className="text-[11px] text-black/45"
+                      style={{ fontFamily: MONO }}
                     >
-                      <ShieldAlert size={11} strokeWidth={2.5} />
-                      Review
+                      shared by {firstName(s.guest)}
                     </span>
                   ) : null
                 }
               >
                 {guest?.contraindications && guest.contraindications.length > 0 ? (
-                  <ul className="space-y-2">
+                  <ul className="space-y-1.5">
                     {guest.contraindications.map((c, i) => (
                       <li
                         key={i}
-                        className="flex items-start gap-2.5 rounded-[8px] border border-amber-200/70 bg-amber-50/60 px-3 py-2.5 text-[13px] text-amber-900"
+                        className="flex items-start gap-2.5 rounded-[8px] border border-black/[0.06] bg-black/[0.015] px-3 py-2 text-[13px] text-black/80"
                       >
-                        <ShieldAlert
-                          size={14}
-                          strokeWidth={2.25}
-                          className="mt-0.5 shrink-0 text-amber-600"
-                        />
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-black/30" />
                         <span className="leading-snug">{c}</span>
                       </li>
                     ))}
                   </ul>
                 ) : (
                   <p className="text-[13px] text-black/50">
-                    None on file for this session.
+                    Nothing shared yet — intake form pending.
                   </p>
                 )}
               </PanelSection>
 
-              {/* Waiver */}
-              <PanelSection eyebrow="Waiver">
-                {guest?.waiverSignedOn ? (
-                  <div className="flex items-center justify-between gap-3 rounded-[8px] border border-black/[0.08] px-3.5 py-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <span className="grid h-7 w-7 place-items-center rounded-full bg-emerald-100 text-emerald-700">
-                        <FileText size={13} strokeWidth={2.25} />
-                      </span>
-                      <div>
-                        <div className="text-[13.5px] font-semibold text-black">Signed</div>
-                        <div className="text-[11.5px] text-black/50" style={{ fontFamily: MONO }}>
-                          {guest.waiverSignedOn}
-                        </div>
-                      </div>
-                    </div>
-                    <button className="text-[12.5px] font-medium text-black/60 underline decoration-black/20 underline-offset-4 hover:text-black hover:decoration-black">
-                      View
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-3 rounded-[8px] border border-amber-200 bg-amber-50/60 px-3.5 py-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="grid h-7 w-7 place-items-center rounded-full bg-amber-100 text-amber-700">
-                        <FileText size={13} strokeWidth={2.25} />
-                      </span>
-                      <div>
-                        <div className="text-[13.5px] font-semibold text-amber-900">
-                          Not signed yet
-                        </div>
-                        <div className="text-[11.5px] text-amber-900/70">
-                          Required before session starts
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="inline-flex items-center gap-2 rounded-[8px] bg-amber-600 px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-amber-700"
+              {/* Waiver — auto-generated from protocol + disclosures */}
+              {(() => {
+                const protocols = getProtocols(s.service);
+                const disclosures = guest?.contraindications ?? [];
+                const clauseCount = protocols.length + disclosures.length;
+                return (
+                  <PanelSection
+                    eyebrow="Waiver"
+                    trailing={
+                      <span
+                        className="text-[11px] text-black/45"
+                        style={{ fontFamily: MONO }}
                       >
-                        Send waiver
-                        <ExternalLink size={13} strokeWidth={2.25} />
-                      </button>
-                      <button className="rounded-[8px] border border-black/10 bg-white px-3 py-2 text-[13px] font-medium text-black/70 hover:bg-black/[0.03] hover:text-black">
-                        Sign on iPad
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </PanelSection>
+                        auto · {clauseCount} clause{clauseCount === 1 ? "" : "s"}
+                      </span>
+                    }
+                  >
+                    <p className="mb-2.5 text-[12px] leading-snug text-black/55">
+                      Composed from this session's protocol and {firstName(s.guest)}'s disclosures.
+                    </p>
+                    {guest?.waiverSignedOn ? (
+                      <div className="flex items-center justify-between gap-3 rounded-[8px] border border-black/[0.08] px-3.5 py-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="grid h-7 w-7 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+                            <FileText size={13} strokeWidth={2.25} />
+                          </span>
+                          <div>
+                            <div className="text-[13.5px] font-semibold text-black">Signed</div>
+                            <div className="text-[11.5px] text-black/50" style={{ fontFamily: MONO }}>
+                              {guest.waiverSignedOn}
+                            </div>
+                          </div>
+                        </div>
+                        <button className="text-[12.5px] font-medium text-black/60 underline decoration-black/20 underline-offset-4 hover:text-black hover:decoration-black">
+                          View
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3 rounded-[8px] border border-amber-200 bg-amber-50/60 px-3.5 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className="grid h-7 w-7 place-items-center rounded-full bg-amber-100 text-amber-700">
+                            <FileText size={13} strokeWidth={2.25} />
+                          </span>
+                          <div>
+                            <div className="text-[13.5px] font-semibold text-amber-900">
+                              Not signed yet
+                            </div>
+                            <div className="text-[11.5px] text-amber-900/70">
+                              Required before session starts
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="inline-flex items-center gap-2 rounded-[8px] bg-amber-600 px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-amber-700"
+                          >
+                            Send waiver
+                            <ExternalLink size={13} strokeWidth={2.25} />
+                          </button>
+                          <button className="rounded-[8px] border border-black/10 bg-white px-3 py-2 text-[13px] font-medium text-black/70 hover:bg-black/[0.03] hover:text-black">
+                            Sign on iPad
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </PanelSection>
+                );
+              })()}
             </div>
           </>
         )}
