@@ -637,13 +637,18 @@ function TodayPage() {
             <span className="relative grid h-8 w-8 place-items-center text-black/70">
               <span
                 aria-hidden
-                className="absolute inset-0 animate-ping rounded-full opacity-40"
-                style={{ background: ACCENT }}
+                key={cue?.id ?? "empty"}
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background: "#fde047",
+                  opacity: 0.22,
+                  animation: "ping 1s cubic-bezier(0, 0, 0.2, 1) 3 forwards",
+                }}
               />
               <span
                 aria-hidden
-                className="absolute inset-0 rounded-full opacity-20"
-                style={{ background: ACCENT, boxShadow: `0 0 16px ${ACCENT}` }}
+                className="absolute inset-0 rounded-full opacity-[0.12]"
+                style={{ background: "#fde047", boxShadow: "0 0 16px #fde047" }}
               />
               <Radio size={18} strokeWidth={2} className="relative z-10" />
             </span>
