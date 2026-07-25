@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio } from "lucide-react";
+import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight } from "lucide-react";
 
 const CUE_ICON = {
   message: MessageSquare,
@@ -223,6 +223,7 @@ function TodayPage() {
   const now = useNow();
   const nowMin = DEMO_NOW;
   const [cueIdx, setCueIdx] = useState(0);
+  const [activeRoom, setActiveRoom] = useState<string | null>(null);
 
   const clock = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const date = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -333,19 +334,18 @@ function TodayPage() {
 
       {/* Coming up — label sits above the divider; strip carries only what matters */}
       <section className="relative bg-white">
-        {/* label above the top hairline */}
-        <div className="mx-auto flex max-w-[1440px] items-center gap-2 px-6 pt-4 pb-2">
-          <span
-            className="text-[11px] font-semibold uppercase tracking-[0.22em] text-black/75"
-            style={{ fontFamily: MONO }}
-          >
-            <Highlight color="#fef3c7">Coming up</Highlight>
+        {/* label above the top hairline — sized to match Reservations */}
+        <div className="mx-auto flex max-w-[1440px] items-baseline gap-3 px-6 pt-8 pb-3">
+          <span className="text-[12px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
+            00
           </span>
-
-          <span
-            className="text-[10px] tabular-nums text-black/30"
-            style={{ fontFamily: MONO }}
-          >
+          <span className="self-center text-black/70">
+            <Radio size={22} strokeWidth={1.75} />
+          </span>
+          <h2 className="text-[26px] font-semibold tracking-[-0.02em]">
+            <Highlight color="#fde047">Coming up</Highlight>
+          </h2>
+          <span className="text-[13px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
             {String(cueIdx + 1).padStart(2, "0")} / {String(CUES.length).padStart(2, "0")}
           </span>
         </div>
@@ -447,9 +447,16 @@ function TodayPage() {
       {/* Timeline (rooms across, time down) */}
       <section className="border-b border-black/[0.08]">
         <div className="mx-auto max-w-[1440px] px-6 py-10">
-          <SectionHeader eyebrow="01" label="Rooms" count={ROOMS.length} highlightColor="#fde68a" trailing={<TimelineLegend />} />
+          <SectionHeader eyebrow="01" label="Reservations" count={ROOMS.length} highlightColor="#86efac" icon={CalendarRange} trailing={<TimelineLegend />} />
           <div className="mt-6">
-            <Timeline nowMin={nowMin} highlightServiceId={cue.serviceId} highlightKind={cue.kind} highlightUrgent={cue.urgent} />
+            <Timeline
+              nowMin={nowMin}
+              highlightServiceId={cue.serviceId}
+              highlightKind={cue.kind}
+              highlightUrgent={cue.urgent}
+              activeRoom={activeRoom}
+              onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
+            />
           </div>
         </div>
       </section>
@@ -550,20 +557,23 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
 
 function Highlight({
   children,
-  color = "#fef3c7",
+  color = "#fde047",
   className = "",
 }: {
   children: React.ReactNode;
   color?: string;
   className?: string;
 }) {
+  // Bold marker-pen highlight: thick band, slightly uneven edges to feel
+  // hand-drawn. Text sits on top at full contrast.
   return (
     <span
-      className={`inline px-1 -mx-0.5 ${className}`}
+      className={`relative inline px-1.5 -mx-1 ${className}`}
       style={{
-        background: `linear-gradient(180deg, transparent 55%, ${color} 55%, ${color} 92%, transparent 92%)`,
-        boxDecorationBreak: "clone",
+        background: `linear-gradient(178deg, transparent 8%, ${color} 12%, ${color} 94%, transparent 98%)`,
         WebkitBoxDecorationBreak: "clone",
+        boxDecorationBreak: "clone",
+        borderRadius: "2px 5px 3px 6px",
       }}
     >
       {children}
@@ -577,12 +587,14 @@ function SectionHeader({
   count,
   trailing,
   highlightColor,
+  icon: Icon,
 }: {
   eyebrow: string;
   label: string;
   count: number;
   trailing?: React.ReactNode;
   highlightColor?: string;
+  icon?: React.ComponentType<{ size?: number; strokeWidth?: number }>;
 }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-4">
@@ -590,6 +602,11 @@ function SectionHeader({
         <span className="text-[12px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
           {eyebrow}
         </span>
+        {Icon && (
+          <span className="self-center text-black/70">
+            <Icon size={22} strokeWidth={1.75} />
+          </span>
+        )}
         <h2 className="text-[26px] font-semibold tracking-[-0.02em]">
           {highlightColor ? <Highlight color={highlightColor}>{label}</Highlight> : label}
         </h2>
@@ -693,7 +710,8 @@ function ComingUp({ nowMin }: { nowMin: number }) {
           eyebrow="02"
           label="Coming Up"
           count={upcoming.length}
-          highlightColor="#c7f0e0"
+          highlightColor="#fda4af"
+          icon={ArrowDownRight}
 
           trailing={
             <div
@@ -821,10 +839,24 @@ function PaidPill({ paid }: { paid: boolean }) {
 // Timeline
 // ------------------------------------------------------------------
 
-function Timeline({ nowMin, highlightServiceId, highlightKind, highlightUrgent }: { nowMin: number; highlightServiceId?: string; highlightKind?: CueKind; highlightUrgent?: boolean }) {
+function Timeline({
+  nowMin,
+  highlightServiceId,
+  highlightKind,
+  highlightUrgent,
+  activeRoom,
+  onRoomClick,
+}: {
+  nowMin: number;
+  highlightServiceId?: string;
+  highlightKind?: CueKind;
+  highlightUrgent?: boolean;
+  activeRoom?: string | null;
+  onRoomClick?: (room: string) => void;
+}) {
   const PX_PER_MIN = 2.4; // 144px per hour vertical
   const TIME_COL = 88;
-  const HEADER_H = 56;
+  const HEADER_H = 64;
   const trackHeight = DAY_SPAN * PX_PER_MIN;
 
   const hours = useMemo(() => {
@@ -847,23 +879,31 @@ function Timeline({ nowMin, highlightServiceId, highlightKind, highlightUrgent }
         </div>
         {ROOMS.map((room, idx) => {
           const count = SERVICES.filter((s) => s.room === room).length;
+          const rc = roomColor(room);
+          const isActive = activeRoom === room;
           return (
-            <div
+            <button
               key={room}
-              className={`flex min-w-0 flex-1 flex-col justify-center px-4 ${
+              type="button"
+              onClick={() => onRoomClick?.(room)}
+              className={`group flex min-w-0 flex-1 flex-col justify-center px-4 text-left transition-colors ${
                 idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
-              }`}
+              } ${isActive ? "" : "hover:bg-black/[0.02]"}`}
             >
-              <div className="truncate text-[15px] font-semibold tracking-tight text-black">
-                {room}
+              <div className="truncate text-[20px] font-semibold leading-tight tracking-[-0.02em] text-black">
+                {isActive ? (
+                  <Highlight color={tint(rc, 0.5)}>{room}</Highlight>
+                ) : (
+                  room
+                )}
               </div>
               <div
-                className="text-[11px] font-medium text-black/45"
+                className="mt-0.5 text-[11px] font-medium text-black/45"
                 style={{ fontFamily: MONO }}
               >
                 {count} booking{count === 1 ? "" : "s"}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
