@@ -550,9 +550,11 @@ function TodayPage() {
   const [openServiceId, setOpenServiceId] = useState<string | null>(null);
   const openService = openServiceId ? SERVICES.find((s) => s.id === openServiceId) ?? null : null;
   const [heroPast, setHeroPast] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
 
   const clock = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  const date = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const isToday = selectedDate.toDateString() === now.toDateString();
+  const date = selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   useEffect(() => {
     const onScroll = () => setHeroPast(window.scrollY > 180);
