@@ -516,6 +516,21 @@ function TodayPage() {
   const prevCue = () => setCueIdx((i) => (i - 1 + prompts.length) % prompts.length);
   const nextCue = () => setCueIdx((i) => (i + 1) % prompts.length);
 
+  // When the active cue changes, scroll the linked reservation card into view
+  // so the operator's eyes travel to the exact card the notification is about.
+  useEffect(() => {
+    if (!cue?.serviceId) return;
+    const el = document.getElementById(`svc-${cue.serviceId}`);
+    if (!el) return;
+    // Account for the sticky header (~48) + Coming Up strip (~49) + room
+    // headers (~64) so the card lands just below them with breathing room.
+    const stickyOffset = 48 + 49 + 64 + 24;
+    const rect = el.getBoundingClientRect();
+    const target = window.scrollY + rect.top - stickyOffset;
+    window.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+  }, [cue?.id, cue?.serviceId]);
+
+
 
 
   return (
