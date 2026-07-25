@@ -868,9 +868,12 @@ function Timeline({
   const nowTop = nowMin * PX_PER_MIN;
 
   return (
-    <div className="overflow-hidden border-y border-black/[0.08] bg-white">
-      {/* Room headers */}
-      <div className="flex border-b border-black/[0.08]" style={{ height: HEADER_H }}>
+    <div className="border-y border-black/[0.08] bg-white">
+      {/* Room headers — stick under the top bar while the calendar scrolls */}
+      <div
+        className="sticky z-20 flex border-b border-black/[0.08] bg-white/95 backdrop-blur-md"
+        style={{ height: HEADER_H, top: 48 }}
+      >
         <div
           className="flex shrink-0 items-center justify-end border-r border-black/[0.06] pr-4 text-[11px] uppercase tracking-[0.14em] text-black/45"
           style={{ width: TIME_COL, fontFamily: MONO }}
