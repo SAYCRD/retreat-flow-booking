@@ -154,7 +154,7 @@ function generatePrompts(nowMin: number): Prompt[] {
       reason: `${s.service} · ${fmt(s.start)} · with ${s.practitioner}`,
       room: s.room,
       serviceId: s.id,
-      primary: mins <= 5 ? "Walked in" : "Ready",
+      primary: mins <= 5 ? "Confirm walked in" : "Confirm ready",
       urgent: mins <= 5,
     });
   });
