@@ -460,11 +460,11 @@ function SectionHeader({
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-4">
       <div className="flex items-baseline gap-3">
-        <span className="text-[11px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
+        <span className="text-[12px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
           {eyebrow}
         </span>
-        <h2 className="text-[22px] font-semibold tracking-[-0.02em]">{label}</h2>
-        <span className="text-[12px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
+        <h2 className="text-[26px] font-semibold tracking-[-0.02em]">{label}</h2>
+        <span className="text-[13px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
           {String(count).padStart(2, "0")}
         </span>
       </div>
