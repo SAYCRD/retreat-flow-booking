@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush } from "lucide-react";
+import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush, ClipboardCheck } from "lucide-react";
 
 const WHISPER_ICON = {
   message: MessageSquare,
   escort: Footprints,
+  checkin: ClipboardCheck,
   turnover: Brush,
   setup: Sparkles,
   handoff: Radio,
@@ -47,7 +48,7 @@ type Service = {
   note?: string;
 };
 
-type WhisperKind = "message" | "escort" | "turnover" | "setup" | "handoff" | "elixir" | "payment" | "conflict";
+type WhisperKind = "message" | "escort" | "checkin" | "turnover" | "setup" | "handoff" | "elixir" | "payment" | "conflict";
 type Prompt = {
   id: string;
   kind: WhisperKind;
@@ -109,8 +110,22 @@ function formatCurrency(n: number) {
 function generatePrompts(nowMin: number): Prompt[] {
   const out: Prompt[] = [];
 
-  // 1. Arrivals — services starting in the next 30 minutes.
-  SERVICES.filter((s) => s.start > nowMin && s.start <= nowMin + 30).forEach((s) => {
+  // 1a. Check-ins — services starting in 10–30 minutes; guest expected at the desk.
+  SERVICES.filter((s) => s.start > nowMin + 10 && s.start <= nowMin + 30).forEach((s) => {
+    const name = firstName(s.guest);
+    out.push({
+      id: `checkin-${s.id}`,
+      kind: "checkin",
+      headline: `Check in ${s.guest}`,
+      reason: `${s.service} · ${fmt(s.start)} · ${s.room} · with ${s.practitioner}`,
+      room: s.room,
+      serviceId: s.id,
+      primary: "Checked in",
+    });
+  });
+
+  // 1b. Escorts — services starting in the next 10 minutes; walk the guest in.
+  SERVICES.filter((s) => s.start > nowMin && s.start <= nowMin + 10).forEach((s) => {
     const mins = Math.round(s.start - nowMin);
     const name = firstName(s.guest);
     out.push({
@@ -118,9 +133,7 @@ function generatePrompts(nowMin: number): Prompt[] {
       kind: "escort",
       headline: mins <= 5
         ? `Walk ${name} to ${s.room}`
-        : mins <= 15
-          ? `${name} arrives in ${mins} minutes — get ${s.room} ready`
-          : `Prepare ${s.room} for ${name}'s arrival`,
+        : `${name} arrives in ${mins} minutes — get ${s.room} ready`,
       reason: `${s.service} · ${fmt(s.start)} · with ${s.practitioner}`,
       room: s.room,
       serviceId: s.id,
@@ -722,6 +735,7 @@ function TodayPage() {
               whispers={prompts}
               activeCueId={cue?.id}
               activeRoom={activeRoom}
+              cueRoom={cue?.room ?? null}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
             />
@@ -1063,6 +1077,7 @@ function Timeline({
   whispers = [],
   activeCueId,
   activeRoom,
+  cueRoom,
   onRoomClick,
   onOpenService,
 }: {
@@ -1073,6 +1088,7 @@ function Timeline({
   whispers?: Prompt[];
   activeCueId?: string;
   activeRoom?: string | null;
+  cueRoom?: string | null;
   onRoomClick?: (room: string) => void;
   onOpenService?: (id: string) => void;
 }) {
@@ -1130,7 +1146,9 @@ function Timeline({
         {ROOMS.map((room, idx) => {
           const count = SERVICES.filter((s) => s.room === room).length;
           const rc = roomColor(room);
-          const isActive = activeRoom === room;
+          const isPinned = activeRoom === room;
+          const isCueRoom = cueRoom === room;
+          const isActive = isPinned || isCueRoom;
           return (
             <button
               key={room}
@@ -1144,7 +1162,7 @@ function Timeline({
 
               <div className="truncate text-[20px] font-semibold leading-tight tracking-[-0.02em] text-black">
                 {isActive ? (
-                  <Highlight color={tint(rc, 0.5)}>{room}</Highlight>
+                  <Highlight color={tint(rc, isPinned ? 0.55 : 0.42)}>{room}</Highlight>
                 ) : (
                   room
                 )}
@@ -1252,7 +1270,22 @@ function Timeline({
                     : "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)";
                 const hoverShadow = `2px 4px 0 -1px rgba(15,23,42,0.05), 8px 14px 28px -12px ${tint(gc, 0.26)}, 0 0 0 1px ${tint(gc, 0.18)}`;
 
-                const cardWhispers = whispersByService[s.id] ?? [];
+                // Only render a whisper for the CURRENTLY shown notification
+                // (not always on). The pre-session kinds sit in the gap
+                // just above the card, with a short label so you can see
+                // whether it's about the guest (checkin / escort / elixir)
+                // or the room (turnover / setup).
+                const activeWhisper = (whispersByService[s.id] ?? []).find(
+                  (w) => w.id === activeCueId,
+                );
+                const preSessionKinds: WhisperKind[] = ["checkin", "escort", "turnover", "setup", "elixir"];
+                const gapWhisper = activeWhisper && preSessionKinds.includes(activeWhisper.kind) ? activeWhisper : null;
+                const badgeWhisper = activeWhisper && !gapWhisper ? activeWhisper : null;
+                const gapWhisperLabel = gapWhisper
+                  ? (gapWhisper.kind === "turnover" || gapWhisper.kind === "setup"
+                      ? s.room
+                      : firstName(s.guest))
+                  : null;
 
                 return (
                   <div
@@ -1284,44 +1317,64 @@ function Timeline({
                       }}
                     />
 
-                    {/* Living whispers — icons floating just above the card that
-                        mirror what's in the Coming Up strip (footprints, broom, tea…). */}
-                    {cardWhispers.length > 0 && (
-                      <div
-                        aria-hidden
-                        className="pointer-events-none absolute -top-3 right-1.5 z-20 flex items-center gap-1"
-                      >
-                        {cardWhispers.slice(0, 3).map((w) => {
-                          const WIcon = WHISPER_ICON[w.kind];
-                          const isActive = w.id === activeCueId;
-                          return (
+                    {/* Gap whisper — labeled pill in the pre-session space
+                        (footprints + guest, broom + room, cocktail + guest…).
+                        Only visible when this cue is the one being shown. */}
+                    {gapWhisper && (() => {
+                      const WIcon = WHISPER_ICON[gapWhisper.kind];
+                      return (
+                        <div
+                          aria-hidden
+                          className="pointer-events-none absolute left-2 z-30 flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-2 py-1"
+                          style={{
+                            top: -14,
+                            color: gc,
+                            boxShadow: `0 2px 8px -2px ${tint(gc, 0.45)}, 0 0 0 1.5px ${tint(gc, 0.35)}`,
+                          }}
+                        >
+                          <WIcon size={13} strokeWidth={2.25} />
+                          <span
+                            className="text-[11.5px] font-semibold tracking-tight"
+                            style={{ color: "#0a0a0a" }}
+                          >
+                            {gapWhisperLabel}
+                          </span>
+                          {gapWhisper.urgent && (
                             <span
-                              key={w.id}
-                              title={w.headline}
-                              className={`grid place-items-center rounded-full bg-white ring-1 transition-transform duration-200 ${
-                                isActive ? "h-6 w-6 scale-110" : "h-5 w-5"
-                              }`}
-                              style={{
-                                color: gc,
-                                boxShadow: isActive
-                                  ? `0 2px 6px -1px ${tint(gc, 0.35)}, 0 0 0 2px ${tint(gc, 0.22)}`
-                                  : `0 1px 3px -1px rgba(15,23,42,0.18)`,
-                                // @ts-expect-error ring color via CSS var
-                                "--tw-ring-color": tint(gc, 0.35),
-                              }}
-                            >
-                              <WIcon size={isActive ? 13 : 11} strokeWidth={2.25} />
-                              {isActive && w.urgent && (
-                                <span
-                                  aria-hidden
-                                  className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-amber-500 ring-1 ring-white"
-                                />
-                              )}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
+                              aria-hidden
+                              className="ml-0.5 h-1.5 w-1.5 rounded-full bg-amber-500"
+                            />
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Badge whisper — for non-gap kinds (payment, message, handoff, conflict)
+                        floats a small dot in the top-right of the card. */}
+                    {badgeWhisper && (() => {
+                      const WIcon = WHISPER_ICON[badgeWhisper.kind];
+                      return (
+                        <span
+                          aria-hidden
+                          title={badgeWhisper.headline}
+                          className="pointer-events-none absolute -top-3 right-1.5 z-20 grid h-6 w-6 place-items-center rounded-full bg-white"
+                          style={{
+                            color: gc,
+                            boxShadow: `0 2px 6px -1px ${tint(gc, 0.35)}, 0 0 0 2px ${tint(gc, 0.22)}`,
+                          }}
+                        >
+                          <WIcon size={13} strokeWidth={2.25} />
+                          {badgeWhisper.urgent && (
+                            <span
+                              aria-hidden
+                              className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-amber-500 ring-1 ring-white"
+                            />
+                          )}
+                        </span>
+                      );
+                    })()}
+
+
 
                     {/* Soft chroma wash that fades in on hover */}
                     <span
@@ -1489,6 +1542,13 @@ function FocusOverlay({ cue, onClose }: { cue: Prompt; onClose: () => void }) {
           { icon: MessageSquare, label: "Text guest — arrival window open", hint: "Warm, one line. Confirm they're on the way.", done: true },
           { icon: UserCheck, label: "Check in on arrival", hint: "Greet by name, offer water." },
           { icon: DoorOpen, label: "Walk to room", hint: service ? `Escort to ${service.room}` : "Escort to room" },
+        );
+        break;
+      case "checkin":
+        base.push(
+          { icon: ClipboardCheck, label: service ? `Greet ${service.guest} at the desk` : "Greet guest at the desk", hint: "Warm welcome, offer water, mark arrived." },
+          { icon: FileText, label: "Confirm waiver on file", hint: "If missing, present tablet before session." },
+          { icon: DoorOpen, label: service ? `Escort to ${service.room} when cued` : "Escort to room when cued", hint: "Wait for practitioner ready signal." },
         );
         break;
       case "escort":
