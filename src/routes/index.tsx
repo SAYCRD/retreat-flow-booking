@@ -1021,10 +1021,10 @@ function Timeline({
                 ].join(","),
               }}
             >
-              {/* Now line spanning column */}
+              {/* Now line — barely visible */}
               <div
                 className="pointer-events-none absolute inset-x-0 z-10 h-px"
-                style={{ top: nowTop, background: ACCENT }}
+                style={{ top: nowTop, background: ACCENT, opacity: 0.28 }}
               />
 
               {services.map((s) => {
