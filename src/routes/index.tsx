@@ -612,13 +612,13 @@ function StatusPill({ status, guestHex }: { status: Status; guestHex?: string })
 
 function PaidPill({ paid }: { paid: boolean }) {
   return paid ? (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-black/[0.05] px-2 py-0.5 text-[11px] font-medium text-black/70">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-black/[0.05] px-2.5 py-1 text-[12px] font-medium text-black/75">
       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
       Paid
     </span>
   ) : (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium"
       style={{ background: "rgba(55,48,255,0.08)", color: ACCENT }}
     >
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: ACCENT }} />
