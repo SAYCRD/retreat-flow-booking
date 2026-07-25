@@ -1317,11 +1317,3 @@ function FocusOverlay({ cue, onClose }: { cue: Cue; onClose: () => void }) {
     </div>
   );
 }
-              })}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
