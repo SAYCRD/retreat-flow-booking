@@ -219,18 +219,41 @@ function tint(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+function detectConflicts(services: Service[]) {
+  const out: { a: Service; b: Service }[] = [];
+  const byRoom = new Map<string, Service[]>();
+  services.forEach((s) => {
+    const arr = byRoom.get(s.room) ?? [];
+    arr.push(s);
+    byRoom.set(s.room, arr);
+  });
+  byRoom.forEach((arr) => {
+    const sorted = [...arr].sort((a, b) => a.start - b.start);
+    for (let i = 0; i < sorted.length - 1; i++) {
+      for (let j = i + 1; j < sorted.length; j++) {
+        if (sorted[j].start < sorted[i].end) out.push({ a: sorted[i], b: sorted[j] });
+        else break;
+      }
+    }
+  });
+  return out;
+}
+
 function TodayPage() {
   const now = useNow();
   const nowMin = DEMO_NOW;
   const [cueIdx, setCueIdx] = useState(0);
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
+  const [focusOpen, setFocusOpen] = useState(false);
+  const [conflictDismissed, setConflictDismissed] = useState(false);
 
   const clock = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const date = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
+  const conflicts = useMemo(() => detectConflicts(SERVICES), []);
   const inSession = SERVICES.filter((s) => s.start <= nowMin && s.end > nowMin).length;
   const stillToCome = SERVICES.filter((s) => s.start > nowMin).length;
-  const overlaps = 1;
+  const overlaps = conflicts.length;
   const revenue = FINANCES.reduce((a, b) => a + b.amount, 0);
   const unpaid = FINANCES.filter((f) => !f.paid).reduce((a, b) => a + b.amount, 0);
 
