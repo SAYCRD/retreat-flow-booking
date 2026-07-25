@@ -529,34 +529,6 @@ function SectionHeader({
   );
 }
 
-function AttentionCard({ item }: { item: Attention }) {
-  const color =
-    item.severity === "critical" ? ACCENT : item.severity === "warn" ? "#d97706" : "#0a0a0a";
-  return (
-    <div className="group flex items-start gap-4 rounded-[10px] border border-black/[0.08] bg-white p-5 transition-colors hover:border-black/20">
-      <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span
-            className="text-[11px] uppercase tracking-[0.14em]"
-            style={{ fontFamily: MONO, color }}
-          >
-            {item.severity}
-          </span>
-        </div>
-        <div className="mt-1 text-[16px] font-semibold tracking-tight">{item.title}</div>
-        <p className="mt-1.5 text-[14px] leading-relaxed text-black/65">{item.detail}</p>
-      </div>
-      {item.action && (
-        <button
-          className="shrink-0 rounded-[6px] border border-black/10 bg-white px-3 py-1.5 text-[13px] font-medium text-black/75 shadow-[0_1px_0_rgba(0,0,0,0.02)] transition-colors hover:border-black/25 hover:text-black"
-        >
-          {item.action}
-        </button>
-      )}
-    </div>
-  );
-}
 
 function TimelineLegend() {
   const chip = "h-3 w-4 border border-black/15";
