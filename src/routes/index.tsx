@@ -283,6 +283,61 @@ const GUESTS: Record<string, GuestInfo> = {
   },
 };
 
+// Session protocols — cautions tied to the SERVICE (modality), not the person.
+// These are the things the practitioner must brief the guest on, or confirm before starting.
+// The waiver is auto-composed from the applicable protocols + the guest's disclosures.
+type Protocol = { text: string; severity: "brief" | "confirm" | "block" };
+const SESSION_PROTOCOLS: Record<string, Protocol[]> = {
+  "Myers Cocktail IV": [
+    { text: "Confirm no recent kidney issues or dialysis", severity: "confirm" },
+    { text: "Brief guest on cold sensation & metallic taste during push", severity: "brief" },
+    { text: "Vasovagal risk — recline fully before insertion", severity: "confirm" },
+  ],
+  "Deep Tissue Massage": [
+    { text: "Check pressure at 5 min and again at 15 min", severity: "brief" },
+    { text: "Avoid areas of recent injection, cortisone, or fresh ink", severity: "block" },
+    { text: "No deep work over replaced joints or acute inflammation", severity: "block" },
+  ],
+  "BEMER Session": [
+    { text: "Pacemaker / ICD — maintain protocol distance, confirm model", severity: "block" },
+    { text: "Not for active pregnancy first trimester", severity: "block" },
+  ],
+  "Cupping": [
+    { text: "No cupping over tattoos <6 weeks, moles, or broken skin", severity: "block" },
+    { text: "Brief on marking — lasts 3–7 days", severity: "brief" },
+  ],
+  "Couples Ayurvedic Massage": [
+    { text: "Confirm oil allergies with both guests", severity: "confirm" },
+    { text: "Side-lying only for hip replacement or late pregnancy", severity: "confirm" },
+  ],
+  "Intuitive Reading": [
+    { text: "Confirm guest is not in acute grief or crisis — offer reschedule", severity: "confirm" },
+  ],
+  "Sound Healing": [
+    { text: "Tinnitus — position bowls at safe distance, check before start", severity: "confirm" },
+    { text: "Photosensitive epilepsy — no strobe elements", severity: "block" },
+  ],
+  "Ceremonial Tea & Integration": [
+    { text: "Confirm no MAOI medications in last 14 days", severity: "block" },
+    { text: "Brief on tea composition & duration", severity: "brief" },
+  ],
+  "Infrared Sauna": [
+    { text: "Hydration check before entry — offer electrolytes", severity: "brief" },
+    { text: "No entry with fever, alcohol, or first-trimester pregnancy", severity: "block" },
+  ],
+  "Medicine Walk": [
+    { text: "Confirm mobility & footwear — 90 min terrain", severity: "confirm" },
+    { text: "Brief on weather, water, and sun exposure", severity: "brief" },
+  ],
+  "Grandmother Crystal Bowl": [
+    { text: "Photosensitivity & tinnitus — confirm before start", severity: "confirm" },
+  ],
+};
+
+function getProtocols(serviceName: string): Protocol[] {
+  return SESSION_PROTOCOLS[serviceName] ?? [];
+}
+
 // Payment state per service (in a real app this would come from the DB).
 // A guest's `paid` flag in FINANCES represents the whole visit;
 // here we mark individual services so the panel can show a payment link.
