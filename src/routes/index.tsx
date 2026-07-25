@@ -336,11 +336,12 @@ function TodayPage() {
         {/* label above the top hairline */}
         <div className="mx-auto flex max-w-[1440px] items-center gap-2 px-6 pt-4 pb-2">
           <span
-            className="text-[10px] uppercase tracking-[0.22em] text-black/40"
+            className="text-[11px] font-semibold uppercase tracking-[0.22em] text-black/75"
             style={{ fontFamily: MONO }}
           >
-            Coming up
+            <Highlight color="#fef3c7">Coming up</Highlight>
           </span>
+
           <span
             className="text-[10px] tabular-nums text-black/30"
             style={{ fontFamily: MONO }}
