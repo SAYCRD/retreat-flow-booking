@@ -1486,12 +1486,18 @@ function Timeline({
               {cueMarker && cueMarker.room === room && (() => {
                 const Icon = WHISPER_ICON[cueMarker.kind];
                 const wash = `color-mix(in oklab, ${cueMarker.gc} 34%, white)`;
-                const shift = cueMarker.overlapsNext ? "translateY(-28px)" : undefined;
+                // For after-markers, anchor to the card's actual rendered
+                // bottom (cards grow past their time-block when notes wrap).
+                // Fall back to time-based placement until measurement lands.
+                const topPx = cueMarker.after && afterTopPx != null
+                  ? afterTopPx
+                  : cueMarker.topMin * PX_PER_MIN;
+                const shift = cueMarker.overlapsNext && afterTopPx == null ? "translateY(-28px)" : undefined;
                 return (
                   <div
                     id="active-cue-marker"
                     className="pointer-events-none absolute inset-x-0 z-30"
-                    style={{ top: cueMarker.topMin * PX_PER_MIN, transform: shift }}
+                    style={{ top: topPx, transform: shift }}
                   >
                     <div className="mx-2 flex w-fit items-center gap-2 px-2 py-1"
                       style={{
