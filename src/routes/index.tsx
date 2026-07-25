@@ -172,7 +172,7 @@ function generatePrompts(nowMin: number): Prompt[] {
       reason: `${s.service} · ${s.room} · quiet heads-up`,
       room: s.room,
       serviceId: s.id,
-      primary: "Notified",
+      primary: "Confirm notified",
     });
   });
 
