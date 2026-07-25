@@ -446,7 +446,7 @@ function TodayPage() {
         <div className="mx-auto max-w-[1440px] px-6 py-10">
           <SectionHeader eyebrow="01" label="Rooms" count={ROOMS.length} trailing={<TimelineLegend />} />
           <div className="mt-6">
-            <Timeline nowMin={nowMin} highlightServiceId={cue.serviceId} highlightUrgent={cue.urgent} />
+            <Timeline nowMin={nowMin} highlightServiceId={cue.serviceId} highlightKind={cue.kind} highlightUrgent={cue.urgent} />
           </div>
         </div>
       </section>
@@ -788,7 +788,7 @@ function PaidPill({ paid }: { paid: boolean }) {
 // Timeline
 // ------------------------------------------------------------------
 
-function Timeline({ nowMin, highlightServiceId, highlightUrgent }: { nowMin: number; highlightServiceId?: string; highlightUrgent?: boolean }) {
+function Timeline({ nowMin, highlightServiceId, highlightKind, highlightUrgent }: { nowMin: number; highlightServiceId?: string; highlightKind?: CueKind; highlightUrgent?: boolean }) {
   const PX_PER_MIN = 2.4; // 144px per hour vertical
   const TIME_COL = 88;
   const HEADER_H = 56;
@@ -923,14 +923,8 @@ function Timeline({ nowMin, highlightServiceId, highlightUrgent }: { nowMin: num
                 })();
 
                 const isHighlighted = highlightServiceId === s.id;
-                const highlightRing: React.CSSProperties = isHighlighted
-                  ? {
-                      outline: `2px solid ${highlightUrgent ? "#f59e0b" : gc}`,
-                      outlineOffset: 2,
-                      zIndex: 15,
-                      boxShadow: `${style.boxShadow ?? ""}, 0 8px 24px ${tint(highlightUrgent ? "#f59e0b" : gc, 0.25)}`.replace(/^,\s*/, ""),
-                    }
-                  : {};
+                const HighlightIcon = highlightKind ? CUE_ICON[highlightKind] : null;
+                const highlightColor = highlightUrgent ? "#f59e0b" : gc;
 
                 return (
                   <div
@@ -940,25 +934,19 @@ function Timeline({ nowMin, highlightServiceId, highlightUrgent }: { nowMin: num
                       top: top + 2,
                       height: Math.max(height - 4, 60),
                       ...style,
-                      ...highlightRing,
                     }}
                     title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
                   >
-                    {isHighlighted && (
+                    {isHighlighted && HighlightIcon && (
                       <span
                         aria-hidden
-                        className="absolute right-2 top-2 flex h-3 w-3"
+                        className="absolute right-2 top-2"
+                        style={{ color: highlightColor }}
                       >
-                        <span
-                          className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-70"
-                          style={{ background: highlightUrgent ? "#f59e0b" : gc }}
-                        />
-                        <span
-                          className="relative inline-flex h-3 w-3 rounded-full ring-2 ring-white"
-                          style={{ background: highlightUrgent ? "#f59e0b" : gc }}
-                        />
+                        <HighlightIcon size={13} strokeWidth={2.25} />
                       </span>
                     )}
+
                     <div className="flex items-center gap-1.5">
                       {isLive && (
                         <span className="relative inline-flex h-2 w-2 shrink-0">
