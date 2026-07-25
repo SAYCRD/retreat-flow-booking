@@ -1214,7 +1214,7 @@ function FocusOverlay({ cue, onClose }: { cue: Cue; onClose: () => void }) {
         break;
       case "escort":
         base.push(
-          { icon: UserCheck, label: "Confirm guest is checked in", done: true },
+          { icon: UserCheck, label: "Confirm guest is checked in", hint: "", done: true },
           { icon: DoorOpen, label: service ? `Walk guest to ${service.room}` : "Walk guest to room", hint: "Low voice, unhurried pace." },
           { icon: Sparkles, label: "Practitioner arrival", hint: service ? `Cue ${service.practitioner}` : "Cue practitioner" },
         );
