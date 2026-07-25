@@ -1045,144 +1045,161 @@ function Timeline({
                   .join("")
                   .toUpperCase();
 
-                // Clean card: transparent body, thin colored rails, dark text.
-                const rail = isRequest
-                  ? "repeating-linear-gradient(to bottom, #d97706 0 6px, transparent 6px 10px)"
-                  : isPast
-                    ? tint(gc, 0.5)
-                    : gc;
-                const nameColor = isPast ? "rgba(0,0,0,0.45)" : "#111111";
-                const serviceColor = isPast ? "rgba(0,0,0,0.42)" : gc;
-                const metaColor = isPast ? "rgba(0,0,0,0.40)" : "#3a3a3a";
+                // Pure-white cards on tinted column surface. No borders,
+                // color lives only in a soft top rail + small chroma accents.
+                const nameColor = isPast ? "#1a1a1a" : "#0a0a0a";
+                const serviceColor = isPast ? tint(gc, 0.75) : gc;
+                const metaColor = isPast ? "#4a4a4a" : "#2a2a2a";
 
-                const isHighlighted = highlightServiceId === s.id;
-                const HighlightIcon = highlightKind ? CUE_ICON[highlightKind] : null;
-                const highlightColor = highlightUrgent ? "#f59e0b" : gc;
+                // Parse orchestration notes like "Part 2 of 3 · Amara's afternoon journey"
+                let orchestration: { step: string; title: string } | null = null;
+                let plainNote: string | null = null;
+                if (s.note) {
+                  const m = s.note.match(/^Part\s+(\d+)\s+of\s+(\d+)\s*·\s*(.+)$/i);
+                  if (m) orchestration = { step: `${m[1]}/${m[2]}`, title: m[3] };
+                  else plainNote = s.note;
+                }
 
                 return (
                   <div
                     key={s.id}
-                    className="group absolute left-1 right-1 flex flex-col overflow-hidden rounded-[3px] px-2.5 pt-2 pb-2 transition-colors hover:z-20"
+                    className="group absolute left-1.5 right-1.5 flex flex-col overflow-hidden rounded-[6px] bg-white transition-all hover:z-20"
                     style={{
                       top: top + 2,
-                      height: Math.max(height - 4, 88),
-                      background: isLive ? tint(gc, 0.06) : isRequest ? "rgba(255,251,235,0.55)" : "rgba(255,255,255,0.65)",
-                      border: isRequest
-                        ? `1px dashed ${tint("#d97706", 0.55)}`
-                        : `1px solid ${tint(gc, isPast ? 0.35 : 0.6)}`,
+                      height: Math.max(height - 4, 96),
+                      boxShadow: isLive
+                        ? `0 1px 0 rgba(0,0,0,0.04), 0 6px 20px -8px ${tint(gc, 0.35)}, 0 0 0 1px ${tint(gc, 0.15)}`
+                        : isRequest
+                          ? "0 1px 0 rgba(0,0,0,0.04), 0 4px 14px -8px rgba(217,119,6,0.35)"
+                          : "0 1px 0 rgba(0,0,0,0.04), 0 2px 10px -4px rgba(15,23,42,0.10)",
+                      opacity: isPast ? 0.86 : 1,
                     }}
                     title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
                   >
-                    {/* Paid marker — small dot top-right */}
+                    {/* Top color rail — the room's identity */}
                     <span
                       aria-hidden
-                      className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full"
+                      className="absolute inset-x-0 top-0 h-[3px]"
                       style={{
-                        background: paid ? "#10b981" : "transparent",
-                        boxShadow: paid ? "none" : "inset 0 0 0 1px rgba(0,0,0,0.28)",
+                        background: isRequest
+                          ? "repeating-linear-gradient(to right, #d97706 0 6px, transparent 6px 10px)"
+                          : gc,
                       }}
-                      title={paid ? "Paid" : "Unpaid"}
                     />
 
-                    {isHighlighted && HighlightIcon && (
-                      <span
-                        aria-hidden
-                        className="absolute right-4 top-1.5"
-                        style={{ color: highlightColor }}
-                      >
-                        <HighlightIcon size={12} strokeWidth={2.25} />
-                      </span>
-                    )}
-
-                    {/* Guest name + live dot */}
-                    <div className="flex items-center gap-1.5 pr-6">
-                      {isLive && (
-                        <span className="relative inline-flex h-2 w-2 shrink-0">
-                          <span
-                            className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50"
-                            style={{ background: gc }}
-                          />
-                          <span
-                            className="relative inline-flex h-2 w-2 rounded-full"
-                            style={{ background: gc }}
-                          />
-                        </span>
-                      )}
-                      <div
-                        className="truncate text-[13.5px] font-semibold leading-tight tracking-[-0.01em]"
-                        style={{ color: nameColor, fontFamily: DISPLAY }}
-                      >
-                        {s.guest}
-                        {s.partySize ? ` +${s.partySize - 1}` : ""}
-                      </div>
-                      {isRequest && (
-                        <span
-                          className="ml-1 rounded-sm px-1 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
-                          style={{ color: "#b45309", background: "rgba(217,119,6,0.10)", fontFamily: MONO }}
-                        >
-                          Request
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Service — chroma, with subtle marker highlight */}
-                    <div className="mt-1">
-                      <span
-                        className="inline text-[17px] font-semibold leading-[1.15] tracking-[-0.02em]"
-                        style={{
-                          color: serviceColor,
-                          fontFamily: DISPLAY,
-                          background: isPast
-                            ? "transparent"
-                            : `linear-gradient(180deg, transparent 62%, ${tint(gc, 0.22)} 62%, ${tint(gc, 0.22)} 96%, transparent 96%)`,
-                          padding: "0 2px",
-                          boxDecorationBreak: "clone",
-                          WebkitBoxDecorationBreak: "clone",
-                        }}
-                      >
-                        {s.service}
-                      </span>
-                    </div>
-
-                    {/* Practitioner + time (time sits under practitioner name) */}
-                    <div className="mt-1.5 flex items-start gap-1.5">
-                      <span
-                        className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[9.5px] font-bold"
-                        style={{
-                          background: tint(gc, 0.18),
-                          color: isPast ? metaColor : "#111111",
-                          boxShadow: `inset 0 0 0 1px ${tint(gc, 0.4)}`,
-                          fontFamily: DISPLAY,
-                        }}
-                      >
-                        {practInitials}
-                      </span>
-                      <div className="min-w-0">
+                    <div className="flex flex-1 flex-col px-3 pt-3 pb-2.5">
+                      {/* Time — big, monospace, sits at the top so it reads first */}
+                      <div className="flex items-baseline justify-between gap-2">
                         <div
-                          className="truncate text-[12.5px] font-medium leading-tight"
-                          style={{ color: nameColor }}
-                        >
-                          {s.practitioner}
-                        </div>
-                        <div
-                          className="mt-0.5 text-[11px] font-medium tabular-nums leading-tight"
+                          className="text-[15px] font-semibold tabular-nums leading-none tracking-tight"
                           style={{ color: metaColor, fontFamily: MONO }}
                         >
-                          {fmt(s.start)}–{fmt(s.end)} · {duration}m
+                          {fmt(s.start)}
+                          <span className="mx-1 opacity-40">–</span>
+                          {fmt(s.end)}
+                        </div>
+                        <div
+                          className="text-[10.5px] font-semibold tabular-nums tracking-[0.08em]"
+                          style={{ color: metaColor, fontFamily: MONO, opacity: 0.65 }}
+                        >
+                          {duration}m
                         </div>
                       </div>
-                    </div>
 
-                    {/* Note */}
-                    {s.note && height > 100 && (
+                      {/* Service — the offering, in the room's chroma */}
                       <div
-                        className="mt-1.5 truncate text-[11px] italic leading-snug"
-                        style={{ color: isPast ? "rgba(0,0,0,0.4)" : "#4b5563" }}
-                        title={s.note}
+                        className="mt-2 text-[19px] font-semibold leading-[1.1] tracking-[-0.02em]"
+                        style={{ color: serviceColor, fontFamily: DISPLAY }}
                       >
-                        — {s.note}
+                        {s.service}
                       </div>
-                    )}
+
+                      {/* Guest */}
+                      <div className="mt-2 flex items-center gap-1.5">
+                        {isLive && (
+                          <span className="relative inline-flex h-2 w-2 shrink-0">
+                            <span
+                              className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
+                              style={{ background: gc }}
+                            />
+                            <span
+                              className="relative inline-flex h-2 w-2 rounded-full"
+                              style={{ background: gc }}
+                            />
+                          </span>
+                        )}
+                        <div
+                          className="truncate text-[14px] font-semibold leading-tight tracking-[-0.005em]"
+                          style={{ color: nameColor, fontFamily: DISPLAY }}
+                        >
+                          {s.guest}
+                          {s.partySize ? ` +${s.partySize - 1}` : ""}
+                        </div>
+                        {isRequest && (
+                          <span
+                            className="ml-auto rounded-sm px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em]"
+                            style={{ color: "#b45309", background: "rgba(217,119,6,0.10)", fontFamily: MONO }}
+                          >
+                            Request
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Practitioner — initials chip + name, understated */}
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        <span
+                          className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[9.5px] font-bold"
+                          style={{
+                            background: tint(gc, 0.14),
+                            color: "#1a1a1a",
+                            fontFamily: DISPLAY,
+                          }}
+                        >
+                          {practInitials}
+                        </span>
+                        <span
+                          className="truncate text-[12.5px] font-medium leading-tight"
+                          style={{ color: metaColor }}
+                        >
+                          {s.practitioner}
+                        </span>
+                      </div>
+
+                      {/* Orchestration pill or plain note — pushed to bottom */}
+                      {(orchestration || plainNote) && height > 110 && (
+                        <div className="mt-auto pt-2">
+                          {orchestration ? (
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className="rounded-[3px] px-1.5 py-0.5 text-[10.5px] font-bold tabular-nums leading-none"
+                                style={{
+                                  background: tint(gc, 0.16),
+                                  color: gc,
+                                  fontFamily: MONO,
+                                }}
+                              >
+                                {orchestration.step}
+                              </span>
+                              <span
+                                className="truncate text-[11.5px] font-medium leading-tight"
+                                style={{ color: metaColor }}
+                                title={orchestration.title}
+                              >
+                                {orchestration.title}
+                              </span>
+                            </div>
+                          ) : (
+                            <div
+                              className="truncate text-[11.5px] italic leading-snug"
+                              style={{ color: metaColor }}
+                              title={plainNote ?? undefined}
+                            >
+                              {plainNote}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
