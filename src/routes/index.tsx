@@ -1454,3 +1454,408 @@ function FocusOverlay({ cue, onClose }: { cue: Cue; onClose: () => void }) {
     </div>
   );
 }
+
+// ------------------------------------------------------------------
+// Reservation detail — side panel opened from a timeline card
+// ------------------------------------------------------------------
+
+function ReservationPanel({
+  service,
+  onClose,
+}: {
+  service: Service | null;
+  onClose: () => void;
+}) {
+  // Trap Esc to close
+  useEffect(() => {
+    if (!service) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [service, onClose]);
+
+  const open = !!service;
+  const s = service;
+  const rc = s ? roomColor(s.room) : ACCENT;
+  const paid = s ? SERVICE_PAID[s.id] ?? false : false;
+  const price = s ? PRICES[s.id] ?? 0 : 0;
+  const guest = s ? GUESTS[s.guest] : undefined;
+
+  // Orchestration = the guest's full ordered set of services today.
+  // The current leg is this service's index within that set (1-based).
+  const journey = useMemo(() => {
+    if (!s) return [] as Service[];
+    return SERVICES
+      .filter((x) => x.guest === s.guest)
+      .sort((a, b) => a.start - b.start);
+  }, [s]);
+  const legIndex = s ? journey.findIndex((x) => x.id === s.id) : -1;
+  const isOrchestration = journey.length > 1;
+
+  return (
+    <>
+      {/* backdrop */}
+      <div
+        aria-hidden
+        onClick={onClose}
+        className={`fixed inset-0 z-40 bg-black/25 backdrop-blur-[2px] transition-opacity duration-200 ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      />
+
+      {/* panel */}
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label={s ? `${s.guest} — ${s.service}` : "Reservation"}
+        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-[520px] flex-col bg-white shadow-[-24px_0_60px_-24px_rgba(15,23,42,0.25)] transition-transform duration-300 ease-out ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+        style={{ fontFamily: DISPLAY, color: INK }}
+      >
+        {!s ? null : (
+          <>
+            {/* Room color rail — matches the card it opened from */}
+            <div className="h-[3px] w-full shrink-0" style={{ background: rc }} />
+
+            {/* Header */}
+            <div className="flex items-start gap-4 px-7 pt-6 pb-5">
+              <Avatar name={s.guest} color={rc} />
+              <div className="min-w-0 flex-1">
+                <div
+                  className="text-[10.5px] uppercase tracking-[0.16em] text-black/45"
+                  style={{ fontFamily: MONO }}
+                >
+                  Reservation
+                </div>
+                <h2 className="mt-1 truncate text-[24px] font-semibold tracking-[-0.02em] text-black">
+                  {s.guest}
+                  {s.partySize ? (
+                    <span
+                      className="ml-2 text-[13px] font-medium text-black/45"
+                      style={{ fontFamily: MONO }}
+                    >
+                      +{s.partySize - 1}
+                    </span>
+                  ) : null}
+                </h2>
+                <div
+                  className="mt-1 text-[16px] font-semibold leading-tight tracking-tight"
+                  style={{ color: rc }}
+                >
+                  {s.service}
+                </div>
+              </div>
+              <button
+                aria-label="Close"
+                onClick={onClose}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-black/50 hover:bg-black/[0.05] hover:text-black"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-8">
+              {/* Fact list */}
+              <dl className="grid grid-cols-[110px_1fr] gap-y-3 border-t border-black/[0.08] py-5 text-[14px]">
+                <PanelRow label="Room">
+                  <span className="font-semibold" style={{ color: rc }}>{s.room}</span>
+                </PanelRow>
+                <PanelRow label="Practitioner">
+                  <span className="font-semibold text-black">{s.practitioner}</span>
+                </PanelRow>
+                <PanelRow label="Time">
+                  <span className="font-semibold tabular-nums text-black" style={{ fontFamily: MONO }}>
+                    {fmt(s.start)} – {fmt(s.end)}
+                  </span>
+                </PanelRow>
+                <PanelRow label="Duration">
+                  <span className="font-semibold tabular-nums text-black" style={{ fontFamily: MONO }}>
+                    {Math.round(s.end - s.start)} min
+                  </span>
+                </PanelRow>
+                <PanelRow label="Status">
+                  <StatusPill status={s.status} guestHex={rc} />
+                </PanelRow>
+              </dl>
+
+              {/* Payment */}
+              <PanelSection
+                eyebrow="Payment"
+                trailing={
+                  <span className="tabular-nums text-[15px] font-semibold" style={{ fontFamily: MONO }}>
+                    ${price}
+                  </span>
+                }
+              >
+                {paid ? (
+                  <div className="flex items-center gap-2 text-[13.5px] text-black/70">
+                    <span className="grid h-6 w-6 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+                      <Check size={13} strokeWidth={2.5} />
+                    </span>
+                    Paid in full · card on file
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2 text-[13.5px]" style={{ color: ACCENT }}>
+                      <span
+                        className="grid h-6 w-6 place-items-center rounded-full"
+                        style={{ background: tint(ACCENT, 0.12) }}
+                      >
+                        <CreditCard size={13} strokeWidth={2} />
+                      </span>
+                      Outstanding — send guest a payment link
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        className="inline-flex items-center gap-2 rounded-[8px] px-3.5 py-2 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
+                        style={{ background: ACCENT }}
+                      >
+                        Send payment link
+                        <ExternalLink size={13} strokeWidth={2.25} />
+                      </button>
+                      <button
+                        className="inline-flex items-center gap-2 rounded-[8px] border border-black/10 bg-white px-3 py-2 text-[13px] font-medium text-black/70 hover:bg-black/[0.03] hover:text-black"
+                        title="Copy link"
+                      >
+                        <Copy size={13} strokeWidth={2} />
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </PanelSection>
+
+              {/* Orchestration */}
+              {isOrchestration && (
+                <PanelSection
+                  eyebrow="Journey"
+                  trailing={
+                    <span
+                      className="rounded-[3px] px-1.5 py-0.5 text-[10.5px] font-bold tabular-nums leading-none"
+                      style={{ background: tint(rc, 0.18), color: "#1a1a1a", fontFamily: MONO }}
+                    >
+                      Leg {legIndex + 1}/{journey.length}
+                    </span>
+                  }
+                >
+                  <ol className="space-y-2">
+                    {journey.map((leg, i) => {
+                      const legColor = roomColor(leg.room);
+                      const isCurrent = leg.id === s.id;
+                      return (
+                        <li
+                          key={leg.id}
+                          className="flex items-start gap-3 rounded-[8px] px-2.5 py-2"
+                          style={{
+                            background: isCurrent ? tint(rc, 0.08) : "transparent",
+                          }}
+                        >
+                          <span
+                            className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold tabular-nums"
+                            style={{
+                              background: isCurrent ? legColor : tint(legColor, 0.16),
+                              color: isCurrent ? "#fff" : "#1a1a1a",
+                              fontFamily: MONO,
+                            }}
+                          >
+                            {i + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-baseline justify-between gap-3">
+                              <div
+                                className="truncate text-[14px] font-semibold leading-tight text-black"
+                              >
+                                {leg.service}
+                              </div>
+                              <div
+                                className="shrink-0 text-[11.5px] tabular-nums text-black/55"
+                                style={{ fontFamily: MONO }}
+                              >
+                                {fmt(leg.start)}
+                              </div>
+                            </div>
+                            <div
+                              className="mt-0.5 truncate text-[12px]"
+                              style={{ color: legColor, fontFamily: MONO }}
+                            >
+                              {leg.room}
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </PanelSection>
+              )}
+
+              {/* Contact */}
+              {guest && (
+                <PanelSection eyebrow="Contact">
+                  <div className="space-y-1.5 text-[13.5px]">
+                    <a
+                      href={`tel:${guest.phone.replace(/\s+/g, "")}`}
+                      className="flex items-center gap-2.5 text-black/75 hover:text-black"
+                    >
+                      <Phone size={14} strokeWidth={2} className="text-black/40" />
+                      <span className="tabular-nums" style={{ fontFamily: MONO }}>
+                        {guest.phone}
+                      </span>
+                    </a>
+                    <a
+                      href={`mailto:${guest.email}`}
+                      className="flex items-center gap-2.5 text-black/75 hover:text-black"
+                    >
+                      <Mail size={14} strokeWidth={2} className="text-black/40" />
+                      <span>{guest.email}</span>
+                    </a>
+                    {guest.pronouns && (
+                      <div className="pt-1 text-[12px] text-black/50" style={{ fontFamily: MONO }}>
+                        {guest.pronouns}
+                      </div>
+                    )}
+                  </div>
+                </PanelSection>
+              )}
+
+              {/* Notes */}
+              {guest?.notes && (
+                <PanelSection eyebrow="Notes">
+                  <p className="text-[13.5px] leading-relaxed text-black/75">{guest.notes}</p>
+                </PanelSection>
+              )}
+
+              {/* Contraindications */}
+              <PanelSection
+                eyebrow="Contraindications"
+                trailing={
+                  guest?.contraindications && guest.contraindications.length > 0 ? (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-amber-700"
+                    >
+                      <ShieldAlert size={11} strokeWidth={2.5} />
+                      Review
+                    </span>
+                  ) : null
+                }
+              >
+                {guest?.contraindications && guest.contraindications.length > 0 ? (
+                  <ul className="space-y-2">
+                    {guest.contraindications.map((c, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-2.5 rounded-[8px] border border-amber-200/70 bg-amber-50/60 px-3 py-2.5 text-[13px] text-amber-900"
+                      >
+                        <ShieldAlert
+                          size={14}
+                          strokeWidth={2.25}
+                          className="mt-0.5 shrink-0 text-amber-600"
+                        />
+                        <span className="leading-snug">{c}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-[13px] text-black/50">
+                    None on file for this session.
+                  </p>
+                )}
+              </PanelSection>
+
+              {/* Waiver */}
+              <PanelSection eyebrow="Waiver">
+                {guest?.waiverSignedOn ? (
+                  <div className="flex items-center justify-between gap-3 rounded-[8px] border border-black/[0.08] px-3.5 py-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="grid h-7 w-7 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+                        <FileText size={13} strokeWidth={2.25} />
+                      </span>
+                      <div>
+                        <div className="text-[13.5px] font-semibold text-black">Signed</div>
+                        <div className="text-[11.5px] text-black/50" style={{ fontFamily: MONO }}>
+                          {guest.waiverSignedOn}
+                        </div>
+                      </div>
+                    </div>
+                    <button className="text-[12.5px] font-medium text-black/60 underline decoration-black/20 underline-offset-4 hover:text-black hover:decoration-black">
+                      View
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3 rounded-[8px] border border-amber-200 bg-amber-50/60 px-3.5 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="grid h-7 w-7 place-items-center rounded-full bg-amber-100 text-amber-700">
+                        <FileText size={13} strokeWidth={2.25} />
+                      </span>
+                      <div>
+                        <div className="text-[13.5px] font-semibold text-amber-900">
+                          Not signed yet
+                        </div>
+                        <div className="text-[11.5px] text-amber-900/70">
+                          Required before session starts
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        className="inline-flex items-center gap-2 rounded-[8px] bg-amber-600 px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-amber-700"
+                      >
+                        Send waiver
+                        <ExternalLink size={13} strokeWidth={2.25} />
+                      </button>
+                      <button className="rounded-[8px] border border-black/10 bg-white px-3 py-2 text-[13px] font-medium text-black/70 hover:bg-black/[0.03] hover:text-black">
+                        Sign on iPad
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </PanelSection>
+            </div>
+          </>
+        )}
+      </aside>
+    </>
+  );
+}
+
+function PanelRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <>
+      <dt
+        className="text-[11.5px] uppercase tracking-[0.14em] text-black/45"
+        style={{ fontFamily: MONO }}
+      >
+        {label}
+      </dt>
+      <dd className="text-right">{children}</dd>
+    </>
+  );
+}
+
+function PanelSection({
+  eyebrow,
+  children,
+  trailing,
+}: {
+  eyebrow: string;
+  children: React.ReactNode;
+  trailing?: React.ReactNode;
+}) {
+  return (
+    <section className="border-t border-black/[0.08] py-5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div
+          className="text-[10.5px] uppercase tracking-[0.16em] text-black/45"
+          style={{ fontFamily: MONO }}
+        >
+          {eyebrow}
+        </div>
+        {trailing}
+      </div>
+      {children}
+    </section>
+  );
+}
