@@ -1513,7 +1513,7 @@ function Timeline({
                 const activeWhisper = (whispersByService[s.id] ?? []).find(
                   (w) => w.id === activeCueId,
                 );
-                const badgeWhisper = activeWhisper && !preSessionKinds.includes(activeWhisper.kind) ? activeWhisper : null;
+                const badgeWhisper = activeWhisper && !markerKinds.includes(activeWhisper.kind) ? activeWhisper : null;
 
 
                 return (
