@@ -448,14 +448,6 @@ const PRICES: Record<string, number> = {
   s10: 180, s11: 150,
 };
 
-const NAV = [
-  { label: "Today", key: "T" },
-  { label: "Calendar", key: "C" },
-  { label: "Requests", key: "R" },
-  { label: "Guests", key: "G" },
-  { label: "Rooms", key: "M" },
-  { label: "Practitioners", key: "P" },
-];
 
 // ------------------------------------------------------------------
 
