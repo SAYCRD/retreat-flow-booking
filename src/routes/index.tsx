@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves } from "lucide-react";
+import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy } from "lucide-react";
 
 const CUE_ICON = {
   message: MessageSquare,
@@ -158,6 +158,80 @@ const FINANCES = [
   { guest: "Thomas Wren", services: 1, amount: 95, paid: true },
 ];
 
+// Per-guest details — contact, waiver, contraindications keyed to service kind.
+type GuestInfo = {
+  phone: string;
+  email: string;
+  pronouns?: string;
+  waiverSignedOn?: string; // ISO date, undefined = not signed
+  notes?: string;
+  contraindications?: string[];
+};
+
+const GUESTS: Record<string, GuestInfo> = {
+  "Elena Vives": {
+    phone: "+1 (415) 555-0132", email: "elena.vives@hey.com", pronouns: "she/her",
+    waiverSignedOn: "2026-06-14",
+    notes: "Prefers arm rest under IV. Slight vein anxiety — talk her through the tap.",
+    contraindications: ["History of vasovagal response — recline fully", "Avoid B-complex flush at high rate"],
+  },
+  "Nadia Farrow": {
+    phone: "+1 (628) 555-0177", email: "nadia@farrowstudio.com", pronouns: "she/her",
+    waiverSignedOn: "2026-07-02",
+    notes: "Deep pressure OK on shoulders, light on lower back.",
+    contraindications: ["Recent cortisone in right shoulder (May) — avoid direct work", "No cupping over lumbar tattoo (still healing)"],
+  },
+  "Thomas Wren": {
+    phone: "+1 (206) 555-0104", email: "twren@northlight.co",
+    waiverSignedOn: "2026-05-20",
+    contraindications: ["Pacemaker — confirm BEMER protocol distance"],
+  },
+  "Gerald & June Pierce": {
+    phone: "+1 (312) 555-0155", email: "pierces@fastmail.com",
+    waiverSignedOn: "2026-07-25",
+    notes: "25th anniversary. Champagne + card in the room.",
+    contraindications: ["June: right hip replacement 2019 — no deep hip work, side-lying only"],
+  },
+  "Amara Okonkwo": {
+    phone: "+44 20 7946 0432", email: "amara.o@studio.london", pronouns: "she/her",
+    waiverSignedOn: "2026-07-25",
+    notes: "Sensory sensitive. Low light, minimal chat on arrival. Journey of 3.",
+    contraindications: ["Migraine trigger — no strong essential oils in reading room"],
+  },
+  "Marcus Hale": {
+    phone: "+1 (503) 555-0198", email: "marcus.hale@proton.me",
+    waiverSignedOn: undefined,
+    notes: "First visit — greet at the door, walk him through the space.",
+    contraindications: ["Tinnitus — check bowl proximity before session"],
+  },
+  "Priya Anand": {
+    phone: "+1 (917) 555-0121", email: "priya.a@lantern.co",
+    waiverSignedOn: undefined,
+    notes: "Awaiting confirmation on Medicine Walk. Bring water + light jacket.",
+    contraindications: [],
+  },
+  "Lena Costa": {
+    phone: "+1 (415) 555-0187", email: "lena@costafolio.com",
+    waiverSignedOn: "2026-04-11",
+    contraindications: ["Second trimester pregnancy — supine only briefly, side-lying preferred"],
+  },
+};
+
+// Payment state per service (in a real app this would come from the DB).
+// A guest's `paid` flag in FINANCES represents the whole visit;
+// here we mark individual services so the panel can show a payment link.
+const SERVICE_PAID: Record<string, boolean> = {
+  s1: true, s2: true, s3: true, s4: true,
+  s5: false, s6: false, s7: true, s8: false, s9: false,
+  s10: false, s11: false,
+};
+
+const PRICES: Record<string, number> = {
+  s1: 220, s2: 180, s3: 95, s4: 50,
+  s5: 320, s6: 140, s7: 140, s8: 60, s9: 140,
+  s10: 180, s11: 150,
+};
+
 const NAV = [
   { label: "Today", key: "T" },
   { label: "Calendar", key: "C" },
@@ -248,6 +322,8 @@ function TodayPage() {
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
   const [focusOpen, setFocusOpen] = useState(false);
   const [conflictDismissed, setConflictDismissed] = useState(false);
+  const [openServiceId, setOpenServiceId] = useState<string | null>(null);
+  const openService = openServiceId ? SERVICES.find((s) => s.id === openServiceId) ?? null : null;
 
   const clock = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const date = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -518,6 +594,7 @@ function TodayPage() {
               highlightUrgent={cue.urgent}
               activeRoom={activeRoom}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
+              onOpenService={(id) => setOpenServiceId(id)}
             />
           </div>
         </div>
@@ -588,6 +665,8 @@ function TodayPage() {
       {focusOpen && (
         <FocusOverlay cue={cue} onClose={() => setFocusOpen(false)} />
       )}
+
+      <ReservationPanel service={openService} onClose={() => setOpenServiceId(null)} />
     </div>
   );
 }
@@ -912,6 +991,7 @@ function Timeline({
   highlightUrgent,
   activeRoom,
   onRoomClick,
+  onOpenService,
 }: {
   nowMin: number;
   highlightServiceId?: string;
@@ -919,6 +999,7 @@ function Timeline({
   highlightUrgent?: boolean;
   activeRoom?: string | null;
   onRoomClick?: (room: string) => void;
+  onOpenService?: (id: string) => void;
 }) {
   const PX_PER_MIN = 4; // 240px per hour vertical — gives 15/30-min slots room to breathe
   const TIME_COL = 88;
@@ -1087,6 +1168,7 @@ function Timeline({
                     onMouseLeave={(e) => {
                       e.currentTarget.style.boxShadow = baseShadow;
                     }}
+                    onClick={() => onOpenService?.(s.id)}
                     title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
                   >
                     {/* Top color rail — thinner, high-chroma, thickens subtly on hover */}
@@ -1370,5 +1452,410 @@ function FocusOverlay({ cue, onClose }: { cue: Cue; onClose: () => void }) {
         </ol>
       </div>
     </div>
+  );
+}
+
+// ------------------------------------------------------------------
+// Reservation detail — side panel opened from a timeline card
+// ------------------------------------------------------------------
+
+function ReservationPanel({
+  service,
+  onClose,
+}: {
+  service: Service | null;
+  onClose: () => void;
+}) {
+  // Trap Esc to close
+  useEffect(() => {
+    if (!service) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [service, onClose]);
+
+  const open = !!service;
+  const s = service;
+  const rc = s ? roomColor(s.room) : ACCENT;
+  const paid = s ? SERVICE_PAID[s.id] ?? false : false;
+  const price = s ? PRICES[s.id] ?? 0 : 0;
+  const guest = s ? GUESTS[s.guest] : undefined;
+
+  // Orchestration = the guest's full ordered set of services today.
+  // The current leg is this service's index within that set (1-based).
+  const journey = useMemo(() => {
+    if (!s) return [] as Service[];
+    return SERVICES
+      .filter((x) => x.guest === s.guest)
+      .sort((a, b) => a.start - b.start);
+  }, [s]);
+  const legIndex = s ? journey.findIndex((x) => x.id === s.id) : -1;
+  const isOrchestration = journey.length > 1;
+
+  return (
+    <>
+      {/* backdrop */}
+      <div
+        aria-hidden
+        onClick={onClose}
+        className={`fixed inset-0 z-40 bg-black/25 backdrop-blur-[2px] transition-opacity duration-200 ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      />
+
+      {/* panel */}
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label={s ? `${s.guest} — ${s.service}` : "Reservation"}
+        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-[520px] flex-col bg-white shadow-[-24px_0_60px_-24px_rgba(15,23,42,0.25)] transition-transform duration-300 ease-out ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+        style={{ fontFamily: DISPLAY, color: INK }}
+      >
+        {!s ? null : (
+          <>
+            {/* Room color rail — matches the card it opened from */}
+            <div className="h-[3px] w-full shrink-0" style={{ background: rc }} />
+
+            {/* Header */}
+            <div className="flex items-start gap-4 px-7 pt-6 pb-5">
+              <Avatar name={s.guest} color={rc} />
+              <div className="min-w-0 flex-1">
+                <div
+                  className="text-[10.5px] uppercase tracking-[0.16em] text-black/45"
+                  style={{ fontFamily: MONO }}
+                >
+                  Reservation
+                </div>
+                <h2 className="mt-1 truncate text-[24px] font-semibold tracking-[-0.02em] text-black">
+                  {s.guest}
+                  {s.partySize ? (
+                    <span
+                      className="ml-2 text-[13px] font-medium text-black/45"
+                      style={{ fontFamily: MONO }}
+                    >
+                      +{s.partySize - 1}
+                    </span>
+                  ) : null}
+                </h2>
+                <div
+                  className="mt-1 text-[16px] font-semibold leading-tight tracking-tight"
+                  style={{ color: rc }}
+                >
+                  {s.service}
+                </div>
+              </div>
+              <button
+                aria-label="Close"
+                onClick={onClose}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-black/50 hover:bg-black/[0.05] hover:text-black"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-8">
+              {/* Fact list */}
+              <dl className="grid grid-cols-[110px_1fr] gap-y-3 border-t border-black/[0.08] py-5 text-[14px]">
+                <PanelRow label="Room">
+                  <span className="font-semibold" style={{ color: rc }}>{s.room}</span>
+                </PanelRow>
+                <PanelRow label="Practitioner">
+                  <span className="font-semibold text-black">{s.practitioner}</span>
+                </PanelRow>
+                <PanelRow label="Time">
+                  <span className="font-semibold tabular-nums text-black" style={{ fontFamily: MONO }}>
+                    {fmt(s.start)} – {fmt(s.end)}
+                  </span>
+                </PanelRow>
+                <PanelRow label="Duration">
+                  <span className="font-semibold tabular-nums text-black" style={{ fontFamily: MONO }}>
+                    {Math.round(s.end - s.start)} min
+                  </span>
+                </PanelRow>
+                <PanelRow label="Status">
+                  <StatusPill status={s.status} guestHex={rc} />
+                </PanelRow>
+              </dl>
+
+              {/* Payment */}
+              <PanelSection
+                eyebrow="Payment"
+                trailing={
+                  <span className="tabular-nums text-[15px] font-semibold" style={{ fontFamily: MONO }}>
+                    ${price}
+                  </span>
+                }
+              >
+                {paid ? (
+                  <div className="flex items-center gap-2 text-[13.5px] text-black/70">
+                    <span className="grid h-6 w-6 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+                      <Check size={13} strokeWidth={2.5} />
+                    </span>
+                    Paid in full · card on file
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2 text-[13.5px]" style={{ color: ACCENT }}>
+                      <span
+                        className="grid h-6 w-6 place-items-center rounded-full"
+                        style={{ background: tint(ACCENT, 0.12) }}
+                      >
+                        <CreditCard size={13} strokeWidth={2} />
+                      </span>
+                      Outstanding — send guest a payment link
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        className="inline-flex items-center gap-2 rounded-[8px] px-3.5 py-2 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
+                        style={{ background: ACCENT }}
+                      >
+                        Send payment link
+                        <ExternalLink size={13} strokeWidth={2.25} />
+                      </button>
+                      <button
+                        className="inline-flex items-center gap-2 rounded-[8px] border border-black/10 bg-white px-3 py-2 text-[13px] font-medium text-black/70 hover:bg-black/[0.03] hover:text-black"
+                        title="Copy link"
+                      >
+                        <Copy size={13} strokeWidth={2} />
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </PanelSection>
+
+              {/* Orchestration */}
+              {isOrchestration && (
+                <PanelSection
+                  eyebrow="Journey"
+                  trailing={
+                    <span
+                      className="rounded-[3px] px-1.5 py-0.5 text-[10.5px] font-bold tabular-nums leading-none"
+                      style={{ background: tint(rc, 0.18), color: "#1a1a1a", fontFamily: MONO }}
+                    >
+                      Leg {legIndex + 1}/{journey.length}
+                    </span>
+                  }
+                >
+                  <ol className="space-y-2">
+                    {journey.map((leg, i) => {
+                      const legColor = roomColor(leg.room);
+                      const isCurrent = leg.id === s.id;
+                      return (
+                        <li
+                          key={leg.id}
+                          className="flex items-start gap-3 rounded-[8px] px-2.5 py-2"
+                          style={{
+                            background: isCurrent ? tint(rc, 0.08) : "transparent",
+                          }}
+                        >
+                          <span
+                            className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold tabular-nums"
+                            style={{
+                              background: isCurrent ? legColor : tint(legColor, 0.16),
+                              color: isCurrent ? "#fff" : "#1a1a1a",
+                              fontFamily: MONO,
+                            }}
+                          >
+                            {i + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-baseline justify-between gap-3">
+                              <div
+                                className="truncate text-[14px] font-semibold leading-tight text-black"
+                              >
+                                {leg.service}
+                              </div>
+                              <div
+                                className="shrink-0 text-[11.5px] tabular-nums text-black/55"
+                                style={{ fontFamily: MONO }}
+                              >
+                                {fmt(leg.start)}
+                              </div>
+                            </div>
+                            <div
+                              className="mt-0.5 truncate text-[12px]"
+                              style={{ color: legColor, fontFamily: MONO }}
+                            >
+                              {leg.room}
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </PanelSection>
+              )}
+
+              {/* Contact */}
+              {guest && (
+                <PanelSection eyebrow="Contact">
+                  <div className="space-y-1.5 text-[13.5px]">
+                    <a
+                      href={`tel:${guest.phone.replace(/\s+/g, "")}`}
+                      className="flex items-center gap-2.5 text-black/75 hover:text-black"
+                    >
+                      <Phone size={14} strokeWidth={2} className="text-black/40" />
+                      <span className="tabular-nums" style={{ fontFamily: MONO }}>
+                        {guest.phone}
+                      </span>
+                    </a>
+                    <a
+                      href={`mailto:${guest.email}`}
+                      className="flex items-center gap-2.5 text-black/75 hover:text-black"
+                    >
+                      <Mail size={14} strokeWidth={2} className="text-black/40" />
+                      <span>{guest.email}</span>
+                    </a>
+                    {guest.pronouns && (
+                      <div className="pt-1 text-[12px] text-black/50" style={{ fontFamily: MONO }}>
+                        {guest.pronouns}
+                      </div>
+                    )}
+                  </div>
+                </PanelSection>
+              )}
+
+              {/* Notes */}
+              {guest?.notes && (
+                <PanelSection eyebrow="Notes">
+                  <p className="text-[13.5px] leading-relaxed text-black/75">{guest.notes}</p>
+                </PanelSection>
+              )}
+
+              {/* Contraindications */}
+              <PanelSection
+                eyebrow="Contraindications"
+                trailing={
+                  guest?.contraindications && guest.contraindications.length > 0 ? (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-amber-700"
+                    >
+                      <ShieldAlert size={11} strokeWidth={2.5} />
+                      Review
+                    </span>
+                  ) : null
+                }
+              >
+                {guest?.contraindications && guest.contraindications.length > 0 ? (
+                  <ul className="space-y-2">
+                    {guest.contraindications.map((c, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-2.5 rounded-[8px] border border-amber-200/70 bg-amber-50/60 px-3 py-2.5 text-[13px] text-amber-900"
+                      >
+                        <ShieldAlert
+                          size={14}
+                          strokeWidth={2.25}
+                          className="mt-0.5 shrink-0 text-amber-600"
+                        />
+                        <span className="leading-snug">{c}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-[13px] text-black/50">
+                    None on file for this session.
+                  </p>
+                )}
+              </PanelSection>
+
+              {/* Waiver */}
+              <PanelSection eyebrow="Waiver">
+                {guest?.waiverSignedOn ? (
+                  <div className="flex items-center justify-between gap-3 rounded-[8px] border border-black/[0.08] px-3.5 py-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="grid h-7 w-7 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+                        <FileText size={13} strokeWidth={2.25} />
+                      </span>
+                      <div>
+                        <div className="text-[13.5px] font-semibold text-black">Signed</div>
+                        <div className="text-[11.5px] text-black/50" style={{ fontFamily: MONO }}>
+                          {guest.waiverSignedOn}
+                        </div>
+                      </div>
+                    </div>
+                    <button className="text-[12.5px] font-medium text-black/60 underline decoration-black/20 underline-offset-4 hover:text-black hover:decoration-black">
+                      View
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3 rounded-[8px] border border-amber-200 bg-amber-50/60 px-3.5 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="grid h-7 w-7 place-items-center rounded-full bg-amber-100 text-amber-700">
+                        <FileText size={13} strokeWidth={2.25} />
+                      </span>
+                      <div>
+                        <div className="text-[13.5px] font-semibold text-amber-900">
+                          Not signed yet
+                        </div>
+                        <div className="text-[11.5px] text-amber-900/70">
+                          Required before session starts
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        className="inline-flex items-center gap-2 rounded-[8px] bg-amber-600 px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-amber-700"
+                      >
+                        Send waiver
+                        <ExternalLink size={13} strokeWidth={2.25} />
+                      </button>
+                      <button className="rounded-[8px] border border-black/10 bg-white px-3 py-2 text-[13px] font-medium text-black/70 hover:bg-black/[0.03] hover:text-black">
+                        Sign on iPad
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </PanelSection>
+            </div>
+          </>
+        )}
+      </aside>
+    </>
+  );
+}
+
+function PanelRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <>
+      <dt
+        className="text-[11.5px] uppercase tracking-[0.14em] text-black/45"
+        style={{ fontFamily: MONO }}
+      >
+        {label}
+      </dt>
+      <dd className="text-right">{children}</dd>
+    </>
+  );
+}
+
+function PanelSection({
+  eyebrow,
+  children,
+  trailing,
+}: {
+  eyebrow: string;
+  children: React.ReactNode;
+  trailing?: React.ReactNode;
+}) {
+  return (
+    <section className="border-t border-black/[0.08] py-5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div
+          className="text-[10.5px] uppercase tracking-[0.16em] text-black/45"
+          style={{ fontFamily: MONO }}
+        >
+          {eyebrow}
+        </div>
+        {trailing}
+      </div>
+      {children}
+    </section>
   );
 }
