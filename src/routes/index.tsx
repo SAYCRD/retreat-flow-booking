@@ -735,6 +735,7 @@ function TodayPage() {
               whispers={prompts}
               activeCueId={cue?.id}
               activeRoom={activeRoom}
+              cueRoom={cue?.room ?? null}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
             />
