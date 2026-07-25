@@ -1506,44 +1506,6 @@ function Timeline({
                       }}
                     />
 
-                    {/* Gap whisper — full-width card that lives in the pre-session
-                        space. Room tasks (setup/turnover) float in the actual gap
-                        so they don't hug the session card. */}
-                    {gapWhisper && (() => {
-                      const WIcon = WHISPER_ICON[gapWhisper.kind];
-                      const isRoomTask = gapWhisper.kind === "turnover" || gapWhisper.kind === "setup";
-                      // For room tasks, sit in the gap above the previous session
-                      // end; for guest tasks, hover just above this card.
-                      const gapMinutes = prevEnd !== null ? s.start - prevEnd : 0;
-                      const gapBottom = isRoomTask && gapMinutes > 0
-                        ? Math.min(80, Math.max(28, gapMinutes * PX_PER_MIN * 0.45))
-                        : 10;
-                      return (
-                        <div
-                          aria-hidden
-                          className="pointer-events-none absolute inset-x-0 z-30 flex items-center gap-3 bg-white px-3 py-2.5"
-                          style={{
-                            bottom: "100%",
-                            marginBottom: gapBottom,
-                            color: "#0a0a0a",
-                            boxShadow: "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)",
-                          }}
-                        >
-                          <WIcon size={18} strokeWidth={2} style={{ color: gc, flexShrink: 0 }} />
-                          <span className="flex-1 truncate text-[13px] font-semibold tracking-tight">
-                            <span style={{ color: gc }}>{gapWhisperVerb}</span>
-                            <span className="mx-1.5 text-black/25">·</span>
-                            {gapWhisperLabel}
-                          </span>
-                          {gapWhisper.urgent && (
-                            <span
-                              aria-hidden
-                              className="ml-1 h-2 w-2 rounded-full bg-amber-500"
-                            />
-                          )}
-                        </div>
-                      );
-                    })()}
 
 
 
