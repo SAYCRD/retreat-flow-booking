@@ -671,8 +671,8 @@ function TodayPage() {
         className="sticky z-20 border-y border-black/[0.08] backdrop-blur-md"
         style={{
           top: 44,
-          background: "rgba(255,253,244,0.97)",
-          boxShadow: "0 1px 0 rgba(253,224,71,0.35) inset, 0 18px 50px -20px rgba(0,0,0,0.18)",
+          background: "rgba(253,242,248,0.97)",
+          boxShadow: "0 1px 0 rgba(244,114,182,0.28) inset, 0 18px 50px -20px rgba(0,0,0,0.18)",
         }}
       >
         <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-6 py-6">
