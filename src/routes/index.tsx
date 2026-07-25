@@ -144,6 +144,48 @@ function generatePrompts(nowMin: number): Prompt[] {
     });
   });
 
+  // 1c. Practitioner notifications — 15–25 min before session, give the
+  // practitioner a quiet heads-up so they can wrap prep / arrive on floor.
+  SERVICES.filter((s) => s.start > nowMin + 15 && s.start <= nowMin + 25).forEach((s) => {
+    out.push({
+      id: `notify-${s.id}`,
+      kind: "notify",
+      headline: `Notify ${s.practitioner} — ${firstName(s.guest)} at ${fmt(s.start)}`,
+      reason: `${s.service} · ${s.room} · quiet heads-up`,
+      room: s.room,
+      serviceId: s.id,
+      primary: "Notified",
+    });
+  });
+
+  // 1d. Pickup / handoff — same guest has back-to-back sessions with a tight
+  // gap (≤ 15 min). Walk them from the ending room to the next one.
+  const guestSorted: Record<string, Service[]> = {};
+  SERVICES.forEach((s) => (guestSorted[s.guest] ??= []).push(s));
+  Object.values(guestSorted).forEach((svcs) => {
+    if (svcs.length < 2) return;
+    const sorted = [...svcs].sort((a, b) => a.start - b.start);
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const a = sorted[i];
+      const b = sorted[i + 1];
+      const gap = b.start - a.end;
+      // Fire while the prior session is closing (within 10 min of ending) or
+      // just ended, and the gap is short enough to feel like a hand-off.
+      if (gap < 15 && a.end > nowMin - 5 && a.end <= nowMin + 10 && b.start > nowMin) {
+        out.push({
+          id: `pickup-${a.id}-${b.id}`,
+          kind: "pickup",
+          headline: `Pick up ${firstName(a.guest)} from ${a.room} — take to ${b.room}`,
+          reason: `${a.service} ends ${fmt(a.end)} · ${b.service} at ${fmt(b.start)}`,
+          room: b.room,
+          serviceId: b.id,
+          primary: "Handed off",
+          urgent: gap < 5,
+        });
+      }
+    }
+  });
+
   // 2. Turnovers & setups — back-to-back services in the same room.
   ROOMS.forEach((room) => {
     const roomServices = SERVICES.filter((s) => s.room === room).sort((a, b) => a.start - b.start);
