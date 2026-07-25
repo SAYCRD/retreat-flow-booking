@@ -53,7 +53,9 @@ type Cue = {
   room?: string;         // for accent color
   primary: string;       // primary action label
   urgent?: boolean;      // shows priority pulse + Urgent tag
+  serviceId?: string;    // links cue to a booking card on the timeline
 };
+
 
 
 const ROOMS = [
@@ -101,6 +103,7 @@ const CUES: Cue[] = [
     reason: "Intuitive Reading · Om Space · 2:00 PM",
     room: "Om Space",
     primary: "Mark done",
+    serviceId: "s6",
   },
   {
     id: "c2",
@@ -109,6 +112,7 @@ const CUES: Cue[] = [
     reason: "Session begins in 5 min · low light, quiet arrival",
     room: "Om Space",
     primary: "Walked in",
+    serviceId: "s6",
   },
   {
     id: "c3",
@@ -117,6 +121,7 @@ const CUES: Cue[] = [
     reason: "Amara's reading ends 2:50 PM · Marcus arrives 2:40 PM",
     room: "Om Space",
     primary: "Room ready",
+    serviceId: "s7",
   },
   {
     id: "c4",
@@ -125,6 +130,7 @@ const CUES: Cue[] = [
     reason: "Amara arrives 2:50 PM · tea service, low light",
     room: "The Temple",
     primary: "Room ready",
+    serviceId: "s8",
   },
   {
     id: "c5",
@@ -134,8 +140,10 @@ const CUES: Cue[] = [
     room: "Infrared Room",
     primary: "Notified",
     urgent: true,
+    serviceId: "s9",
   },
 ];
+
 
 
 
