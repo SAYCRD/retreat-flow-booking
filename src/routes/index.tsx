@@ -758,7 +758,7 @@ function TodayPage() {
                   </span>
 
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline gap-2">
+                    <div className="flex items-baseline gap-2.5">
                       <h3 className="truncate text-[17px] font-semibold tracking-tight text-black">
                         {cue.headline}
                       </h3>
@@ -769,13 +769,13 @@ function TodayPage() {
                       )}
                       {cue.room && (
                         <span
-                          className="hidden shrink-0 text-[12.5px] md:inline"
-                          style={{ color: roomColor(cue.room), fontFamily: MONO }}
+                          className="hidden shrink-0 text-[18px] font-semibold md:inline"
+                          style={{ color: roomColor(cue.room), fontFamily: DISPLAY }}
                         >
                           · {cue.room}
                         </span>
                       )}
-                      <span className="hidden truncate text-[13.5px] text-black/50 lg:inline">
+                      <span className="hidden truncate text-[14.5px] font-medium text-black/75 lg:inline">
                         · {cue.reason}
                       </span>
                     </div>
