@@ -52,6 +52,7 @@ type Cue = {
   reason: string;        // quiet reason line
   room?: string;         // for accent color
   primary: string;       // primary action label
+  urgent?: boolean;      // shows priority pulse + Urgent tag
 };
 
 
