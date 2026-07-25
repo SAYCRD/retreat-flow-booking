@@ -34,8 +34,10 @@ type Service = {
   note?: string;
 };
 
+type CueKind = "message" | "escort" | "turnover" | "setup" | "handoff";
 type Cue = {
   id: string;
+  kind: CueKind;
   headline: string;      // verb-first
   reason: string;        // quiet reason line
   room?: string;         // for accent color
