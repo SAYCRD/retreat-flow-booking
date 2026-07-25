@@ -601,7 +601,7 @@ function StatusPill({ status, guestHex }: { status: Status; guestHex?: string })
   const sm = map[status];
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium"
       style={{ background: sm.bg, color: sm.fg, border: sm.border ?? "none" }}
     >
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: sm.dot }} />
