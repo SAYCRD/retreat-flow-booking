@@ -1331,7 +1331,9 @@ function Timeline({
     const overlapsNext = after && gapMin < 6;
 
     const label =
-      activeCue.kind === "turnover" || activeCue.kind === "setup" || activeCue.kind === "reset"
+      activeCue.kind === "reset"
+        ? "" // reset is elegant — just verb + tiny highlight, no room name
+        : activeCue.kind === "turnover" || activeCue.kind === "setup"
         ? s.room
         : activeCue.kind === "notify"
           ? s.practitioner.replace(/^(Dr\.?|Mr\.?|Ms\.?)\s+/i, "").split(/\s+/)[0]
