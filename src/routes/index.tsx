@@ -1012,15 +1012,15 @@ function Timeline({
             <div
               key={room}
               className={`relative min-w-0 flex-1 ${
-                idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
+                idx < ROOMS.length - 1 ? "border-r-[3px] border-white" : ""
               }`}
               style={{
-                backgroundColor: tint(roomColor(room), 0.045),
+                backgroundColor: tint(roomColor(room), 0.09),
                 backgroundImage: [
                   // hour lines
-                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 60 - 1}px, rgba(0,0,0,0.08) ${PX_PER_MIN * 60 - 1}px, rgba(0,0,0,0.08) ${PX_PER_MIN * 60}px)`,
+                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 60 - 1}px, rgba(255,255,255,0.55) ${PX_PER_MIN * 60 - 1}px, rgba(255,255,255,0.55) ${PX_PER_MIN * 60}px)`,
                   // 15-minute lines
-                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 15 - 1}px, rgba(0,0,0,0.03) ${PX_PER_MIN * 15 - 1}px, rgba(0,0,0,0.03) ${PX_PER_MIN * 15}px)`,
+                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 15 - 1}px, rgba(255,255,255,0.28) ${PX_PER_MIN * 15 - 1}px, rgba(255,255,255,0.28) ${PX_PER_MIN * 15}px)`,
                 ].join(","),
               }}
             >
@@ -1029,6 +1029,7 @@ function Timeline({
                 className="pointer-events-none absolute inset-x-0 z-10 h-px"
                 style={{ top: nowTop, background: ACCENT, opacity: 0.28 }}
               />
+
 
               {services.map((s) => {
                 const top = s.start * PX_PER_MIN;
