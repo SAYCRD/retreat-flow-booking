@@ -75,7 +75,7 @@ const ROOMS = [
 ];
 
 const DAY_START = 9 * 60;
-const DAY_END = 18 * 60;
+const DAY_END = 24 * 60;
 const DAY_SPAN = DAY_END - DAY_START;
 
 const t = (h: number, m = 0) => h * 60 + m - DAY_START;
@@ -83,6 +83,7 @@ const fmt = (mins: number) => {
   const abs = mins + DAY_START;
   const h = Math.floor(abs / 60);
   const m = abs % 60;
+  if (h === 24) return `12:${String(m).padStart(2, "0")} AM`;
   const suffix = h >= 12 ? "PM" : "AM";
   const hh = ((h + 11) % 12) + 1;
   return `${hh}:${String(m).padStart(2, "0")} ${suffix}`;
@@ -1228,11 +1229,29 @@ function Timeline({
   onOpenService?: (id: string) => void;
 }) {
   const PX_PER_MIN = 4; // 240px per hour vertical — gives 15/30-min slots room to breathe
+  const TAIL_PX_PER_MIN = 1.2; // compress the quiet evening tail so midnight doesn't feel empty
   const TIME_COL = 88;
   const HEADER_H = 64;
-  const trackHeight = DAY_SPAN * PX_PER_MIN;
   const gridRef = useRef<HTMLDivElement>(null);
   const scrolledRef = useRef(false);
+
+  // Keep the busy part of the day at full scale; compress the empty evening
+  // tail so the calendar reaches midnight without a huge white void.
+  const lastEnd = useMemo(() => Math.max(...SERVICES.map((s) => s.end)), []);
+  const compressAfter = useMemo(() => {
+    const buffer = Math.max(nowMin + 60, lastEnd + 30);
+    return Math.min(Math.max(buffer, DAY_SPAN * 0.5), DAY_SPAN);
+  }, [nowMin, lastEnd]);
+
+  const minToPx = useMemo(() => {
+    const fullPx = compressAfter * PX_PER_MIN;
+    return (m: number) => {
+      if (m <= compressAfter) return m * PX_PER_MIN;
+      return fullPx + (m - compressAfter) * TAIL_PX_PER_MIN;
+    };
+  }, [compressAfter]);
+
+  const trackHeight = minToPx(DAY_SPAN);
 
   // Group whispers by the service they touch, so the calendar can render
   // little living notes right above each card ("footprints", "broom", "tea").
@@ -1354,11 +1373,20 @@ function Timeline({
 
   const hours = useMemo(() => {
     const out: number[] = [];
-    for (let h = 9; h <= 18; h++) out.push(h);
+    for (let h = 9; h <= 24; h++) out.push(h);
     return out;
   }, []);
 
-  const nowTop = nowMin * PX_PER_MIN;
+  const hourTops = useMemo(() => hours.map((h) => minToPx(h * 60 - DAY_START)), [hours, minToPx]);
+  const quarterTops = useMemo(() => {
+    const out: number[] = [];
+    for (let m = 15; m <= compressAfter; m += 15) {
+      if (m % 60 !== 0) out.push(minToPx(m));
+    }
+    return out;
+  }, [compressAfter, minToPx]);
+
+  const nowTop = minToPx(nowMin);
 
   // On first load, scroll the calendar so the current time is visible near the
   // top of the viewport instead of showing 9 AM when it's mid-afternoon.
@@ -1430,16 +1458,15 @@ function Timeline({
           className="relative shrink-0 border-r border-black/[0.06]"
           style={{ width: TIME_COL }}
         >
-          {hours.map((h) => {
-            const top = (h * 60 - DAY_START) * PX_PER_MIN;
+          {hours.map((h, i) => {
+            const top = hourTops[i];
             return (
               <div
                 key={h}
                 className="absolute right-3 -translate-y-1/2 text-[13px] font-semibold text-black/55"
                 style={{ top, fontFamily: MONO }}
               >
-                {((h + 11) % 12) + 1}
-                {h >= 12 ? " PM" : " AM"}
+                {fmt(h * 60 - DAY_START)}
               </div>
             );
           })}
@@ -1460,15 +1487,23 @@ function Timeline({
               className={`relative min-w-0 flex-1 bg-white ${
                 idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
               }`}
-              style={{
-                backgroundImage: [
-                  // hour lines
-                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 60 - 1}px, rgba(0,0,0,0.07) ${PX_PER_MIN * 60 - 1}px, rgba(0,0,0,0.07) ${PX_PER_MIN * 60}px)`,
-                  // 15-minute lines
-                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 15 - 1}px, rgba(0,0,0,0.03) ${PX_PER_MIN * 15 - 1}px, rgba(0,0,0,0.03) ${PX_PER_MIN * 15}px)`,
-                ].join(","),
-              }}
             >
+              {/* Hour lines */}
+              {hourTops.map((top, i) => (
+                <div
+                  key={`h-${i}`}
+                  className="pointer-events-none absolute inset-x-0 h-px"
+                  style={{ top, background: "rgba(0,0,0,0.07)" }}
+                />
+              ))}
+              {/* 15-minute lines */}
+              {quarterTops.map((top, i) => (
+                <div
+                  key={`q-${i}`}
+                  className="pointer-events-none absolute inset-x-0 h-px"
+                  style={{ top, background: "rgba(0,0,0,0.03)" }}
+                />
+              ))}
               {/* Now line — almost invisible */}
               <div
                 className="pointer-events-none absolute inset-x-0 z-10 h-px"
@@ -1483,7 +1518,7 @@ function Timeline({
                 const wash = `color-mix(in oklab, ${cueMarker.gc} 34%, white)`;
                 const topPx = cueMarker.after && afterTopPx != null
                   ? afterTopPx
-                  : cueMarker.topMin * PX_PER_MIN;
+                  : minToPx(cueMarker.topMin);
                 const shift = cueMarker.overlapsNext && afterTopPx == null ? "translateY(-28px)" : undefined;
                 const isReset = cueMarker.kind === "reset";
                 return (
@@ -1534,8 +1569,8 @@ function Timeline({
 
 
               {services.map((s) => {
-                const top = s.start * PX_PER_MIN;
-                const height = (s.end - s.start) * PX_PER_MIN;
+                const top = minToPx(s.start);
+                const height = minToPx(s.end) - minToPx(s.start);
                 const isPast = s.end <= nowMin;
                 const isLive = s.start <= nowMin && s.end > nowMin;
                 const isRequest = s.status === "requested";
