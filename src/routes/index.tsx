@@ -194,8 +194,7 @@ function tint(hex: string, alpha: number): string {
 function TodayPage() {
   const now = useNow();
   const nowMin = DEMO_NOW;
-  const [doneIds, setDoneIds] = useState<Set<string>>(new Set());
-  const [fadingId, setFadingId] = useState<string | null>(null);
+  const [cueIdx, setCueIdx] = useState(0);
 
   const clock = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const date = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -206,18 +205,10 @@ function TodayPage() {
   const revenue = FINANCES.reduce((a, b) => a + b.amount, 0);
   const unpaid = FINANCES.filter((f) => !f.paid).reduce((a, b) => a + b.amount, 0);
 
-  const cue = CUES.find((c) => !doneIds.has(c.id)) ?? null;
-  const completeCue = (id: string) => {
-    setFadingId(id);
-    window.setTimeout(() => {
-      setDoneIds((prev) => {
-        const next = new Set(prev);
-        next.add(id);
-        return next;
-      });
-      setFadingId(null);
-    }, 240);
-  };
+  const cue = CUES[cueIdx];
+  const prevCue = () => setCueIdx((i) => (i - 1 + CUES.length) % CUES.length);
+  const nextCue = () => setCueIdx((i) => (i + 1) % CUES.length);
+
 
 
   return (
