@@ -34,13 +34,14 @@ type Service = {
   note?: string;
 };
 
-type Attention = {
+type Cue = {
   id: string;
-  severity: "critical" | "warn" | "info";
-  title: string;
-  detail: string;
-  action?: string;
+  headline: string;      // verb-first
+  reason: string;        // quiet reason line
+  room?: string;         // for accent color
+  primary: string;       // primary action label
 };
+
 
 const ROOMS = [
   "Infrared Room",
