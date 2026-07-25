@@ -298,13 +298,13 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* Do this next — cycles through attention items */}
+      {/* Focus on — cycles through attention items */}
       <section className="border-b border-black/[0.08]" style={{ background: "#fafafa" }}>
         <div className="mx-auto max-w-[1440px] px-6 py-5">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div className="flex items-center gap-3">
               <span className="text-[11px] uppercase tracking-[0.18em] text-black/45" style={{ fontFamily: MONO }}>
-                Do this next
+                Focus on
               </span>
               <span
                 className="rounded-[3px] bg-black/[0.06] px-1.5 py-0.5 text-[10px] tabular-nums text-black/55"
