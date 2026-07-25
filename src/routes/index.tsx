@@ -147,9 +147,37 @@ const DEMO_NOW = t(14, 30);
 const DISPLAY = "'Inter Tight', Inter, system-ui, sans-serif";
 const MONO = "'JetBrains Mono', ui-monospace, monospace";
 
-const ACCENT = "#3730ff"; // electric indigo
-const SURFACE = "#f7f7f5";
+const ACCENT = "#3730ff"; // electric indigo (system accent, not a guest)
+const SURFACE = "#ffffff";
 const INK = "#0a0a0a";
+
+// Curated guest palette — each guest gets a consistent, distinct color that
+// carries through their avatar, their timeline stripe, and their row.
+const GUEST_PALETTE = [
+  "#c85a3c", // terracotta
+  "#b8862f", // ochre
+  "#5f8a54", // moss
+  "#2f8a86", // teal
+  "#4b5cd6", // indigo
+  "#8a4a86", // plum
+  "#c85c7e", // rose
+  "#556b7d", // slate
+  "#d97706", // amber
+  "#0f766e", // deep teal
+] as const;
+
+function guestColor(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return GUEST_PALETTE[h % GUEST_PALETTE.length];
+}
+
+function tint(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 function TodayPage() {
   const now = useNow();
@@ -170,7 +198,7 @@ function TodayPage() {
       style={{ background: SURFACE, color: INK, fontFamily: DISPLAY }}
     >
       {/* Top bar */}
-      <header className="sticky top-0 z-30 border-b border-black/[0.08] backdrop-blur-md" style={{ background: "rgba(247,247,245,0.85)" }}>
+      <header className="sticky top-0 z-30 border-b border-black/[0.08] backdrop-blur-md" style={{ background: "rgba(255,255,255,0.85)" }}>
         <div className="mx-auto flex max-w-[1440px] items-center gap-8 px-6 py-3">
           <div className="flex items-center gap-2">
             <div
@@ -256,10 +284,32 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* Attention */}
+      {/* The one thing — Steve-Jobs move: name the single next action */}
+      <section className="border-b border-black/[0.08]" style={{ background: "#fafafa" }}>
+        <div className="mx-auto max-w-[1440px] px-6 py-5">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-black/45" style={{ fontFamily: MONO }}>
+              Do this next
+            </span>
+            <span className="text-[18px] font-semibold tracking-tight">
+              Set <span style={{ color: guestColor("Amara Okonkwo") }}>The Temple</span> for Amara's tea ceremony
+            </span>
+            <span className="text-[13px] text-black/50" style={{ fontFamily: MONO }}>
+              in 20 min · 2:50 PM
+            </span>
+            <button
+              className="ml-auto rounded-full bg-black px-4 py-1.5 text-[12px] font-medium text-white hover:bg-black/85"
+            >
+              Mark ready
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Coming Up (heads-up / attention) */}
       <section className="border-b border-black/[0.08]">
         <div className="mx-auto max-w-[1440px] px-6 py-10">
-          <SectionHeader eyebrow="01" label="Needs attention" count={ATTENTION.length} />
+          <SectionHeader eyebrow="01" label="Coming Up" count={ATTENTION.length} />
           <div className="mt-6 grid gap-2 md:grid-cols-2">
             {ATTENTION.map((a) => (
               <AttentionCard key={a.id} item={a} />
@@ -278,12 +328,12 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* Remainder */}
+      {/* Later today */}
       <section className="border-b border-black/[0.08]">
         <div className="mx-auto max-w-[1440px] px-6 py-10">
           <SectionHeader
             eyebrow="03"
-            label="Coming up"
+            label="Later today"
             count={SERVICES.filter((s) => s.end > nowMin).length}
           />
           <div className="mt-6 overflow-hidden rounded-[10px] border border-black/[0.08] bg-white">
@@ -442,21 +492,26 @@ function AttentionCard({ item }: { item: Attention }) {
 function TimelineLegend() {
   return (
     <div className="hidden items-center gap-4 text-[11px] text-black/60 md:flex" style={{ fontFamily: MONO }}>
-      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-indigo-500/35 bg-indigo-500/10 shadow-[inset_2px_0_0_0_#3730ff]" />LIVE</span>
-      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-black/10 bg-[rgba(250,248,245,0.9)]" />BOOKED</span>
-      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-dashed border-amber-600/50 bg-[rgba(255,247,237,0.6)]" />REQUEST</span>
-      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-black/6 bg-[rgba(243,244,246,0.85)]" />PAST</span>
+      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-black/10 bg-white shadow-[inset_3px_0_0_0_#4b5cd6]" />LEFT STRIPE = GUEST</span>
+      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-black/20 bg-[rgba(75,92,214,0.12)] shadow-[inset_4px_0_0_0_#4b5cd6]" />LIVE</span>
+      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-dashed border-amber-600/50 bg-[rgba(255,247,237,0.7)]" />REQUEST</span>
+      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-black/6 bg-[#f5f5f5]" />PAST</span>
     </div>
   );
 }
 
 function ServiceRow({ s, first }: { s: Service; first: boolean }) {
+  const gc = guestColor(s.guest);
   return (
     <div
-      className={`grid grid-cols-12 items-center gap-4 px-5 py-4 text-[13px] transition-colors hover:bg-black/[0.015] ${
+      className={`relative grid grid-cols-12 items-center gap-4 px-5 py-4 pl-6 text-[13px] transition-colors hover:bg-black/[0.015] ${
         first ? "" : "border-t border-black/[0.06]"
       }`}
     >
+      <span
+        className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full"
+        style={{ background: gc }}
+      />
       <div className="col-span-2">
         <div className="text-[15px] font-semibold tabular-nums tracking-tight" style={{ fontFamily: DISPLAY }}>
           {fmt(s.start)}
@@ -489,7 +544,7 @@ function ServiceRow({ s, first }: { s: Service; first: boolean }) {
         </div>
       </div>
       <div className="col-span-1">
-        <StatusPill status={s.status} />
+        <StatusPill status={s.status} guestHex={gc} />
       </div>
       <div className="col-span-1 text-right">
         <button className="rounded-[6px] px-2 py-1 text-[12px] text-black/55 hover:bg-black/[0.05] hover:text-black">
@@ -507,37 +562,37 @@ function Avatar({ name }: { name: string }) {
     .map((w) => w[0])
     .join("")
     .toUpperCase();
-  const hues = [12, 200, 260, 40, 160, 320];
-  const hue = hues[name.length % hues.length];
+  const gc = guestColor(name);
   return (
     <div
-      className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold text-black/70 ring-1 ring-black/10"
-      style={{ background: `hsl(${hue} 60% 92%)` }}
+      className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold"
+      style={{
+        background: tint(gc, 0.14),
+        color: gc,
+        boxShadow: `inset 0 0 0 1px ${tint(gc, 0.35)}`,
+      }}
     >
       {initials}
     </div>
   );
 }
 
-function StatusPill({ status }: { status: Status }) {
-  const map: Record<Status, { label: string; bg: string; fg: string; dot: string }> = {
-    "in-session": { label: "Live", bg: "#0a0a0a", fg: "#f7f7f5", dot: ACCENT },
+function StatusPill({ status, guestHex }: { status: Status; guestHex?: string }) {
+  const live = guestHex ?? ACCENT;
+  const map: Record<Status, { label: string; bg: string; fg: string; dot: string; border?: string }> = {
+    "in-session": { label: "Live", bg: tint(live, 0.12), fg: live, dot: live },
     confirmed: { label: "Confirmed", bg: "rgba(10,10,10,0.05)", fg: "#0a0a0a", dot: "#0a0a0a" },
-    requested: { label: "Request", bg: "transparent", fg: "#0a0a0a", dot: "#d97706" },
+    requested: { label: "Request", bg: "transparent", fg: "#0a0a0a", dot: "#d97706", border: "1px dashed rgba(217,119,6,0.5)" },
     hold: { label: "Hold", bg: "rgba(10,10,10,0.04)", fg: "rgba(10,10,10,0.5)", dot: "#999" },
   };
-  const s = map[status];
+  const sm = map[status];
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
-      style={{
-        background: s.bg,
-        color: s.fg,
-        border: status === "requested" ? "1px dashed rgba(10,10,10,0.3)" : "none",
-      }}
+      style={{ background: sm.bg, color: sm.fg, border: sm.border ?? "none" }}
     >
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />
-      {s.label}
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: sm.dot }} />
+      {sm.label}
     </span>
   );
 }
@@ -633,38 +688,42 @@ function Timeline({ nowMin }: { nowMin: number }) {
                   const width = ((s.end - s.start) / DAY_SPAN) * 100;
                   const isPast = s.end <= nowMin;
                   const isLive = s.start <= nowMin && s.end > nowMin;
+                  const gc = guestColor(s.guest);
 
                   const style: React.CSSProperties = (() => {
                     if (s.status === "requested")
                       return {
-                        background: "rgba(255,247,237,0.6)",
+                        background: "rgba(255,247,237,0.7)",
                         border: "1.5px dashed rgba(217,119,6,0.5)",
                         color: INK,
+                        boxShadow: `inset 3px 0 0 0 ${gc}`,
                       };
                     if (isLive)
                       return {
-                        background: "rgba(55,48,255,0.10)",
-                        border: `1.5px solid rgba(55,48,255,0.35)`,
+                        background: tint(gc, 0.12),
+                        border: `1.5px solid ${tint(gc, 0.35)}`,
                         color: INK,
-                        boxShadow: `inset 3px 0 0 0 ${ACCENT}, 0 0 0 3px rgba(55,48,255,0.08)`,
+                        boxShadow: `inset 4px 0 0 0 ${gc}, 0 0 0 3px ${tint(gc, 0.08)}`,
                       };
                     if (isPast)
                       return {
-                        background: "rgba(243,244,246,0.85)",
+                        background: "#f5f5f5",
                         border: "1.5px solid rgba(0,0,0,0.06)",
-                        color: INK,
+                        color: "rgba(10,10,10,0.55)",
+                        boxShadow: `inset 3px 0 0 0 ${tint(gc, 0.45)}`,
                       };
                     return {
-                      background: "rgba(250,248,245,0.9)",
-                      border: "1.5px solid rgba(0,0,0,0.10)",
+                      background: tint(gc, 0.06),
+                      border: `1.5px solid ${tint(gc, 0.22)}`,
                       color: INK,
+                      boxShadow: `inset 3px 0 0 0 ${gc}`,
                     };
                   })();
 
                   return (
                     <div
                       key={s.id}
-                      className="group absolute top-2 bottom-2 overflow-hidden rounded-[8px] px-3 py-2 leading-snug transition-all hover:z-20 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
+                      className="group absolute top-2 bottom-2 overflow-hidden rounded-[8px] px-3 py-2 leading-snug transition-all hover:z-20 hover:shadow-[0_8px_24px_rgba(0,0,0,0.10)]"
                       style={{
                         left: `calc(${left}% + 2px)`,
                         width: `calc(${width}% - 4px)`,
@@ -675,8 +734,8 @@ function Timeline({ nowMin }: { nowMin: number }) {
                       <div className="flex items-center gap-2">
                         {isLive && (
                           <span className="relative inline-flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50" style={{ background: ACCENT }} />
-                            <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: ACCENT }} />
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50" style={{ background: gc }} />
+                            <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: gc }} />
                           </span>
                         )}
                         <div className="truncate text-[13px] font-semibold tracking-tight">
@@ -687,7 +746,7 @@ function Timeline({ nowMin }: { nowMin: number }) {
                       <div className="mt-1 flex items-center gap-2 truncate text-[11px] font-medium text-black/70" style={{ fontFamily: MONO }}>
                         <span>{fmt(s.start)}</span>
                         <span className="text-black/30">·</span>
-                        <span className="truncate">{s.practitioner}</span>
+                        <span className="truncate">{s.service}</span>
                       </div>
                     </div>
                   );
