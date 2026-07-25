@@ -632,142 +632,194 @@ function PaidPill({ paid }: { paid: boolean }) {
 // ------------------------------------------------------------------
 
 function Timeline({ nowMin }: { nowMin: number }) {
+  const PX_PER_MIN = 2.2; // 132px per hour → wide enough to read every card
+  const ROOM_COL = 200;
+  const ROW_H = 140;
+  const trackWidth = DAY_SPAN * PX_PER_MIN;
+
   const hours = useMemo(() => {
     const out: number[] = [];
     for (let h = 9; h <= 18; h++) out.push(h);
     return out;
   }, []);
 
-  const nowPct = (nowMin / DAY_SPAN) * 100;
+  const nowLeft = nowMin * PX_PER_MIN;
 
   return (
     <div className="overflow-hidden rounded-[14px] border border-black/[0.08] bg-white">
-      {/* Hour scale */}
-      <div className="grid border-b border-black/[0.06]" style={{ gridTemplateColumns: "180px 1fr" }}>
-        <div className="border-r border-black/[0.06] px-5 py-3 text-[10px] uppercase tracking-[0.14em] text-black/50" style={{ fontFamily: MONO }}>
-          Room
-        </div>
-        <div className="relative h-10">
-          {hours.map((h) => {
-            const pct = ((h * 60 - DAY_START) / DAY_SPAN) * 100;
+      <div className="overflow-x-auto">
+        <div style={{ minWidth: ROOM_COL + trackWidth }}>
+          {/* Hour scale */}
+          <div className="flex border-b border-black/[0.06]">
+            <div
+              className="shrink-0 border-r border-black/[0.06] px-5 py-3 text-[11px] uppercase tracking-[0.14em] text-black/50"
+              style={{ width: ROOM_COL, fontFamily: MONO }}
+            >
+              Room
+            </div>
+            <div className="relative h-12" style={{ width: trackWidth }}>
+              {hours.map((h) => {
+                const left = (h * 60 - DAY_START) * PX_PER_MIN;
+                return (
+                  <div
+                    key={h}
+                    className="absolute top-3 -translate-x-1/2 text-[13px] font-semibold text-black/60"
+                    style={{ left, fontFamily: MONO }}
+                  >
+                    {((h + 11) % 12) + 1}
+                    {h >= 12 ? " PM" : " AM"}
+                  </div>
+                );
+              })}
+              <div
+                className="absolute top-2 -translate-x-1/2 rounded-[4px] px-2 py-0.5 text-[10px] font-semibold text-white"
+                style={{ left: nowLeft, background: ACCENT, fontFamily: MONO }}
+              >
+                NOW
+              </div>
+            </div>
+          </div>
+
+          {/* Room rows */}
+          {ROOMS.map((room, idx) => {
+            const services = SERVICES.filter((s) => s.room === room);
             return (
               <div
-                key={h}
-                className="absolute top-3 -translate-x-1/2 text-[11px] font-semibold text-black/55"
-                style={{ left: `${pct}%`, fontFamily: MONO }}
+                key={room}
+                className={`flex items-stretch ${idx > 0 ? "border-t border-black/[0.06]" : ""}`}
               >
-                {((h + 11) % 12) + 1}
-                {h >= 12 ? "P" : "A"}
+                <div
+                  className="flex shrink-0 flex-col justify-center border-r border-black/[0.06] px-5"
+                  style={{ width: ROOM_COL, height: ROW_H }}
+                >
+                  <span className="text-[17px] font-semibold tracking-tight text-black">
+                    {room}
+                  </span>
+                  <span
+                    className="mt-1 text-[12px] font-medium text-black/50"
+                    style={{ fontFamily: MONO }}
+                  >
+                    {services.length} bookings
+                  </span>
+                </div>
+
+                <div
+                  className="relative"
+                  style={{
+                    width: trackWidth,
+                    height: ROW_H,
+                    background:
+                      "repeating-linear-gradient(to right, transparent 0, transparent calc(" +
+                      PX_PER_MIN * 60 +
+                      "px - 1px), rgba(0,0,0,0.05) calc(" +
+                      PX_PER_MIN * 60 +
+                      "px - 1px), rgba(0,0,0,0.05) " +
+                      PX_PER_MIN * 60 +
+                      "px)",
+                  }}
+                >
+                  {/* now line */}
+                  <div
+                    className="pointer-events-none absolute inset-y-0 z-10 w-px"
+                    style={{ left: nowLeft, background: ACCENT }}
+                  >
+                    <div
+                      className="absolute -top-px h-2 w-2 -translate-x-1/2 rounded-full"
+                      style={{ background: ACCENT }}
+                    />
+                  </div>
+
+                  {services.map((s) => {
+                    const left = s.start * PX_PER_MIN;
+                    const width = (s.end - s.start) * PX_PER_MIN;
+                    const isPast = s.end <= nowMin;
+                    const isLive = s.start <= nowMin && s.end > nowMin;
+                    const gc = guestColor(s.guest);
+
+                    const style: React.CSSProperties = (() => {
+                      if (s.status === "requested")
+                        return {
+                          background: "#fffbeb",
+                          border: "1.5px dashed rgba(217,119,6,0.55)",
+                          color: INK,
+                          boxShadow: `inset 6px 0 0 0 ${gc}`,
+                        };
+                      if (isLive)
+                        return {
+                          background: tint(gc, 0.1),
+                          border: `1.5px solid ${tint(gc, 0.4)}`,
+                          color: INK,
+                          boxShadow: `inset 6px 0 0 0 ${gc}, 0 0 0 3px ${tint(gc, 0.08)}`,
+                        };
+                      if (isPast)
+                        return {
+                          background: "#f7f7f7",
+                          border: "1.5px solid rgba(0,0,0,0.06)",
+                          color: "rgba(10,10,10,0.55)",
+                          boxShadow: `inset 6px 0 0 0 ${tint(gc, 0.45)}`,
+                        };
+                      return {
+                        background: tint(gc, 0.06),
+                        border: `1.5px solid ${tint(gc, 0.28)}`,
+                        color: INK,
+                        boxShadow: `inset 6px 0 0 0 ${gc}`,
+                      };
+                    })();
+
+                    return (
+                      <div
+                        key={s.id}
+                        className="group absolute top-2 bottom-2 flex flex-col justify-between overflow-hidden rounded-[10px] pl-4 pr-3 py-2.5 transition-all hover:z-20 hover:shadow-[0_10px_28px_rgba(0,0,0,0.12)]"
+                        style={{
+                          left: left + 2,
+                          width: Math.max(width - 4, 100),
+                          ...style,
+                        }}
+                        title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            {isLive && (
+                              <span className="relative inline-flex h-2 w-2 shrink-0">
+                                <span
+                                  className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50"
+                                  style={{ background: gc }}
+                                />
+                                <span
+                                  className="relative inline-flex h-2 w-2 rounded-full"
+                                  style={{ background: gc }}
+                                />
+                              </span>
+                            )}
+                            <div
+                              className="text-[15px] font-semibold leading-tight tracking-tight"
+                              style={{ color: gc }}
+                            >
+                              {s.guest}
+                              {s.partySize ? ` +${s.partySize - 1}` : ""}
+                            </div>
+                          </div>
+                          <div className="mt-1 text-[14px] font-medium leading-tight text-black/85">
+                            {s.service}
+                          </div>
+                          <div className="mt-0.5 text-[12px] leading-tight text-black/60">
+                            {s.practitioner}
+                          </div>
+                        </div>
+                        <div
+                          className="text-[12px] font-semibold tabular-nums text-black/70"
+                          style={{ fontFamily: MONO }}
+                        >
+                          {fmt(s.start)} – {fmt(s.end)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             );
           })}
-          <div
-            className="absolute top-2 -translate-x-1/2 rounded-[4px] px-2 py-0.5 text-[10px] font-semibold text-white"
-            style={{ left: `${nowPct}%`, background: ACCENT, fontFamily: MONO }}
-          >
-            NOW
-          </div>
         </div>
-      </div>
-
-      {/* Room rows */}
-      <div>
-        {ROOMS.map((room, idx) => {
-          const services = SERVICES.filter((s) => s.room === room);
-          return (
-            <div
-              key={room}
-              className={`grid items-stretch ${idx > 0 ? "border-t border-black/[0.06]" : ""}`}
-              style={{ gridTemplateColumns: "180px 1fr" }}
-            >
-              <div className="flex flex-col justify-center border-r border-black/[0.06] px-5 py-4">
-                <span className="text-[15px] font-semibold tracking-tight text-black">{room}</span>
-                <span className="mt-1 text-[11px] font-medium text-black/50" style={{ fontFamily: MONO }}>
-                  {services.length} bookings
-                </span>
-              </div>
-
-              <div className="relative h-[88px]" style={{ background: "repeating-linear-gradient(to right, transparent 0, transparent calc(100%/9 - 1px), rgba(0,0,0,0.035) calc(100%/9 - 1px), rgba(0,0,0,0.035) calc(100%/9))" }}>
-                {/* now line */}
-                <div
-                  className="pointer-events-none absolute inset-y-0 z-10 w-px"
-                  style={{ left: `${nowPct}%`, background: ACCENT }}
-                >
-                  <div className="absolute -top-px h-2 w-2 -translate-x-1/2 rounded-full" style={{ background: ACCENT }} />
-                </div>
-
-                {services.map((s) => {
-                  const left = (s.start / DAY_SPAN) * 100;
-                  const width = ((s.end - s.start) / DAY_SPAN) * 100;
-                  const isPast = s.end <= nowMin;
-                  const isLive = s.start <= nowMin && s.end > nowMin;
-                  const gc = guestColor(s.guest);
-
-                  const style: React.CSSProperties = (() => {
-                    if (s.status === "requested")
-                      return {
-                        background: "rgba(255,247,237,0.7)",
-                        border: "1.5px dashed rgba(217,119,6,0.5)",
-                        color: INK,
-                        boxShadow: `inset 3px 0 0 0 ${gc}`,
-                      };
-                    if (isLive)
-                      return {
-                        background: tint(gc, 0.12),
-                        border: `1.5px solid ${tint(gc, 0.35)}`,
-                        color: INK,
-                        boxShadow: `inset 4px 0 0 0 ${gc}, 0 0 0 3px ${tint(gc, 0.08)}`,
-                      };
-                    if (isPast)
-                      return {
-                        background: "#f5f5f5",
-                        border: "1.5px solid rgba(0,0,0,0.06)",
-                        color: "rgba(10,10,10,0.55)",
-                        boxShadow: `inset 3px 0 0 0 ${tint(gc, 0.45)}`,
-                      };
-                    return {
-                      background: tint(gc, 0.06),
-                      border: `1.5px solid ${tint(gc, 0.22)}`,
-                      color: INK,
-                      boxShadow: `inset 3px 0 0 0 ${gc}`,
-                    };
-                  })();
-
-                  return (
-                    <div
-                      key={s.id}
-                      className="group absolute top-2 bottom-2 overflow-hidden rounded-[8px] px-3 py-2 leading-snug transition-all hover:z-20 hover:shadow-[0_8px_24px_rgba(0,0,0,0.10)]"
-                      style={{
-                        left: `calc(${left}% + 2px)`,
-                        width: `calc(${width}% - 4px)`,
-                        ...style,
-                      }}
-                      title={`${s.guest} · ${s.service} · ${fmt(s.start)}–${fmt(s.end)}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        {isLive && (
-                          <span className="relative inline-flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50" style={{ background: gc }} />
-                            <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: gc }} />
-                          </span>
-                        )}
-                        <div className="truncate text-[13px] font-semibold tracking-tight">
-                          {s.guest}
-                          {s.partySize ? ` +${s.partySize - 1}` : ""}
-                        </div>
-                      </div>
-                      <div className="mt-1 flex items-center gap-2 truncate text-[11px] font-medium text-black/70" style={{ fontFamily: MONO }}>
-                        <span>{fmt(s.start)}</span>
-                        <span className="text-black/30">·</span>
-                        <span className="truncate">{s.service}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
       </div>
     </div>
   );
