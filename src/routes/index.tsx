@@ -1036,7 +1036,6 @@ function Timeline({
                 const isRequest = s.status === "requested";
                 const gc = roomColor(s.room);
                 const duration = Math.round(s.end - s.start);
-                const paid = FINANCES.find((f) => f.guest === s.guest)?.paid ?? false;
                 const practInitials = s.practitioner
                   .replace(/^(Dr\.?|Mr\.?|Ms\.?)\s+/i, "")
                   .split(/\s+/)
