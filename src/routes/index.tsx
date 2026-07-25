@@ -587,15 +587,30 @@ function TodayPage() {
   // space between the sticky header and the actual action item.
   useEffect(() => {
     if (!cue?.serviceId) return;
-    const marker = document.getElementById("active-cue-marker");
-    const el = marker ?? document.getElementById(`svc-${cue.serviceId}`);
-    if (!el) return;
-    // header (~44) + Coming Up strip (~88) + room headers (64) + generous calm
-    // buffer so the action item lands comfortably below the sticky chrome.
-    const stickyOffset = 44 + 88 + 64 + 144;
-    const rect = el.getBoundingClientRect();
-    const target = window.scrollY + rect.top - stickyOffset;
-    smoothScrollTo(Math.max(0, target), 1300);
+    // Wait two frames so the timeline can (a) re-render the marker for the
+    // new cue and (b) measure the target card's DOM bottom for "after"
+    // markers (checkout, room reset). Without this we sometimes scroll to a
+    // stale marker position from the previous cue — which for late-day
+    // reset cues lands near the bottom of the page.
+    let cancelled = false;
+    const run = () => {
+      if (cancelled) return;
+      const marker = document.getElementById("active-cue-marker");
+      const el = marker ?? document.getElementById(`svc-${cue.serviceId}`);
+      if (!el) return;
+      const stickyOffset = 44 + 88 + 64 + 144;
+      const rect = el.getBoundingClientRect();
+      const target = window.scrollY + rect.top - stickyOffset;
+      smoothScrollTo(Math.max(0, target), 1300);
+    };
+    const r1 = requestAnimationFrame(() => {
+      const r2 = requestAnimationFrame(run);
+      (run as any)._r2 = r2;
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(r1);
+    };
   }, [cue?.id, cue?.serviceId]);
 
 
