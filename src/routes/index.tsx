@@ -501,12 +501,17 @@ function TimelineLegend() {
 }
 
 function ServiceRow({ s, first }: { s: Service; first: boolean }) {
+  const gc = guestColor(s.guest);
   return (
     <div
-      className={`grid grid-cols-12 items-center gap-4 px-5 py-4 text-[13px] transition-colors hover:bg-black/[0.015] ${
+      className={`relative grid grid-cols-12 items-center gap-4 px-5 py-4 pl-6 text-[13px] transition-colors hover:bg-black/[0.015] ${
         first ? "" : "border-t border-black/[0.06]"
       }`}
     >
+      <span
+        className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full"
+        style={{ background: gc }}
+      />
       <div className="col-span-2">
         <div className="text-[15px] font-semibold tabular-nums tracking-tight" style={{ fontFamily: DISPLAY }}>
           {fmt(s.start)}
@@ -539,7 +544,7 @@ function ServiceRow({ s, first }: { s: Service; first: boolean }) {
         </div>
       </div>
       <div className="col-span-1">
-        <StatusPill status={s.status} />
+        <StatusPill status={s.status} guestHex={gc} />
       </div>
       <div className="col-span-1 text-right">
         <button className="rounded-[6px] px-2 py-1 text-[12px] text-black/55 hover:bg-black/[0.05] hover:text-black">
@@ -557,37 +562,37 @@ function Avatar({ name }: { name: string }) {
     .map((w) => w[0])
     .join("")
     .toUpperCase();
-  const hues = [12, 200, 260, 40, 160, 320];
-  const hue = hues[name.length % hues.length];
+  const gc = guestColor(name);
   return (
     <div
-      className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold text-black/70 ring-1 ring-black/10"
-      style={{ background: `hsl(${hue} 60% 92%)` }}
+      className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold"
+      style={{
+        background: tint(gc, 0.14),
+        color: gc,
+        boxShadow: `inset 0 0 0 1px ${tint(gc, 0.35)}`,
+      }}
     >
       {initials}
     </div>
   );
 }
 
-function StatusPill({ status }: { status: Status }) {
-  const map: Record<Status, { label: string; bg: string; fg: string; dot: string }> = {
-    "in-session": { label: "Live", bg: "#0a0a0a", fg: "#f7f7f5", dot: ACCENT },
+function StatusPill({ status, guestHex }: { status: Status; guestHex?: string }) {
+  const live = guestHex ?? ACCENT;
+  const map: Record<Status, { label: string; bg: string; fg: string; dot: string; border?: string }> = {
+    "in-session": { label: "Live", bg: tint(live, 0.12), fg: live, dot: live },
     confirmed: { label: "Confirmed", bg: "rgba(10,10,10,0.05)", fg: "#0a0a0a", dot: "#0a0a0a" },
-    requested: { label: "Request", bg: "transparent", fg: "#0a0a0a", dot: "#d97706" },
+    requested: { label: "Request", bg: "transparent", fg: "#0a0a0a", dot: "#d97706", border: "1px dashed rgba(217,119,6,0.5)" },
     hold: { label: "Hold", bg: "rgba(10,10,10,0.04)", fg: "rgba(10,10,10,0.5)", dot: "#999" },
   };
-  const s = map[status];
+  const sm = map[status];
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
-      style={{
-        background: s.bg,
-        color: s.fg,
-        border: status === "requested" ? "1px dashed rgba(10,10,10,0.3)" : "none",
-      }}
+      style={{ background: sm.bg, color: sm.fg, border: sm.border ?? "none" }}
     >
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />
-      {s.label}
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: sm.dot }} />
+      {sm.label}
     </span>
   );
 }
