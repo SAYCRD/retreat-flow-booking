@@ -553,27 +553,32 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* Coming up — label sits above the divider; strip carries only what matters */}
-      <section className="relative bg-white">
-        {/* label above the top hairline — sized to match Reservations */}
-        <div className="mx-auto flex max-w-[1440px] items-baseline gap-3 px-6 pt-8 pb-3">
-          <span className="text-[12px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
-            00
-          </span>
-          <span className="self-center text-black/70">
-            <Radio size={22} strokeWidth={1.75} />
-          </span>
-          <h2 className="text-[26px] font-semibold tracking-[-0.02em]">
-            <Highlight color="#fde047">Coming up</Highlight>
-          </h2>
-          <span className="text-[13px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
-            {String(cueIdx + 1).padStart(2, "0")} / {String(prompts.length).padStart(2, "0")}
-          </span>
-        </div>
+      {/* Coming up — compact sticky strip pinned just below the header */}
+      <section
+        className="sticky z-20 border-y border-black/[0.08] bg-white/95 backdrop-blur-md"
+        style={{ top: 48 }}
+      >
+        <div className="mx-auto flex max-w-[1440px] items-center gap-4 px-6 py-2.5">
+          {/* compact label */}
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="text-black/60">
+              <Radio size={15} strokeWidth={2} />
+            </span>
+            <span className="text-[12px] font-semibold tracking-tight text-black">
+              <Highlight color="#fde047">Coming up</Highlight>
+            </span>
+            <span
+              className="hidden text-[11px] tabular-nums text-black/40 sm:inline"
+              style={{ fontFamily: MONO }}
+            >
+              {String(cueIdx + 1).padStart(2, "0")}/{String(prompts.length).padStart(2, "0")}
+            </span>
+          </div>
 
-        {/* the strip itself — hairline top and bottom, information-first */}
-        <div className="border-y border-black/[0.08]">
-          <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-6 py-5">
+          <span className="h-6 w-px shrink-0 bg-black/10" />
+
+          {/* cue body */}
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             {cue ? (() => {
               const Icon = WHISPER_ICON[cue.kind];
               const tint = cue.room ? roomColor(cue.room) : "#0a0a0a";
@@ -582,96 +587,91 @@ function TodayPage() {
                   <span className="relative shrink-0">
                     <span
                       aria-hidden
-                      className="grid h-10 w-10 place-items-center rounded-full"
+                      className="grid h-7 w-7 place-items-center rounded-full"
                       style={{ background: `${tint}14`, color: tint }}
                     >
-                      <Icon size={18} strokeWidth={2} />
+                      <Icon size={14} strokeWidth={2} />
                     </span>
                     {cue.urgent && (
-                      <span
-                        aria-hidden
-                        className="absolute -right-0.5 -top-0.5 flex h-3 w-3"
-                      >
+                      <span aria-hidden className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-70" />
-                        <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-500 ring-2 ring-white" />
+                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white" />
                       </span>
                     )}
                   </span>
 
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2.5">
-                      <span
-                        className="shrink-0 text-[12px] font-semibold tabular-nums text-black/35"
-                        style={{ fontFamily: MONO }}
-                      >
-                        #{String(cueIdx + 1).padStart(2, "0")}
-                      </span>
-                      <h3 className="truncate text-[20px] font-semibold tracking-tight text-black">
+                    <div className="flex items-baseline gap-2">
+                      <h3 className="truncate text-[14.5px] font-semibold tracking-tight text-black">
                         {cue.headline}
                       </h3>
                       {cue.urgent && (
-                        <span className="shrink-0 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-tight text-amber-700">
+                        <span className="shrink-0 rounded-sm border border-amber-200 bg-amber-50 px-1 py-px text-[9.5px] font-bold uppercase tracking-tight text-amber-700">
                           Urgent
                         </span>
                       )}
-                    </div>
-                    <div className="mt-0.5 flex items-center gap-2 truncate text-[13.5px] text-black/55">
                       {cue.room && (
-                        <>
-                          <span style={{ color: roomColor(cue.room), fontFamily: MONO }}>
-                            {cue.room}
-                          </span>
-                          <span className="text-black/25">·</span>
-                        </>
+                        <span
+                          className="hidden shrink-0 text-[11.5px] md:inline"
+                          style={{ color: roomColor(cue.room), fontFamily: MONO }}
+                        >
+                          · {cue.room}
+                        </span>
                       )}
-                      <span className="truncate">{cue.reason}</span>
+                      <span className="hidden truncate text-[12.5px] text-black/50 lg:inline">
+                        · {cue.reason}
+                      </span>
                     </div>
-                  </div>
-
-                  <div className="flex shrink-0 items-center gap-4">
-                    <button
-                      onClick={() => setFocusOpen(true)}
-                      className="text-[13.5px] font-medium text-black/60 underline decoration-black/15 underline-offset-4 transition-colors hover:text-black hover:decoration-black"
-                    >
-                      Focus
-                    </button>
-                    <button
-                      className="text-[13.5px] font-medium text-black/80 underline decoration-black/20 underline-offset-4 transition-colors hover:decoration-black"
-                      onClick={nextCue}
-                    >
-                      {cue.primary}
-                    </button>
                   </div>
                 </>
               );
             })() : (
-              <div className="flex items-center gap-3 text-[15px] text-black/50">
-                <Sparkles size={18} strokeWidth={1.75} />
+              <div className="flex items-center gap-2 text-[13px] text-black/50">
+                <Sparkles size={14} strokeWidth={1.75} />
                 <span>All caught up. The day is flowing.</span>
               </div>
             )}
           </div>
 
-          {/* Arrows anchored bottom-right of the strip — larger, easier to reach */}
-          <div className="mx-auto flex max-w-[1440px] items-center justify-end gap-1 px-6 pb-3">
-            <button
-              onClick={prevCue}
-              aria-label="Previous cue"
-              className="grid h-9 w-9 place-items-center rounded-full text-[18px] text-black/45 transition-colors hover:bg-black/[0.04] hover:text-black"
-            >
-              ‹
-            </button>
-            <button
-              onClick={nextCue}
-              aria-label="Next cue"
-              className="grid h-9 w-9 place-items-center rounded-full text-[18px] text-black/45 transition-colors hover:bg-black/[0.04] hover:text-black"
-            >
-              ›
-            </button>
+          {/* actions + arrows all inline, right-aligned */}
+          <div className="flex shrink-0 items-center gap-3">
+            {cue && (
+              <>
+                <button
+                  onClick={() => setFocusOpen(true)}
+                  className="text-[12.5px] font-medium text-black/60 underline decoration-black/15 underline-offset-4 transition-colors hover:text-black hover:decoration-black"
+                >
+                  Focus
+                </button>
+                <button
+                  onClick={nextCue}
+                  className="text-[12.5px] font-medium text-black/85 underline decoration-black/25 underline-offset-4 transition-colors hover:decoration-black"
+                >
+                  {cue.primary}
+                </button>
+                <span className="h-5 w-px bg-black/10" />
+              </>
+            )}
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={prevCue}
+                aria-label="Previous cue"
+                className="grid h-7 w-7 place-items-center rounded-full text-[15px] leading-none text-black/45 transition-colors hover:bg-black/[0.05] hover:text-black"
+              >
+                ‹
+              </button>
+              <button
+                onClick={nextCue}
+                aria-label="Next cue"
+                className="grid h-7 w-7 place-items-center rounded-full text-[15px] leading-none text-black/45 transition-colors hover:bg-black/[0.05] hover:text-black"
+              >
+                ›
+              </button>
+            </div>
           </div>
         </div>
-
       </section>
+
 
 
 
