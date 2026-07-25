@@ -1569,8 +1569,8 @@ function Timeline({
 
 
               {services.map((s) => {
-                const top = s.start * PX_PER_MIN;
-                const height = (s.end - s.start) * PX_PER_MIN;
+                const top = minToPx(s.start);
+                const height = minToPx(s.end) - minToPx(s.start);
                 const isPast = s.end <= nowMin;
                 const isLive = s.start <= nowMin && s.end > nowMin;
                 const isRequest = s.status === "requested";
