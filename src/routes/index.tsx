@@ -1487,15 +1487,23 @@ function Timeline({
               className={`relative min-w-0 flex-1 bg-white ${
                 idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
               }`}
-              style={{
-                backgroundImage: [
-                  // hour lines
-                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 60 - 1}px, rgba(0,0,0,0.07) ${PX_PER_MIN * 60 - 1}px, rgba(0,0,0,0.07) ${PX_PER_MIN * 60}px)`,
-                  // 15-minute lines
-                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 15 - 1}px, rgba(0,0,0,0.03) ${PX_PER_MIN * 15 - 1}px, rgba(0,0,0,0.03) ${PX_PER_MIN * 15}px)`,
-                ].join(","),
-              }}
             >
+              {/* Hour lines */}
+              {hourTops.map((top, i) => (
+                <div
+                  key={`h-${i}`}
+                  className="pointer-events-none absolute inset-x-0 h-px"
+                  style={{ top, background: "rgba(0,0,0,0.07)" }}
+                />
+              ))}
+              {/* 15-minute lines */}
+              {quarterTops.map((top, i) => (
+                <div
+                  key={`q-${i}`}
+                  className="pointer-events-none absolute inset-x-0 h-px"
+                  style={{ top, background: "rgba(0,0,0,0.03)" }}
+                />
+              ))}
               {/* Now line — almost invisible */}
               <div
                 className="pointer-events-none absolute inset-x-0 z-10 h-px"
