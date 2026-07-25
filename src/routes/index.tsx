@@ -59,7 +59,7 @@ type Prompt = {
   reason: string;        // quiet reason line
   room?: string;         // for accent color
   primary: string;       // primary action label
-  urgent?: boolean;      // shows priority pulse + Urgent tag
+  urgent?: boolean;      // shows priority pulse + Important tag
   serviceId?: string;    // links prompt to a booking card on the timeline
 };
 
@@ -765,7 +765,7 @@ function TodayPage() {
                       </h3>
                       {cue.urgent && (
                         <span className="shrink-0 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-px text-[10.5px] font-bold uppercase tracking-tight text-amber-700">
-                          Urgent
+                          Important
                         </span>
                       )}
                       {cue.room && (
