@@ -1504,6 +1504,13 @@ function FocusOverlay({ cue, onClose }: { cue: Prompt; onClose: () => void }) {
           { icon: DoorOpen, label: "Walk to room", hint: service ? `Escort to ${service.room}` : "Escort to room" },
         );
         break;
+      case "checkin":
+        base.push(
+          { icon: ClipboardCheck, label: service ? `Greet ${service.guest} at the desk` : "Greet guest at the desk", hint: "Warm welcome, offer water, mark arrived." },
+          { icon: FileText, label: "Confirm waiver on file", hint: "If missing, present tablet before session." },
+          { icon: DoorOpen, label: service ? `Escort to ${service.room} when cued` : "Escort to room when cued", hint: "Wait for practitioner ready signal." },
+        );
+        break;
       case "escort":
         base.push(
           { icon: UserCheck, label: "Confirm guest is checked in", hint: "", done: true },
