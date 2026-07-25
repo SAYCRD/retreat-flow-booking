@@ -557,18 +557,16 @@ function Highlight({
   color?: string;
   className?: string;
 }) {
-  // Bold marker-pen highlight: covers most of the text, slightly uneven top/bottom
-  // to feel drawn by a human rather than a rectangle.
+  // Bold marker-pen highlight: thick band, slightly uneven edges to feel
+  // hand-drawn. Text sits on top at full contrast.
   return (
     <span
       className={`relative inline px-1.5 -mx-1 ${className}`}
       style={{
-        background: `linear-gradient(100deg, ${color} 0%, ${color} 100%)`,
+        background: `linear-gradient(178deg, transparent 8%, ${color} 12%, ${color} 94%, transparent 98%)`,
         WebkitBoxDecorationBreak: "clone",
         boxDecorationBreak: "clone",
-        paddingTop: "0.02em",
-        paddingBottom: "0.05em",
-        borderRadius: "2px 4px 3px 6px",
+        borderRadius: "2px 5px 3px 6px",
       }}
     >
       {children}
