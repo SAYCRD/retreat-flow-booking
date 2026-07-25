@@ -198,7 +198,7 @@ function TodayPage() {
       style={{ background: SURFACE, color: INK, fontFamily: DISPLAY }}
     >
       {/* Top bar */}
-      <header className="sticky top-0 z-30 border-b border-black/[0.08] backdrop-blur-md" style={{ background: "rgba(247,247,245,0.85)" }}>
+      <header className="sticky top-0 z-30 border-b border-black/[0.08] backdrop-blur-md" style={{ background: "rgba(255,255,255,0.85)" }}>
         <div className="mx-auto flex max-w-[1440px] items-center gap-8 px-6 py-3">
           <div className="flex items-center gap-2">
             <div
