@@ -34,13 +34,14 @@ type Service = {
   note?: string;
 };
 
-type Attention = {
+type Cue = {
   id: string;
-  severity: "critical" | "warn" | "info";
-  title: string;
-  detail: string;
-  action?: string;
+  headline: string;      // verb-first
+  reason: string;        // quiet reason line
+  room?: string;         // for accent color
+  primary: string;       // primary action label
 };
+
 
 const ROOMS = [
   "Infrared Room",
@@ -79,42 +80,44 @@ const SERVICES: Service[] = [
   { id: "s11", guest: "Lena Costa", service: "Grandmother Crystal Bowl", room: "The Temple", practitioner: "Uqualla", start: t(16, 30), end: t(17, 15), status: "confirmed" },
 ];
 
-const ATTENTION: Attention[] = [
+const CUES: Cue[] = [
   {
-    id: "a1",
-    severity: "critical",
-    title: "Om Space double-booked",
-    detail: "Amara's reading ends 2:50 PM. Marcus's Sound Healing starts 2:40 PM. 10-minute overlap.",
-    action: "Resolve",
+    id: "c1",
+    headline: "Text Amara — arrival window open",
+    reason: "Intuitive Reading · Om Space · 2:00 PM",
+    room: "Om Space",
+    primary: "Mark done",
   },
   {
-    id: "a2",
-    severity: "warn",
-    title: "Short turnover · Sofia Park",
-    detail: "Sound Healing in Om Space ends 3:30 PM. Infrared Sauna starts 3:20 PM — 15 min between sessions. Let Sofia know.",
-    action: "Notify Sofia",
+    id: "c2",
+    headline: "Walk Amara to Om Space",
+    reason: "Session begins in 5 min · low light, quiet arrival",
+    room: "Om Space",
+    primary: "Walked in",
   },
   {
-    id: "a3",
-    severity: "warn",
-    title: "Short turnover · The Temple",
-    detail: "Ceremonial Tea ends 3:20 PM. Grandmother Crystal Bowl starts 4:30 PM — reset room, low light, clear tea service.",
-    action: "Mark ready",
+    id: "c3",
+    headline: "Turn Om Space for Sound Healing",
+    reason: "Amara's reading ends 2:50 PM · Marcus arrives 2:40 PM",
+    room: "Om Space",
+    primary: "Room ready",
   },
   {
-    id: "a4",
-    severity: "warn",
-    title: "Room set required · The Temple",
-    detail: "Amara's Ceremonial Tea starts 2:50 PM — 20 min out. Tea service + low light.",
-    action: "Mark ready",
+    id: "c4",
+    headline: "Set The Temple for Ceremonial Tea",
+    reason: "Amara arrives 2:50 PM · tea service, low light",
+    room: "The Temple",
+    primary: "Room ready",
   },
   {
-    id: "a5",
-    severity: "info",
-    title: "Amara · 3-service journey",
-    detail: "Reading → Tea → Infrared. Smooth handoff after 3:20 PM.",
+    id: "c5",
+    headline: "Let Sofia know about short turnover",
+    reason: "Sound Healing ends 3:30 · Infrared Sauna starts 3:20",
+    room: "Infrared Room",
+    primary: "Notified",
   },
 ];
+
 
 const FINANCES = [
   { guest: "Amara Okonkwo", services: 3, amount: 340, paid: false },
@@ -191,7 +194,8 @@ function tint(hex: string, alpha: number): string {
 function TodayPage() {
   const now = useNow();
   const nowMin = DEMO_NOW;
-  const [noticeIdx, setNoticeIdx] = useState(0);
+  const [doneIds, setDoneIds] = useState<Set<string>>(new Set());
+  const [fadingId, setFadingId] = useState<string | null>(null);
 
   const clock = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const date = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -202,9 +206,19 @@ function TodayPage() {
   const revenue = FINANCES.reduce((a, b) => a + b.amount, 0);
   const unpaid = FINANCES.filter((f) => !f.paid).reduce((a, b) => a + b.amount, 0);
 
-  const notice = ATTENTION[noticeIdx];
-  const prevNotice = () => setNoticeIdx((i) => (i - 1 + ATTENTION.length) % ATTENTION.length);
-  const nextNotice = () => setNoticeIdx((i) => (i + 1) % ATTENTION.length);
+  const cue = CUES.find((c) => !doneIds.has(c.id)) ?? null;
+  const completeCue = (id: string) => {
+    setFadingId(id);
+    window.setTimeout(() => {
+      setDoneIds((prev) => {
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+      setFadingId(null);
+    }, 240);
+  };
+
 
   return (
     <div
@@ -298,51 +312,91 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* Focus on — cycles through attention items */}
+      {/* Coming up — single-focus choreography cue */}
       <section className="border-b border-black/[0.08]" style={{ background: "#fafafa" }}>
-        <div className="mx-auto max-w-[1440px] px-6 py-5">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] uppercase tracking-[0.18em] text-black/45" style={{ fontFamily: MONO }}>
-                Focus on
-              </span>
-              <span
-                className="rounded-[3px] bg-black/[0.06] px-1.5 py-0.5 text-[10px] tabular-nums text-black/55"
-                style={{ fontFamily: MONO }}
-              >
-                {String(noticeIdx + 1).padStart(2, "0")} / {String(ATTENTION.length).padStart(2, "0")}
-              </span>
-            </div>
+        <div className="mx-auto max-w-[1440px] px-6 py-6">
+          {cue ? (
+            <div
+              key={cue.id}
+              className="flex items-center justify-between gap-6 rounded-2xl border border-black/[0.08] bg-white px-7 py-5 shadow-[0_1px_0_rgba(0,0,0,0.02)] transition-opacity duration-200"
+              style={{ opacity: fadingId === cue.id ? 0 : 1 }}
+            >
+              <div className="flex min-w-0 items-center gap-4">
+                {cue.room && (
+                  <span
+                    aria-hidden
+                    className="h-10 w-[3px] shrink-0 rounded-full"
+                    style={{ background: roomColor(cue.room) }}
+                  />
+                )}
+                <div className="min-w-0">
+                  <div className="flex items-baseline gap-3">
+                    <span
+                      className="text-[10px] uppercase tracking-[0.18em] text-black/40"
+                      style={{ fontFamily: MONO }}
+                    >
+                      Coming up
+                    </span>
+                    {cue.room && (
+                      <span
+                        className="text-[11px] tracking-tight"
+                        style={{ color: roomColor(cue.room), fontFamily: MONO }}
+                      >
+                        {cue.room}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 truncate text-[20px] font-semibold tracking-tight text-black">
+                    {cue.headline}
+                  </div>
+                  <div className="mt-0.5 truncate text-[13.5px] text-black/55">
+                    {cue.reason}
+                  </div>
+                </div>
+              </div>
 
-            <div className="min-w-0 flex-1">
-              <div className="text-[20px] font-semibold tracking-tight">{notice.title}</div>
-              <div className="mt-0.5 text-[14px] text-black/60">{notice.detail}</div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {notice.action && (
-                <button className="rounded-full bg-black px-5 py-2 text-[14px] font-medium text-white hover:bg-black/85">
-                  {notice.action}
+              <div className="flex shrink-0 items-center gap-5">
+                <button
+                  className="text-[13.5px] font-medium text-black/40 transition-colors hover:text-black/70"
+                  onClick={() => {
+                    /* snooze placeholder */
+                  }}
+                >
+                  Snooze
                 </button>
-              )}
-              <button
-                onClick={prevNotice}
-                aria-label="Previous"
-                className="grid h-9 w-9 place-items-center rounded-full border border-black/10 bg-white text-black/60 hover:border-black/25 hover:text-black"
-              >
-                ‹
-              </button>
-              <button
-                onClick={nextNotice}
-                aria-label="Next"
-                className="grid h-9 w-9 place-items-center rounded-full border border-black/10 bg-white text-black/60 hover:border-black/25 hover:text-black"
-              >
-                ›
-              </button>
+                <button
+                  onClick={() => completeCue(cue.id)}
+                  className="rounded-full bg-black px-5 py-2.5 text-[13.5px] font-medium text-white transition-all hover:bg-black/85 active:scale-[0.98]"
+                >
+                  {cue.primary}
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between gap-6 rounded-2xl border border-black/[0.06] bg-white px-7 py-5">
+              <div className="flex items-center gap-4">
+                <span aria-hidden className="h-10 w-[3px] shrink-0 rounded-full bg-black/10" />
+                <div>
+                  <div
+                    className="text-[10px] uppercase tracking-[0.18em] text-black/40"
+                    style={{ fontFamily: MONO }}
+                  >
+                    Coming up
+                  </div>
+                  <div className="mt-1 text-[20px] font-medium tracking-tight text-black/70">
+                    You're clear.
+                  </div>
+                  <div className="mt-0.5 text-[13.5px] text-black/45">
+                    Next event 2:47 — Amara arriving.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </section>
+
+
 
       {/* Timeline (rooms across, time down) */}
       <section className="border-b border-black/[0.08]">
@@ -475,34 +529,6 @@ function SectionHeader({
   );
 }
 
-function AttentionCard({ item }: { item: Attention }) {
-  const color =
-    item.severity === "critical" ? ACCENT : item.severity === "warn" ? "#d97706" : "#0a0a0a";
-  return (
-    <div className="group flex items-start gap-4 rounded-[10px] border border-black/[0.08] bg-white p-5 transition-colors hover:border-black/20">
-      <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span
-            className="text-[11px] uppercase tracking-[0.14em]"
-            style={{ fontFamily: MONO, color }}
-          >
-            {item.severity}
-          </span>
-        </div>
-        <div className="mt-1 text-[16px] font-semibold tracking-tight">{item.title}</div>
-        <p className="mt-1.5 text-[14px] leading-relaxed text-black/65">{item.detail}</p>
-      </div>
-      {item.action && (
-        <button
-          className="shrink-0 rounded-[6px] border border-black/10 bg-white px-3 py-1.5 text-[13px] font-medium text-black/75 shadow-[0_1px_0_rgba(0,0,0,0.02)] transition-colors hover:border-black/25 hover:text-black"
-        >
-          {item.action}
-        </button>
-      )}
-    </div>
-  );
-}
 
 function TimelineLegend() {
   const chip = "h-3 w-4 border border-black/15";
