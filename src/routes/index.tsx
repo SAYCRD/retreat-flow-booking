@@ -154,22 +154,35 @@ const INK = "#0a0a0a";
 // Curated guest palette — each guest gets a consistent, distinct color that
 // carries through their avatar, their timeline stripe, and their row.
 const GUEST_PALETTE = [
-  "#c85a3c", // terracotta
-  "#b8862f", // ochre
-  "#5f8a54", // moss
-  "#2f8a86", // teal
-  "#4b5cd6", // indigo
-  "#8a4a86", // plum
-  "#c85c7e", // rose
-  "#556b7d", // slate
-  "#d97706", // amber
-  "#0f766e", // deep teal
+  "#c2410c", // terracotta
+  "#a16207", // ochre
+  "#4d7c0f", // moss
+  "#0f766e", // teal
+  "#1d4ed8", // indigo
+  "#7e22ce", // plum
+  "#be185d", // rose
+  "#475569", // slate
+  "#b45309", // amber
+  "#0369a1", // deep blue
+  "#65a30d", // olive
+  "#9333ea", // violet
 ] as const;
 
+// Deterministic distinct color per unique guest (assigned in appearance order).
+const GUEST_COLOR_MAP: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  let i = 0;
+  for (const s of SERVICES) {
+    if (!(s.guest in map)) {
+      map[s.guest] = GUEST_PALETTE[i % GUEST_PALETTE.length];
+      i++;
+    }
+  }
+  return map;
+})();
+
 function guestColor(name: string): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return GUEST_PALETTE[h % GUEST_PALETTE.length];
+  return GUEST_COLOR_MAP[name] ?? GUEST_PALETTE[0];
 }
 
 function tint(hex: string, alpha: number): string {
@@ -288,17 +301,17 @@ function TodayPage() {
       <section className="border-b border-black/[0.08]" style={{ background: "#fafafa" }}>
         <div className="mx-auto max-w-[1440px] px-6 py-5">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-black/45" style={{ fontFamily: MONO }}>
+            <span className="text-[11px] uppercase tracking-[0.18em] text-black/45" style={{ fontFamily: MONO }}>
               Do this next
             </span>
-            <span className="text-[18px] font-semibold tracking-tight">
+            <span className="text-[20px] font-semibold tracking-tight">
               Set <span style={{ color: guestColor("Amara Okonkwo") }}>The Temple</span> for Amara's tea ceremony
             </span>
-            <span className="text-[13px] text-black/50" style={{ fontFamily: MONO }}>
+            <span className="text-[14px] text-black/55" style={{ fontFamily: MONO }}>
               in 20 min · 2:50 PM
             </span>
             <button
-              className="ml-auto rounded-full bg-black px-4 py-1.5 text-[12px] font-medium text-white hover:bg-black/85"
+              className="ml-auto rounded-full bg-black px-5 py-2 text-[14px] font-medium text-white hover:bg-black/85"
             >
               Mark ready
             </button>
@@ -364,35 +377,38 @@ function TodayPage() {
             }
           />
           <div className="mt-6 overflow-hidden rounded-[10px] border border-black/[0.08] bg-white">
-            {FINANCES.map((f, i) => (
-              <div
-                key={f.guest}
-                className={`grid grid-cols-12 items-center gap-4 px-5 py-3.5 text-[13px] ${
-                  i > 0 ? "border-t border-black/[0.06]" : ""
-                } hover:bg-black/[0.015]`}
-              >
-                <div className="col-span-6 flex items-center gap-3">
-                  <Avatar name={f.guest} />
-                  <div>
-                    <div className="font-medium">{f.guest}</div>
-                    <div className="text-[11px] text-black/45" style={{ fontFamily: MONO }}>
-                      {f.services} service{f.services > 1 ? "s" : ""}
+            {FINANCES.map((f, i) => {
+              const gc = guestColor(f.guest);
+              return (
+                <div
+                  key={f.guest}
+                  className={`grid grid-cols-12 items-center gap-4 px-5 py-4 text-[14px] ${
+                    i > 0 ? "border-t border-black/[0.06]" : ""
+                  } hover:bg-black/[0.015]`}
+                >
+                  <div className="col-span-6 flex items-center gap-3">
+                    <Avatar name={f.guest} />
+                    <div>
+                      <div className="text-[15px] font-semibold" style={{ color: gc }}>{f.guest}</div>
+                      <div className="text-[12px] text-black/50" style={{ fontFamily: MONO }}>
+                        {f.services} service{f.services > 1 ? "s" : ""}
+                      </div>
                     </div>
                   </div>
+                  <div className="col-span-2 text-[15px] tabular-nums font-semibold" style={{ fontFamily: MONO }}>
+                    ${f.amount}
+                  </div>
+                  <div className="col-span-2">
+                    <PaidPill paid={f.paid} />
+                  </div>
+                  <div className="col-span-2 text-right">
+                    <button className="rounded-[6px] px-2.5 py-1 text-[13px] text-black/65 hover:bg-black/[0.05] hover:text-black">
+                      Invoice ↗
+                    </button>
+                  </div>
                 </div>
-                <div className="col-span-2 tabular-nums font-medium" style={{ fontFamily: MONO }}>
-                  ${f.amount}
-                </div>
-                <div className="col-span-2">
-                  <PaidPill paid={f.paid} />
-                </div>
-                <div className="col-span-2 text-right">
-                  <button className="rounded-[6px] px-2 py-1 text-[12px] text-black/60 hover:bg-black/[0.05] hover:text-black">
-                    Invoice ↗
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -447,11 +463,11 @@ function SectionHeader({
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-4">
       <div className="flex items-baseline gap-3">
-        <span className="text-[11px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
+        <span className="text-[12px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
           {eyebrow}
         </span>
-        <h2 className="text-[22px] font-semibold tracking-[-0.02em]">{label}</h2>
-        <span className="text-[12px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
+        <h2 className="text-[26px] font-semibold tracking-[-0.02em]">{label}</h2>
+        <span className="text-[13px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
           {String(count).padStart(2, "0")}
         </span>
       </div>
@@ -464,23 +480,23 @@ function AttentionCard({ item }: { item: Attention }) {
   const color =
     item.severity === "critical" ? ACCENT : item.severity === "warn" ? "#d97706" : "#0a0a0a";
   return (
-    <div className="group flex items-start gap-4 rounded-[10px] border border-black/[0.08] bg-white p-4 transition-colors hover:border-black/20">
-      <div className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />
+    <div className="group flex items-start gap-4 rounded-[10px] border border-black/[0.08] bg-white p-5 transition-colors hover:border-black/20">
+      <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span
-            className="text-[10px] uppercase tracking-[0.14em]"
+            className="text-[11px] uppercase tracking-[0.14em]"
             style={{ fontFamily: MONO, color }}
           >
             {item.severity}
           </span>
         </div>
-        <div className="mt-1 text-[14px] font-semibold tracking-tight">{item.title}</div>
-        <p className="mt-1 text-[13px] leading-snug text-black/60">{item.detail}</p>
+        <div className="mt-1 text-[16px] font-semibold tracking-tight">{item.title}</div>
+        <p className="mt-1.5 text-[14px] leading-relaxed text-black/65">{item.detail}</p>
       </div>
       {item.action && (
         <button
-          className="shrink-0 rounded-[6px] border border-black/10 bg-white px-2.5 py-1 text-[12px] font-medium text-black/70 shadow-[0_1px_0_rgba(0,0,0,0.02)] transition-colors hover:border-black/25 hover:text-black"
+          className="shrink-0 rounded-[6px] border border-black/10 bg-white px-3 py-1.5 text-[13px] font-medium text-black/75 shadow-[0_1px_0_rgba(0,0,0,0.02)] transition-colors hover:border-black/25 hover:text-black"
         >
           {item.action}
         </button>
@@ -491,11 +507,11 @@ function AttentionCard({ item }: { item: Attention }) {
 
 function TimelineLegend() {
   return (
-    <div className="hidden items-center gap-4 text-[11px] text-black/60 md:flex" style={{ fontFamily: MONO }}>
-      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-black/10 bg-white shadow-[inset_3px_0_0_0_#4b5cd6]" />LEFT STRIPE = GUEST</span>
-      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-black/20 bg-[rgba(75,92,214,0.12)] shadow-[inset_4px_0_0_0_#4b5cd6]" />LIVE</span>
-      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-dashed border-amber-600/50 bg-[rgba(255,247,237,0.7)]" />REQUEST</span>
-      <span className="flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-[3px] border border-black/6 bg-[#f5f5f5]" />PAST</span>
+    <div className="hidden items-center gap-4 text-[12px] text-black/65 md:flex" style={{ fontFamily: MONO }}>
+      <span className="flex items-center gap-2"><span className="h-3 w-4 rounded-[3px] border border-black/15 bg-white shadow-[inset_5px_0_0_0_#1d4ed8]" />GUEST STRIPE</span>
+      <span className="flex items-center gap-2"><span className="h-3 w-4 rounded-[3px] border border-black/25 bg-[rgba(29,78,216,0.1)] shadow-[inset_5px_0_0_0_#1d4ed8]" />LIVE</span>
+      <span className="flex items-center gap-2"><span className="h-3 w-4 rounded-[3px] border border-dashed border-amber-600/55 bg-[#fffbeb]" />REQUEST</span>
+      <span className="flex items-center gap-2"><span className="h-3 w-4 rounded-[3px] border border-black/10 bg-[#f7f7f7]" />PAST</span>
     </div>
   );
 }
@@ -504,42 +520,42 @@ function ServiceRow({ s, first }: { s: Service; first: boolean }) {
   const gc = guestColor(s.guest);
   return (
     <div
-      className={`relative grid grid-cols-12 items-center gap-4 px-5 py-4 pl-6 text-[13px] transition-colors hover:bg-black/[0.015] ${
+      className={`relative grid grid-cols-12 items-center gap-4 px-5 py-5 pl-7 text-[14px] transition-colors hover:bg-black/[0.015] ${
         first ? "" : "border-t border-black/[0.06]"
       }`}
     >
       <span
-        className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full"
+        className="absolute left-0 top-2 bottom-2 w-[4px] rounded-full"
         style={{ background: gc }}
       />
       <div className="col-span-2">
-        <div className="text-[15px] font-semibold tabular-nums tracking-tight" style={{ fontFamily: DISPLAY }}>
+        <div className="text-[17px] font-semibold tabular-nums tracking-tight" style={{ fontFamily: DISPLAY }}>
           {fmt(s.start)}
         </div>
-        <div className="mt-0.5 text-[11px] text-black/45" style={{ fontFamily: MONO }}>
-          {Math.round((s.end - s.start))}m · ends {fmt(s.end)}
+        <div className="mt-0.5 text-[12px] text-black/50" style={{ fontFamily: MONO }}>
+          {Math.round(s.end - s.start)}m · ends {fmt(s.end)}
         </div>
       </div>
       <div className="col-span-5 flex items-center gap-3">
         <Avatar name={s.guest} />
         <div className="min-w-0">
-          <div className="truncate font-semibold tracking-tight">
+          <div className="truncate text-[16px] font-semibold tracking-tight" style={{ color: gc }}>
             {s.guest}
             {s.partySize ? (
-              <span className="ml-2 text-[11px] font-normal text-black/45" style={{ fontFamily: MONO }}>
+              <span className="ml-2 text-[12px] font-normal text-black/45" style={{ fontFamily: MONO }}>
                 +{s.partySize - 1}
               </span>
             ) : null}
           </div>
-          <div className="truncate text-[12px] text-black/55">{s.service}</div>
+          <div className="text-[14px] text-black/70">{s.service}</div>
           {s.note && (
-            <div className="mt-1 truncate text-[12px] text-black/45">— {s.note}</div>
+            <div className="mt-1 text-[13px] text-black/50">— {s.note}</div>
           )}
         </div>
       </div>
       <div className="col-span-3">
-        <div className="text-[13px]">{s.room}</div>
-        <div className="text-[11px] text-black/50" style={{ fontFamily: MONO }}>
+        <div className="text-[14px] font-medium">{s.room}</div>
+        <div className="text-[12px] text-black/55" style={{ fontFamily: MONO }}>
           {s.practitioner}
         </div>
       </div>
@@ -547,7 +563,7 @@ function ServiceRow({ s, first }: { s: Service; first: boolean }) {
         <StatusPill status={s.status} guestHex={gc} />
       </div>
       <div className="col-span-1 text-right">
-        <button className="rounded-[6px] px-2 py-1 text-[12px] text-black/55 hover:bg-black/[0.05] hover:text-black">
+        <button className="rounded-[6px] px-2.5 py-1 text-[13px] text-black/60 hover:bg-black/[0.05] hover:text-black">
           Open
         </button>
       </div>
@@ -565,11 +581,11 @@ function Avatar({ name }: { name: string }) {
   const gc = guestColor(name);
   return (
     <div
-      className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold"
+      className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[13px] font-semibold"
       style={{
-        background: tint(gc, 0.14),
+        background: tint(gc, 0.16),
         color: gc,
-        boxShadow: `inset 0 0 0 1px ${tint(gc, 0.35)}`,
+        boxShadow: `inset 0 0 0 1.5px ${tint(gc, 0.45)}`,
       }}
     >
       {initials}
@@ -588,7 +604,7 @@ function StatusPill({ status, guestHex }: { status: Status; guestHex?: string })
   const sm = map[status];
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium"
       style={{ background: sm.bg, color: sm.fg, border: sm.border ?? "none" }}
     >
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: sm.dot }} />
@@ -599,13 +615,13 @@ function StatusPill({ status, guestHex }: { status: Status; guestHex?: string })
 
 function PaidPill({ paid }: { paid: boolean }) {
   return paid ? (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-black/[0.05] px-2 py-0.5 text-[11px] font-medium text-black/70">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-black/[0.05] px-2.5 py-1 text-[12px] font-medium text-black/75">
       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
       Paid
     </span>
   ) : (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium"
       style={{ background: "rgba(55,48,255,0.08)", color: ACCENT }}
     >
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: ACCENT }} />
@@ -619,142 +635,194 @@ function PaidPill({ paid }: { paid: boolean }) {
 // ------------------------------------------------------------------
 
 function Timeline({ nowMin }: { nowMin: number }) {
+  const PX_PER_MIN = 2.2; // 132px per hour → wide enough to read every card
+  const ROOM_COL = 200;
+  const ROW_H = 140;
+  const trackWidth = DAY_SPAN * PX_PER_MIN;
+
   const hours = useMemo(() => {
     const out: number[] = [];
     for (let h = 9; h <= 18; h++) out.push(h);
     return out;
   }, []);
 
-  const nowPct = (nowMin / DAY_SPAN) * 100;
+  const nowLeft = nowMin * PX_PER_MIN;
 
   return (
     <div className="overflow-hidden rounded-[14px] border border-black/[0.08] bg-white">
-      {/* Hour scale */}
-      <div className="grid border-b border-black/[0.06]" style={{ gridTemplateColumns: "180px 1fr" }}>
-        <div className="border-r border-black/[0.06] px-5 py-3 text-[10px] uppercase tracking-[0.14em] text-black/50" style={{ fontFamily: MONO }}>
-          Room
-        </div>
-        <div className="relative h-10">
-          {hours.map((h) => {
-            const pct = ((h * 60 - DAY_START) / DAY_SPAN) * 100;
+      <div className="overflow-x-auto">
+        <div style={{ minWidth: ROOM_COL + trackWidth }}>
+          {/* Hour scale */}
+          <div className="flex border-b border-black/[0.06]">
+            <div
+              className="shrink-0 border-r border-black/[0.06] px-5 py-3 text-[11px] uppercase tracking-[0.14em] text-black/50"
+              style={{ width: ROOM_COL, fontFamily: MONO }}
+            >
+              Room
+            </div>
+            <div className="relative h-12" style={{ width: trackWidth }}>
+              {hours.map((h) => {
+                const left = (h * 60 - DAY_START) * PX_PER_MIN;
+                return (
+                  <div
+                    key={h}
+                    className="absolute top-3 -translate-x-1/2 text-[13px] font-semibold text-black/60"
+                    style={{ left, fontFamily: MONO }}
+                  >
+                    {((h + 11) % 12) + 1}
+                    {h >= 12 ? " PM" : " AM"}
+                  </div>
+                );
+              })}
+              <div
+                className="absolute top-2 -translate-x-1/2 rounded-[4px] px-2 py-0.5 text-[10px] font-semibold text-white"
+                style={{ left: nowLeft, background: ACCENT, fontFamily: MONO }}
+              >
+                NOW
+              </div>
+            </div>
+          </div>
+
+          {/* Room rows */}
+          {ROOMS.map((room, idx) => {
+            const services = SERVICES.filter((s) => s.room === room);
             return (
               <div
-                key={h}
-                className="absolute top-3 -translate-x-1/2 text-[11px] font-semibold text-black/55"
-                style={{ left: `${pct}%`, fontFamily: MONO }}
+                key={room}
+                className={`flex items-stretch ${idx > 0 ? "border-t border-black/[0.06]" : ""}`}
               >
-                {((h + 11) % 12) + 1}
-                {h >= 12 ? "P" : "A"}
+                <div
+                  className="flex shrink-0 flex-col justify-center border-r border-black/[0.06] px-5"
+                  style={{ width: ROOM_COL, height: ROW_H }}
+                >
+                  <span className="text-[17px] font-semibold tracking-tight text-black">
+                    {room}
+                  </span>
+                  <span
+                    className="mt-1 text-[12px] font-medium text-black/50"
+                    style={{ fontFamily: MONO }}
+                  >
+                    {services.length} bookings
+                  </span>
+                </div>
+
+                <div
+                  className="relative"
+                  style={{
+                    width: trackWidth,
+                    height: ROW_H,
+                    background:
+                      "repeating-linear-gradient(to right, transparent 0, transparent calc(" +
+                      PX_PER_MIN * 60 +
+                      "px - 1px), rgba(0,0,0,0.05) calc(" +
+                      PX_PER_MIN * 60 +
+                      "px - 1px), rgba(0,0,0,0.05) " +
+                      PX_PER_MIN * 60 +
+                      "px)",
+                  }}
+                >
+                  {/* now line */}
+                  <div
+                    className="pointer-events-none absolute inset-y-0 z-10 w-px"
+                    style={{ left: nowLeft, background: ACCENT }}
+                  >
+                    <div
+                      className="absolute -top-px h-2 w-2 -translate-x-1/2 rounded-full"
+                      style={{ background: ACCENT }}
+                    />
+                  </div>
+
+                  {services.map((s) => {
+                    const left = s.start * PX_PER_MIN;
+                    const width = (s.end - s.start) * PX_PER_MIN;
+                    const isPast = s.end <= nowMin;
+                    const isLive = s.start <= nowMin && s.end > nowMin;
+                    const gc = guestColor(s.guest);
+
+                    const style: React.CSSProperties = (() => {
+                      if (s.status === "requested")
+                        return {
+                          background: "#fffbeb",
+                          border: "1.5px dashed rgba(217,119,6,0.55)",
+                          color: INK,
+                          boxShadow: `inset 6px 0 0 0 ${gc}`,
+                        };
+                      if (isLive)
+                        return {
+                          background: tint(gc, 0.1),
+                          border: `1.5px solid ${tint(gc, 0.4)}`,
+                          color: INK,
+                          boxShadow: `inset 6px 0 0 0 ${gc}, 0 0 0 3px ${tint(gc, 0.08)}`,
+                        };
+                      if (isPast)
+                        return {
+                          background: "#f7f7f7",
+                          border: "1.5px solid rgba(0,0,0,0.06)",
+                          color: "rgba(10,10,10,0.55)",
+                          boxShadow: `inset 6px 0 0 0 ${tint(gc, 0.45)}`,
+                        };
+                      return {
+                        background: tint(gc, 0.06),
+                        border: `1.5px solid ${tint(gc, 0.28)}`,
+                        color: INK,
+                        boxShadow: `inset 6px 0 0 0 ${gc}`,
+                      };
+                    })();
+
+                    return (
+                      <div
+                        key={s.id}
+                        className="group absolute top-2 bottom-2 flex flex-col justify-between overflow-hidden rounded-[10px] pl-4 pr-3 py-2.5 transition-all hover:z-20 hover:shadow-[0_10px_28px_rgba(0,0,0,0.12)]"
+                        style={{
+                          left: left + 2,
+                          width: Math.max(width - 4, 100),
+                          ...style,
+                        }}
+                        title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            {isLive && (
+                              <span className="relative inline-flex h-2 w-2 shrink-0">
+                                <span
+                                  className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50"
+                                  style={{ background: gc }}
+                                />
+                                <span
+                                  className="relative inline-flex h-2 w-2 rounded-full"
+                                  style={{ background: gc }}
+                                />
+                              </span>
+                            )}
+                            <div
+                              className="text-[15px] font-semibold leading-tight tracking-tight"
+                              style={{ color: gc }}
+                            >
+                              {s.guest}
+                              {s.partySize ? ` +${s.partySize - 1}` : ""}
+                            </div>
+                          </div>
+                          <div className="mt-1 text-[14px] font-medium leading-tight text-black/85">
+                            {s.service}
+                          </div>
+                          <div className="mt-0.5 text-[12px] leading-tight text-black/60">
+                            {s.practitioner}
+                          </div>
+                        </div>
+                        <div
+                          className="text-[12px] font-semibold tabular-nums text-black/70"
+                          style={{ fontFamily: MONO }}
+                        >
+                          {fmt(s.start)} – {fmt(s.end)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             );
           })}
-          <div
-            className="absolute top-2 -translate-x-1/2 rounded-[4px] px-2 py-0.5 text-[10px] font-semibold text-white"
-            style={{ left: `${nowPct}%`, background: ACCENT, fontFamily: MONO }}
-          >
-            NOW
-          </div>
         </div>
-      </div>
-
-      {/* Room rows */}
-      <div>
-        {ROOMS.map((room, idx) => {
-          const services = SERVICES.filter((s) => s.room === room);
-          return (
-            <div
-              key={room}
-              className={`grid items-stretch ${idx > 0 ? "border-t border-black/[0.06]" : ""}`}
-              style={{ gridTemplateColumns: "180px 1fr" }}
-            >
-              <div className="flex flex-col justify-center border-r border-black/[0.06] px-5 py-4">
-                <span className="text-[15px] font-semibold tracking-tight text-black">{room}</span>
-                <span className="mt-1 text-[11px] font-medium text-black/50" style={{ fontFamily: MONO }}>
-                  {services.length} bookings
-                </span>
-              </div>
-
-              <div className="relative h-[88px]" style={{ background: "repeating-linear-gradient(to right, transparent 0, transparent calc(100%/9 - 1px), rgba(0,0,0,0.035) calc(100%/9 - 1px), rgba(0,0,0,0.035) calc(100%/9))" }}>
-                {/* now line */}
-                <div
-                  className="pointer-events-none absolute inset-y-0 z-10 w-px"
-                  style={{ left: `${nowPct}%`, background: ACCENT }}
-                >
-                  <div className="absolute -top-px h-2 w-2 -translate-x-1/2 rounded-full" style={{ background: ACCENT }} />
-                </div>
-
-                {services.map((s) => {
-                  const left = (s.start / DAY_SPAN) * 100;
-                  const width = ((s.end - s.start) / DAY_SPAN) * 100;
-                  const isPast = s.end <= nowMin;
-                  const isLive = s.start <= nowMin && s.end > nowMin;
-                  const gc = guestColor(s.guest);
-
-                  const style: React.CSSProperties = (() => {
-                    if (s.status === "requested")
-                      return {
-                        background: "rgba(255,247,237,0.7)",
-                        border: "1.5px dashed rgba(217,119,6,0.5)",
-                        color: INK,
-                        boxShadow: `inset 3px 0 0 0 ${gc}`,
-                      };
-                    if (isLive)
-                      return {
-                        background: tint(gc, 0.12),
-                        border: `1.5px solid ${tint(gc, 0.35)}`,
-                        color: INK,
-                        boxShadow: `inset 4px 0 0 0 ${gc}, 0 0 0 3px ${tint(gc, 0.08)}`,
-                      };
-                    if (isPast)
-                      return {
-                        background: "#f5f5f5",
-                        border: "1.5px solid rgba(0,0,0,0.06)",
-                        color: "rgba(10,10,10,0.55)",
-                        boxShadow: `inset 3px 0 0 0 ${tint(gc, 0.45)}`,
-                      };
-                    return {
-                      background: tint(gc, 0.06),
-                      border: `1.5px solid ${tint(gc, 0.22)}`,
-                      color: INK,
-                      boxShadow: `inset 3px 0 0 0 ${gc}`,
-                    };
-                  })();
-
-                  return (
-                    <div
-                      key={s.id}
-                      className="group absolute top-2 bottom-2 overflow-hidden rounded-[8px] px-3 py-2 leading-snug transition-all hover:z-20 hover:shadow-[0_8px_24px_rgba(0,0,0,0.10)]"
-                      style={{
-                        left: `calc(${left}% + 2px)`,
-                        width: `calc(${width}% - 4px)`,
-                        ...style,
-                      }}
-                      title={`${s.guest} · ${s.service} · ${fmt(s.start)}–${fmt(s.end)}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        {isLive && (
-                          <span className="relative inline-flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50" style={{ background: gc }} />
-                            <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: gc }} />
-                          </span>
-                        )}
-                        <div className="truncate text-[13px] font-semibold tracking-tight">
-                          {s.guest}
-                          {s.partySize ? ` +${s.partySize - 1}` : ""}
-                        </div>
-                      </div>
-                      <div className="mt-1 flex items-center gap-2 truncate text-[11px] font-medium text-black/70" style={{ fontFamily: MONO }}>
-                        <span>{fmt(s.start)}</span>
-                        <span className="text-black/30">·</span>
-                        <span className="truncate">{s.service}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
       </div>
     </div>
   );
