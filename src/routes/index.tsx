@@ -693,6 +693,8 @@ function ComingUp({ nowMin }: { nowMin: number }) {
           eyebrow="02"
           label="Coming Up"
           count={upcoming.length}
+          highlightColor="#c7f0e0"
+
           trailing={
             <div
               className="inline-flex items-center gap-0 overflow-hidden rounded-full border border-black/10 bg-white p-0.5 text-[12px]"
