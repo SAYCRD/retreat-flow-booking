@@ -573,10 +573,22 @@ function TodayPage() {
   const stillToCome = SERVICES.filter((s) => s.start > nowMin).length;
   const overlaps = conflicts.length;
 
-  const prompts = useMemo(() => generatePrompts(nowMin), [nowMin]);
-  const cue = prompts[cueIdx] ?? null;
-  const prevCue = () => setCueIdx((i) => (i - 1 + prompts.length) % prompts.length);
-  const nextCue = () => setCueIdx((i) => (i + 1) % prompts.length);
+  const allPrompts = useMemo(() => generatePrompts(nowMin), [nowMin]);
+  const prompts = useMemo(
+    () => allPrompts.filter((p) => !resolvedIds.has(p.id)),
+    [allPrompts, resolvedIds],
+  );
+  const cue = prompts.length ? prompts[cueIdx % prompts.length] ?? null : null;
+  const prevCue = () => setCueIdx((i) => (prompts.length ? (i - 1 + prompts.length) % prompts.length : 0));
+  const nextCue = () => setCueIdx((i) => (prompts.length ? (i + 1) % prompts.length : 0));
+  const confirmCue = () => {
+    if (!cue) return;
+    setResolvedIds((prev) => {
+      const next = new Set(prev);
+      next.add(cue.id);
+      return next;
+    });
+  };
 
   // When the active cue changes, scroll to its action marker (or the linked
   // reservation card as a fallback) so the operator's eyes travel to the exact
