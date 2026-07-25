@@ -524,8 +524,8 @@ function TodayPage() {
     if (!cue?.serviceId) return;
     const el = document.getElementById(`svc-${cue.serviceId}`);
     if (!el) return;
-    // header (48) + Coming Up strip (~68) + room headers (64) + whisper space.
-    const stickyOffset = 48 + 68 + 64 + 48;
+    // header (~44) + Coming Up strip (~88) + room headers (64) + whisper space.
+    const stickyOffset = 44 + 88 + 64 + 48;
     const rect = el.getBoundingClientRect();
     const target = window.scrollY + rect.top - stickyOffset;
     window.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
