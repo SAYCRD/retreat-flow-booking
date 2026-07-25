@@ -477,23 +477,23 @@ function AttentionCard({ item }: { item: Attention }) {
   const color =
     item.severity === "critical" ? ACCENT : item.severity === "warn" ? "#d97706" : "#0a0a0a";
   return (
-    <div className="group flex items-start gap-4 rounded-[10px] border border-black/[0.08] bg-white p-4 transition-colors hover:border-black/20">
-      <div className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />
+    <div className="group flex items-start gap-4 rounded-[10px] border border-black/[0.08] bg-white p-5 transition-colors hover:border-black/20">
+      <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span
-            className="text-[10px] uppercase tracking-[0.14em]"
+            className="text-[11px] uppercase tracking-[0.14em]"
             style={{ fontFamily: MONO, color }}
           >
             {item.severity}
           </span>
         </div>
-        <div className="mt-1 text-[14px] font-semibold tracking-tight">{item.title}</div>
-        <p className="mt-1 text-[13px] leading-snug text-black/60">{item.detail}</p>
+        <div className="mt-1 text-[16px] font-semibold tracking-tight">{item.title}</div>
+        <p className="mt-1.5 text-[14px] leading-relaxed text-black/65">{item.detail}</p>
       </div>
       {item.action && (
         <button
-          className="shrink-0 rounded-[6px] border border-black/10 bg-white px-2.5 py-1 text-[12px] font-medium text-black/70 shadow-[0_1px_0_rgba(0,0,0,0.02)] transition-colors hover:border-black/25 hover:text-black"
+          className="shrink-0 rounded-[6px] border border-black/10 bg-white px-3 py-1.5 text-[13px] font-medium text-black/75 shadow-[0_1px_0_rgba(0,0,0,0.02)] transition-colors hover:border-black/25 hover:text-black"
         >
           {item.action}
         </button>
