@@ -242,11 +242,11 @@ function generatePrompts(nowMin: number): Prompt[] {
     out.push({
       id: `reset-${s.id}`,
       kind: "reset",
-      headline: `Notify — ${s.room} session ended`,
+      headline: `Notify — session ended, reset needed`,
       reason: `${s.service} ended ${fmt(s.end)}`,
       room: s.room,
       serviceId: s.id,
-      primary: "Notified",
+      primary: "Confirm reset",
     });
   });
 
