@@ -661,64 +661,6 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* Coming Up */}
-      <ComingUp nowMin={nowMin} />
-
-
-      {/* Finances */}
-      <section>
-        <div className="mx-auto max-w-[1440px] px-6 py-10">
-          <SectionHeader
-            eyebrow="03"
-            label="Finances"
-            count={FINANCES.length}
-            trailing={
-              <div className="flex items-baseline gap-4 text-[13px]">
-                <span className="text-black/50">Booked</span>
-                <span className="tabular-nums font-semibold">${revenue.toLocaleString()}</span>
-                <span className="text-black/20">·</span>
-                <span className="text-black/50">Unpaid</span>
-                <span className="tabular-nums font-semibold" style={{ color: ACCENT }}>${unpaid.toLocaleString()}</span>
-              </div>
-            }
-          />
-          <div className="mt-6 overflow-hidden rounded-[10px] border border-black/[0.08] bg-white">
-            {FINANCES.map((f, i) => {
-              const gc = guestRoomColor(f.guest);
-              return (
-                <div
-                  key={f.guest}
-                  className={`grid grid-cols-12 items-center gap-4 px-5 py-4 text-[14px] ${
-                    i > 0 ? "border-t border-black/[0.06]" : ""
-                  } hover:bg-black/[0.015]`}
-                >
-                  <div className="col-span-6 flex items-center gap-3">
-                    <Avatar name={f.guest} color={gc} />
-                    <div>
-                      <div className="text-[15px] font-semibold text-black">{f.guest}</div>
-                      <div className="text-[12px] text-black/50" style={{ fontFamily: MONO }}>
-                        {f.services} service{f.services > 1 ? "s" : ""}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-span-2 text-[15px] tabular-nums font-semibold" style={{ fontFamily: MONO }}>
-                    ${f.amount}
-                  </div>
-                  <div className="col-span-2">
-                    <PaidPill paid={f.paid} />
-                  </div>
-                  <div className="col-span-2 text-right">
-                    <button className="rounded-[6px] px-2.5 py-1 text-[13px] text-black/65 hover:bg-black/[0.05] hover:text-black">
-                      Invoice ↗
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       <footer className="py-8 text-center text-[11px] text-black/35" style={{ fontFamily: MONO }}>
         SEONDYA · SHIFT 09:00 — 20:00
       </footer>
