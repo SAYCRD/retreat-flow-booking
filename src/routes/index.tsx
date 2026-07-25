@@ -85,6 +85,7 @@ const SERVICES: Service[] = [
 const CUES: Cue[] = [
   {
     id: "c1",
+    kind: "message",
     headline: "Text Amara — arrival window open",
     reason: "Intuitive Reading · Om Space · 2:00 PM",
     room: "Om Space",
@@ -92,6 +93,7 @@ const CUES: Cue[] = [
   },
   {
     id: "c2",
+    kind: "escort",
     headline: "Walk Amara to Om Space",
     reason: "Session begins in 5 min · low light, quiet arrival",
     room: "Om Space",
@@ -99,6 +101,7 @@ const CUES: Cue[] = [
   },
   {
     id: "c3",
+    kind: "turnover",
     headline: "Turn Om Space for Sound Healing",
     reason: "Amara's reading ends 2:50 PM · Marcus arrives 2:40 PM",
     room: "Om Space",
@@ -106,6 +109,7 @@ const CUES: Cue[] = [
   },
   {
     id: "c4",
+    kind: "setup",
     headline: "Set The Temple for Ceremonial Tea",
     reason: "Amara arrives 2:50 PM · tea service, low light",
     room: "The Temple",
@@ -113,12 +117,14 @@ const CUES: Cue[] = [
   },
   {
     id: "c5",
+    kind: "handoff",
     headline: "Let Sofia know about short turnover",
     reason: "Sound Healing ends 3:30 · Infrared Sauna starts 3:20",
     room: "Infrared Room",
     primary: "Notified",
   },
 ];
+
 
 
 const FINANCES = [
