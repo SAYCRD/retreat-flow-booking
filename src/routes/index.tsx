@@ -755,7 +755,7 @@ function Timeline({ nowMin }: { nowMin: number }) {
                 const height = (s.end - s.start) * PX_PER_MIN;
                 const isPast = s.end <= nowMin;
                 const isLive = s.start <= nowMin && s.end > nowMin;
-                const gc = guestColor(s.guest);
+                const gc = roomColor(s.room);
 
                 const style: React.CSSProperties = (() => {
                   if (s.status === "requested")
