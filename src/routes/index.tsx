@@ -1377,6 +1377,15 @@ function Timeline({
     return out;
   }, []);
 
+  const hourTops = useMemo(() => hours.map((h) => minToPx(h * 60 - DAY_START)), [hours, minToPx]);
+  const quarterTops = useMemo(() => {
+    const out: number[] = [];
+    for (let m = 15; m <= compressAfter; m += 15) {
+      if (m % 60 !== 0) out.push(minToPx(m));
+    }
+    return out;
+  }, [compressAfter, minToPx]);
+
   const nowTop = minToPx(nowMin);
 
   // On first load, scroll the calendar so the current time is visible near the
