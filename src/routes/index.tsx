@@ -594,30 +594,30 @@ function TodayPage() {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="border-b border-black/[0.08]">
-        <div className="mx-auto max-w-[1440px] px-6 pt-10 pb-8">
-          <div className="flex flex-wrap items-end justify-between gap-6">
+      {/* Hero — lighter and more compact so the broadcast bar can breathe */}
+      <section className="border-b border-black/[0.06]">
+        <div className="mx-auto max-w-[1440px] px-6 pt-8 pb-6">
+          <div className="flex flex-wrap items-end justify-between gap-5">
             <div>
-              <div className="flex items-center gap-2 text-[12px] text-black/50">
+              <div className="flex items-center gap-2 text-[11.5px] text-black/45">
                 <LiveDot />
-                <span className="font-medium text-black/70">Live</span>
-                <span className="text-black/30">·</span>
+                <span className="font-medium text-black/65">Live</span>
+                <span className="text-black/25">·</span>
                 <span>{date}</span>
               </div>
-              <h1 className="mt-3 text-[52px] font-semibold leading-[1] tracking-[-0.035em] md:text-[64px]">
+              <h1 className="mt-2 text-[44px] font-semibold leading-[1] tracking-[-0.03em] md:text-[56px]">
                 Today
               </h1>
             </div>
 
-            <div className="flex items-end gap-8">
+            <div className="flex items-end gap-6">
               <Stat label="In session" value={inSession} />
               <Stat label="To come" value={stillToCome} />
               <Stat label="Conflicts" value={overlaps} accent />
-              <div className="hidden h-16 w-px bg-black/10 md:block" />
+              <div className="hidden h-12 w-px bg-black/8 md:block" />
               <div className="text-right">
-                <div className="text-[11px] uppercase tracking-[0.14em] text-black/45" style={{ fontFamily: MONO }}>Now</div>
-                <div className="mt-1 text-[32px] font-semibold tabular-nums leading-none tracking-tight" style={{ fontFamily: DISPLAY }}>
+                <div className="text-[10.5px] uppercase tracking-[0.14em] text-black/40" style={{ fontFamily: MONO }}>Now</div>
+                <div className="mt-0.5 text-[28px] font-semibold tabular-nums leading-none tracking-tight" style={{ fontFamily: DISPLAY }}>
                   {clock}
                 </div>
               </div>
