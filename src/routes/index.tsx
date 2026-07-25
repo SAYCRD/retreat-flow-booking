@@ -229,21 +229,19 @@ function generatePrompts(nowMin: number): Prompt[] {
     }
   });
 
-  // 2b. Room reset notifications — EVERY completed session needs a reset. Fires
-  // the moment a session ends and stays live for ~45 minutes as a generic notify
-  // cue so the right person (practitioner, front desk, or later-defined role) can act.
-  SERVICES.filter((s) => s.end <= nowMin + 2 && s.end > nowMin - 45).forEach((s) => {
-    // Skip if a turnover prompt already exists for this ended session (it
-    // covers the same reset action ahead of a tight follow-on booking).
-    const hasTurnover = out.some(
-      (p) => (p.kind === "turnover" || p.kind === "setup") && p.id.includes(`-${s.id}-`),
+  // 2b. Room reset notifications — every completed session whose room isn't
+  // reused later in the day still needs a reset. Stays live until confirmed,
+  // so unreset rooms remain visible in Coming Up all day.
+  SERVICES.filter((s) => s.end <= nowMin + 2).forEach((s) => {
+    const roomReused = SERVICES.some(
+      (other) => other.room === s.room && other.start >= s.end,
     );
-    if (hasTurnover) return;
+    if (roomReused) return;
     out.push({
       id: `reset-${s.id}`,
       kind: "reset",
-      headline: `Notify — session ended, reset needed`,
-      reason: `${s.service} ended ${fmt(s.end)}`,
+      headline: `Room reset`,
+      reason: `after ${s.service} · ended ${fmt(s.end)}`,
       room: s.room,
       serviceId: s.id,
       primary: "Confirm reset",
