@@ -996,8 +996,8 @@ function Timeline({
             );
           })}
           <div
-            className="absolute right-1 -translate-y-1/2 rounded-[3px] px-1.5 py-0.5 text-[10px] font-semibold text-white"
-            style={{ top: nowTop, background: ACCENT, fontFamily: MONO }}
+            className="absolute right-2 -translate-y-1/2 text-[9.5px] font-semibold tracking-[0.14em]"
+            style={{ top: nowTop, color: ACCENT, fontFamily: MONO, opacity: 0.7 }}
           >
             NOW
           </div>
