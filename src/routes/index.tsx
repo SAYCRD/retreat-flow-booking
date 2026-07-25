@@ -1146,7 +1146,9 @@ function Timeline({
         {ROOMS.map((room, idx) => {
           const count = SERVICES.filter((s) => s.room === room).length;
           const rc = roomColor(room);
-          const isActive = activeRoom === room;
+          const isPinned = activeRoom === room;
+          const isCueRoom = cueRoom === room;
+          const isActive = isPinned || isCueRoom;
           return (
             <button
               key={room}
@@ -1160,7 +1162,7 @@ function Timeline({
 
               <div className="truncate text-[20px] font-semibold leading-tight tracking-[-0.02em] text-black">
                 {isActive ? (
-                  <Highlight color={tint(rc, 0.5)}>{room}</Highlight>
+                  <Highlight color={tint(rc, isPinned ? 0.55 : 0.42)}>{room}</Highlight>
                 ) : (
                   room
                 )}
