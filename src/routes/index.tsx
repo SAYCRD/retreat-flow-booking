@@ -672,7 +672,7 @@ function TodayPage() {
         SEONDYA · SHIFT 09:00 — 20:00
       </footer>
 
-      {focusOpen && (
+      {focusOpen && cue && (
         <FocusOverlay cue={cue} onClose={() => setFocusOpen(false)} />
       )}
 
