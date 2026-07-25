@@ -334,19 +334,18 @@ function TodayPage() {
 
       {/* Coming up — label sits above the divider; strip carries only what matters */}
       <section className="relative bg-white">
-        {/* label above the top hairline */}
-        <div className="mx-auto flex max-w-[1440px] items-center gap-2 px-6 pt-4 pb-2">
-          <span
-            className="text-[11px] font-semibold uppercase tracking-[0.22em] text-black/75"
-            style={{ fontFamily: MONO }}
-          >
-            <Highlight color="#fef3c7">Coming up</Highlight>
+        {/* label above the top hairline — sized to match Reservations */}
+        <div className="mx-auto flex max-w-[1440px] items-baseline gap-3 px-6 pt-8 pb-3">
+          <span className="text-[12px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
+            00
           </span>
-
-          <span
-            className="text-[10px] tabular-nums text-black/30"
-            style={{ fontFamily: MONO }}
-          >
+          <span className="self-center text-black/70">
+            <Radio size={22} strokeWidth={1.75} />
+          </span>
+          <h2 className="text-[26px] font-semibold tracking-[-0.02em]">
+            <Highlight color="#fde047">Coming up</Highlight>
+          </h2>
+          <span className="text-[13px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
             {String(cueIdx + 1).padStart(2, "0")} / {String(CUES.length).padStart(2, "0")}
           </span>
         </div>
