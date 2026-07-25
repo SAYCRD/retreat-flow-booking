@@ -197,7 +197,7 @@ function generatePrompts(nowMin: number): Prompt[] {
           reason: `${a.service} ends ${fmt(a.end)} · ${b.service} at ${fmt(b.start)}`,
           room: b.room,
           serviceId: b.id,
-          primary: "Handed off",
+          primary: "Confirm handoff",
           urgent: gap < 5,
         });
       }
