@@ -109,6 +109,20 @@ function formatCurrency(n: number) {
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
+function smoothScrollTo(targetY: number, duration = 900) {
+  const startY = window.scrollY;
+  const delta = targetY - startY;
+  const startTime = performance.now();
+  function step(now: number) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    window.scrollTo(0, startY + delta * eased);
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+
 function generatePrompts(nowMin: number): Prompt[] {
   const out: Prompt[] = [];
 
@@ -516,20 +530,23 @@ function TodayPage() {
   const prevCue = () => setCueIdx((i) => (i - 1 + prompts.length) % prompts.length);
   const nextCue = () => setCueIdx((i) => (i + 1) % prompts.length);
 
-  // When the active cue changes, scroll the linked reservation card into view
-  // so the operator's eyes travel to the exact card the notification is about.
-  // We leave extra room above the card so the pre-session whisper (the actual
-  // action item) is fully visible below the sticky header + strip + room headers.
+  // When the active cue changes, scroll to its action marker (or the linked
+  // reservation card as a fallback) so the operator's eyes travel to the exact
+  // spot the notification is about. We stop a little higher up, leaving calm
+  // space between the sticky header and the actual action item.
   useEffect(() => {
     if (!cue?.serviceId) return;
-    const el = document.getElementById(`svc-${cue.serviceId}`);
+    const marker = document.getElementById("active-cue-marker");
+    const el = marker ?? document.getElementById(`svc-${cue.serviceId}`);
     if (!el) return;
-    // header (~44) + Coming Up strip (~88) + room headers (64) + whisper space.
-    const stickyOffset = 44 + 88 + 64 + 48;
+    // header (~44) + Coming Up strip (~88) + room headers (64) + generous calm
+    // buffer so the action item lands comfortably below the sticky chrome.
+    const stickyOffset = 44 + 88 + 64 + 144;
     const rect = el.getBoundingClientRect();
     const target = window.scrollY + rect.top - stickyOffset;
-    window.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+    smoothScrollTo(Math.max(0, target), 1300);
   }, [cue?.id, cue?.serviceId]);
+
 
 
 
@@ -823,6 +840,10 @@ function TodayPage() {
           </div>
         </div>
       </section>
+
+      {/* Extra runway so the calendar can scroll far enough to bring late-day
+          action items into the viewport with breathing room below them. */}
+      <div className="h-[500px]" aria-hidden="true" />
 
       <footer className="py-8 text-center text-[11px] text-black/35" style={{ fontFamily: MONO }}>
         SEONDYA · SHIFT 09:00 — 20:00
@@ -1191,6 +1212,76 @@ function Timeline({
     return map;
   }, [whispers]);
 
+  const preSessionKinds: WhisperKind[] = ["notify", "checkin", "escort", "turnover", "setup", "elixir", "pickup"];
+
+  // The one currently highlighted cue gets its own marker on the timeline,
+  // separate from the session card, so check-ins and room resets read as
+  // their own actions rather than decoration on top of a booking.
+  const activeCue = useMemo(() => whispers.find((w) => w.id === activeCueId), [whispers, activeCueId]);
+
+  const cueMarker = useMemo(() => {
+    if (!activeCue?.serviceId) return null;
+    const s = SERVICES.find((x) => x.id === activeCue.serviceId);
+    if (!s || !preSessionKinds.includes(activeCue.kind)) return null;
+
+    const roomServices = SERVICES.filter((x) => x.room === s.room).sort((a, b) => a.start - b.start);
+    const prevInRoom = roomServices.find((s2, i, arr) => arr[i + 1]?.id === s.id);
+    const guestServices = SERVICES.filter((x) => x.guest === s.guest).sort((a, b) => a.start - b.start);
+    const guestIdx = guestServices.findIndex((x) => x.id === s.id);
+    const prevGuest = guestIdx > 0 ? guestServices[guestIdx - 1] : null;
+
+    let topMin: number;
+    switch (activeCue.kind) {
+      case "checkin":
+        topMin = s.start - 15;
+        break;
+      case "escort":
+        topMin = s.start - 5;
+        break;
+      case "notify":
+        topMin = s.start - 20;
+        break;
+      case "turnover":
+      case "setup":
+        topMin = prevInRoom ? prevInRoom.end + 1 : s.start - 10;
+        break;
+      case "pickup":
+        topMin = prevGuest ? prevGuest.end + 1 : s.start - 5;
+        break;
+      case "elixir":
+        topMin = prevGuest ? Math.round((prevGuest.end + s.start) / 2) : s.start - 10;
+        break;
+      default:
+        topMin = s.start - 10;
+    }
+    topMin = Math.max(0, topMin);
+
+    const label =
+      activeCue.kind === "turnover" || activeCue.kind === "setup"
+        ? s.room
+        : activeCue.kind === "notify"
+          ? s.practitioner.replace(/^(Dr\.?|Mr\.?|Ms\.?)\s+/i, "").split(/\s+/)[0]
+          : firstName(s.guest);
+
+    const verb = ({
+      notify: "Notify",
+      checkin: "Check in",
+      escort: "Walk in",
+      turnover: "Reset",
+      setup: "Set up",
+      elixir: "Tea for",
+      pickup: "Pick up",
+      message: "",
+      handoff: "",
+      payment: "",
+      conflict: "",
+    } as Record<WhisperKind, string>)[activeCue.kind];
+
+
+    return { topMin, label, verb, kind: activeCue.kind, room: s.room, gc: roomColor(s.room) };
+  }, [activeCue]);
+
+
   const hours = useMemo(() => {
     const out: number[] = [];
     for (let h = 9; h <= 18; h++) out.push(h);
@@ -1201,15 +1292,18 @@ function Timeline({
 
   // On first load, scroll the calendar so the current time is visible near the
   // top of the viewport instead of showing 9 AM when it's mid-afternoon.
+  // If a Coming Up cue is active, the parent handles scrolling to the action
+  // marker; this fallback only runs when there is no cue to follow.
   useEffect(() => {
-    if (scrolledRef.current || !gridRef.current) return;
+    if (scrolledRef.current || !gridRef.current || activeCueId) return;
     scrolledRef.current = true;
     const rect = gridRef.current.getBoundingClientRect();
     const gridTop = rect.top + window.scrollY;
-    // Offset for sticky header (48) + sticky Coming Up strip (~49) + room headers + breathing room.
-    const target = gridTop + nowTop - 200;
-    window.scrollTo({ top: Math.max(0, target), behavior: "auto" });
-  }, [nowTop]);
+    // Offset for sticky header (44) + sticky Coming Up strip (~88) + room headers + breathing room.
+    const target = gridTop + nowTop - 180;
+    smoothScrollTo(Math.max(0, target), 1400);
+  }, [nowTop, activeCueId]);
+
 
   return (
     <div className="border-y border-black/[0.08] bg-white">
@@ -1311,6 +1405,34 @@ function Timeline({
                 style={{ top: nowTop, background: ACCENT, opacity: 0.09 }}
               />
 
+              {/* Active cue marker — lives in the column as its own element,
+                  separate from the session card, so check-ins/room resets feel
+                  like their own actions rather than decoration on a booking. */}
+              {cueMarker && cueMarker.room === room && (() => {
+                const Icon = WHISPER_ICON[cueMarker.kind];
+                return (
+                  <div
+                    id="active-cue-marker"
+                    className="pointer-events-none absolute inset-x-0 z-30"
+                    style={{ top: cueMarker.topMin * PX_PER_MIN }}
+                  >
+                    <div className="flex items-center gap-2 px-2.5 py-1.5">
+                      <Icon size={16} strokeWidth={2} style={{ color: cueMarker.gc, flexShrink: 0 }} />
+                      <span className="text-[13px] font-semibold tracking-tight text-black">
+                        {cueMarker.verb}
+                        <span className="mx-1.5 text-black/30">·</span>
+                        {cueMarker.label}
+                      </span>
+                    </div>
+                    <div
+                      className="absolute inset-x-0 top-[26px] border-t border-dashed"
+                      style={{ borderColor: cueMarker.gc, opacity: 0.35 }}
+                    />
+                  </div>
+                );
+              })()}
+
+
 
 
               {services.map((s) => {
@@ -1321,13 +1443,6 @@ function Timeline({
                 const isRequest = s.status === "requested";
                 const gc = roomColor(s.room);
                 const duration = Math.round(s.end - s.start);
-                // Previous service in this room, so pre-session room tasks can
-                // breathe in the actual gap instead of hugging the session card.
-                const prevInRoom = services
-                  .slice()
-                  .sort((a, b) => a.start - b.start)
-                  .find((s2, i, arr) => arr[i + 1]?.id === s.id);
-                const prevEnd = prevInRoom?.end ?? null;
                 const practInitials = s.practitioner
                   .replace(/^(Dr\.?|Mr\.?|Ms\.?)\s+/i, "")
                   .split(/\s+/)
@@ -1358,35 +1473,14 @@ function Timeline({
                     : "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)";
                 const hoverShadow = `2px 4px 0 -1px rgba(15,23,42,0.05), 8px 14px 28px -12px ${tint(gc, 0.26)}, 0 0 0 1px ${tint(gc, 0.18)}`;
 
-                // Only render a whisper for the CURRENTLY shown notification
-                // (not always on). The pre-session kinds sit in the gap
-                // just above the card, with a short label so you can see
-                // whether it's about the guest (checkin / escort / elixir)
-                // or the room (turnover / setup).
+                // Only render a badge for the CURRENTLY shown notification when
+                // it is not a pre-session action (those now live as their own
+                // marker on the timeline, separate from the session card).
                 const activeWhisper = (whispersByService[s.id] ?? []).find(
                   (w) => w.id === activeCueId,
                 );
-                const preSessionKinds: WhisperKind[] = ["notify", "checkin", "escort", "turnover", "setup", "elixir", "pickup"];
-                const gapWhisper = activeWhisper && preSessionKinds.includes(activeWhisper.kind) ? activeWhisper : null;
-                const badgeWhisper = activeWhisper && !gapWhisper ? activeWhisper : null;
-                const gapWhisperLabel = gapWhisper
-                  ? (gapWhisper.kind === "turnover" || gapWhisper.kind === "setup"
-                      ? s.room
-                      : gapWhisper.kind === "notify"
-                        ? s.practitioner.replace(/^(Dr\.?|Mr\.?|Ms\.?)\s+/i, "").split(/\s+/)[0]
-                        : firstName(s.guest))
-                  : null;
-                const gapWhisperVerb = gapWhisper
-                  ? ({
-                      notify: "Notify",
-                      checkin: "Check in",
-                      escort: "Walk in",
-                      turnover: "Reset",
-                      setup: "Set up",
-                      elixir: "Tea for",
-                      pickup: "Pick up",
-                    } as Record<WhisperKind, string>)[gapWhisper.kind]
-                  : null;
+                const badgeWhisper = activeWhisper && !preSessionKinds.includes(activeWhisper.kind) ? activeWhisper : null;
+
 
                 return (
                   <div
@@ -1419,44 +1513,6 @@ function Timeline({
                       }}
                     />
 
-                    {/* Gap whisper — full-width card that lives in the pre-session
-                        space. Room tasks (setup/turnover) float in the actual gap
-                        so they don't hug the session card. */}
-                    {gapWhisper && (() => {
-                      const WIcon = WHISPER_ICON[gapWhisper.kind];
-                      const isRoomTask = gapWhisper.kind === "turnover" || gapWhisper.kind === "setup";
-                      // For room tasks, sit in the gap above the previous session
-                      // end; for guest tasks, hover just above this card.
-                      const gapMinutes = prevEnd !== null ? s.start - prevEnd : 0;
-                      const gapBottom = isRoomTask && gapMinutes > 0
-                        ? Math.min(80, Math.max(28, gapMinutes * PX_PER_MIN * 0.45))
-                        : 10;
-                      return (
-                        <div
-                          aria-hidden
-                          className="pointer-events-none absolute inset-x-0 z-30 flex items-center gap-3 bg-white px-3 py-2.5"
-                          style={{
-                            bottom: "100%",
-                            marginBottom: gapBottom,
-                            color: "#0a0a0a",
-                            boxShadow: "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)",
-                          }}
-                        >
-                          <WIcon size={18} strokeWidth={2} style={{ color: gc, flexShrink: 0 }} />
-                          <span className="flex-1 truncate text-[13px] font-semibold tracking-tight">
-                            <span style={{ color: gc }}>{gapWhisperVerb}</span>
-                            <span className="mx-1.5 text-black/25">·</span>
-                            {gapWhisperLabel}
-                          </span>
-                          {gapWhisper.urgent && (
-                            <span
-                              aria-hidden
-                              className="ml-1 h-2 w-2 rounded-full bg-amber-500"
-                            />
-                          )}
-                        </div>
-                      );
-                    })()}
 
 
 
