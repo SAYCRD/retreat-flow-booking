@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/")({
   component: TodayPage,
@@ -16,16 +16,14 @@ export const Route = createFileRoute("/")({
 });
 
 // ------------------------------------------------------------------
-// Types
+// Data
 // ------------------------------------------------------------------
-
-type AttentionLevel = "critical" | "warning";
 
 type AttentionItem = {
   id: string;
-  level: AttentionLevel;
-  message: string;
-  context: string;
+  level: "critical" | "warning";
+  headline: string;
+  detail: string;
   action: string;
 };
 
@@ -36,7 +34,7 @@ type NextItem = {
   guest: string;
   service: string;
   location: string;
-  state: "arriving" | "in-room" | "turnover" | "checkout";
+  state: "arriving" | "turnover" | "checkout" | "in-room";
   action: string;
 };
 
@@ -45,35 +43,31 @@ type DayBlock = {
   start: string;
   end: string;
   label: string;
-  density: "light" | "moderate" | "full";
+  load: number; // 0..1
   note?: string;
 };
-
-// ------------------------------------------------------------------
-// Seeded data
-// ------------------------------------------------------------------
 
 const ATTENTION: AttentionItem[] = [
   {
     id: "a1",
     level: "critical",
-    message: "Double booking risk",
-    context: "Marcus Thorne is requested in Room 04 and Suite A at 15:00.",
-    action: "Resolve conflict",
+    headline: "Marcus Thorne is double-booked",
+    detail: "Room 04 and Suite A both hold him at 15:00.",
+    action: "Resolve",
   },
   {
     id: "a2",
     level: "warning",
-    message: "Late arrival",
-    context: "Elena Vance is 12 minutes past her Deep Tissue start time.",
-    action: "Call guest",
+    headline: "Elena Vance is 12 minutes late",
+    detail: "Deep Tissue with Ana, Room 02.",
+    action: "Call",
   },
   {
     id: "a3",
     level: "warning",
-    message: "Room turnover needed",
-    context: "Room 02 will be free in 4 minutes. Next guest arrives at 15:15.",
-    action: "Notify housekeeping",
+    headline: "Room 02 needs a turnover",
+    detail: "Free in 4 minutes. Next guest at 15:15.",
+    action: "Housekeeping",
   },
 ];
 
@@ -106,7 +100,7 @@ const NEXT_15: NextItem[] = [
     service: "Hydrafacial",
     location: "Room 05",
     state: "arriving",
-    action: "Prepare room",
+    action: "Prepare",
   },
   {
     id: "n4",
@@ -121,198 +115,29 @@ const NEXT_15: NextItem[] = [
 ];
 
 const DAY_SHAPE: DayBlock[] = [
-  { id: "d1", start: "15:00", end: "16:00", label: "Afternoon rush", density: "full", note: "4 arrivals, 2 checkouts" },
-  { id: "d2", start: "16:00", end: "17:00", label: "Turnover window", density: "moderate", note: "3 rooms reset" },
-  { id: "d3", start: "17:00", end: "18:30", label: "Evening bookings", density: "light" },
-  { id: "d4", start: "18:30", end: "20:00", label: "Closing prep", density: "light", note: "Last guest at 19:45" },
+  { id: "d1", start: "15:00", end: "16:00", label: "Afternoon rush", load: 1, note: "4 arrivals · 2 checkouts" },
+  { id: "d2", start: "16:00", end: "17:00", label: "Turnover window", load: 0.62, note: "3 rooms reset" },
+  { id: "d3", start: "17:00", end: "18:30", label: "Evening bookings", load: 0.4 },
+  { id: "d4", start: "18:30", end: "20:00", label: "Closing prep", load: 0.22, note: "Last guest 19:45" },
 ];
+
+const NAV = ["Today", "Calendar", "Requests", "Guests", "Rooms", "Practitioners"];
 
 // ------------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------------
 
-function stateColor(state: NextItem["state"]) {
-  switch (state) {
-    case "arriving":
-      return "bg-chart-3 text-white";
-    case "turnover":
-      return "bg-chart-5 text-white";
-    case "checkout":
-      return "bg-chart-1 text-white";
-    case "in-room":
-      return "bg-chart-2 text-white";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
+function stateLabel(state: NextItem["state"]) {
+  return state.replace("-", " ");
 }
 
-function densityBar(density: DayBlock["density"]) {
-  switch (density) {
-    case "full":
-      return "w-full";
-    case "moderate":
-      return "w-2/3";
-    case "light":
-      return "w-1/3";
-  }
-}
-
-// ------------------------------------------------------------------
-// Components
-// ------------------------------------------------------------------
-
-function AttentionSection() {
-  if (ATTENTION.length === 0) return null;
-
-  return (
-    <section className="space-y-3">
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-sm font-medium text-muted-foreground">Attention</h2>
-        <span className="text-xs text-muted-foreground">{ATTENTION.length} items</span>
-      </div>
-      <div className="grid gap-3">
-        {ATTENTION.map((item) => (
-          <div
-            key={item.id}
-            className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="flex items-start gap-4">
-              <div
-                className={`mt-1 h-2 w-2 shrink-0 rounded-full ${
-                  item.level === "critical" ? "bg-destructive" : "bg-chart-5"
-                }`}
-              />
-              <div>
-                <h3 className="font-medium text-card-foreground">{item.message}</h3>
-                <p className="mt-1 max-w-xl text-sm text-muted-foreground">{item.context}</p>
-              </div>
-            </div>
-            <button className="shrink-0 self-start rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:self-center">
-              {item.action}
-            </button>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function Next15Section() {
-  return (
-    <section className="space-y-3">
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-sm font-medium text-muted-foreground">Next 15 minutes</h2>
-        <span className="text-xs text-muted-foreground">{NEXT_15.length} actions</span>
-      </div>
-      <div className="space-y-2">
-        {NEXT_15.map((item) => (
-          <div
-            key={item.id}
-            className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-accent/30"
-          >
-            <div className="flex flex-col items-center justify-center rounded-xl bg-muted px-3 py-2 text-center">
-              <span className="text-xs font-medium tabular-nums">{item.time}</span>
-              <span className="text-[10px] text-muted-foreground">{item.minutesAway}m</span>
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="truncate font-medium text-card-foreground">{item.guest}</h3>
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${stateColor(
-                    item.state
-                  )}`}
-                >
-                  {item.state}
-                </span>
-              </div>
-              <p className="truncate text-sm text-muted-foreground">
-                {item.service} · {item.location}
-              </p>
-            </div>
-            <button className="shrink-0 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-secondary">
-              {item.action}
-            </button>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function DayShapeSection() {
-  return (
-    <section className="space-y-3">
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-sm font-medium text-muted-foreground">Day shape</h2>
-        <span className="text-xs text-muted-foreground">Rest of the day</span>
-      </div>
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="space-y-5">
-          {DAY_SHAPE.map((block) => (
-            <div key={block.id} className="group space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-baseline gap-3">
-                  <span className="text-sm font-medium text-card-foreground">{block.label}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {block.start} – {block.end}
-                  </span>
-                </div>
-                {block.note && (
-                  <span className="hidden text-xs text-muted-foreground sm:inline">{block.note}</span>
-                )}
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className={`h-full rounded-full bg-primary transition-all ${densityBar(
-                    block.density
-                  )}`}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function TopBar() {
-  const now = useMemo(() => new Date(), []);
-  const time = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
-  const date = now.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
-
-  return (
-    <header className="flex items-center justify-between py-6">
-      <div className="flex items-baseline gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Seondya</h1>
-        <span className="hidden text-sm text-muted-foreground sm:inline">Front desk</span>
-      </div>
-      <div className="text-right">
-        <div className="text-2xl font-semibold tabular-nums tracking-tight">{time}</div>
-        <div className="text-xs text-muted-foreground">{date}</div>
-      </div>
-    </header>
-  );
-}
-
-function BottomNav() {
-  const links = ["Today", "Calendar", "Requests", "Guests", "Rooms", "Practitioners"];
-  return (
-    <nav className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-border bg-background/80 px-2 py-1.5 shadow-lg backdrop-blur-md">
-      <div className="flex items-center gap-1">
-        {links.map((link, i) => (
-          <button
-            key={link}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-              i === 0 ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {link}
-          </button>
-        ))}
-      </div>
-    </nav>
-  );
+function useNow() {
+  const [now, setNow] = useState<Date>(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
 }
 
 // ------------------------------------------------------------------
@@ -320,17 +145,337 @@ function BottomNav() {
 // ------------------------------------------------------------------
 
 function TodayPage() {
+  const now = useNow();
+  const time = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const date = now
+    .toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })
+    .toLowerCase();
+
   return (
-    <div className="min-h-screen bg-background px-6 pb-28 pt-2">
-      <div className="mx-auto max-w-3xl">
-        <TopBar />
-        <main className="space-y-10">
-          <AttentionSection />
-          <Next15Section />
-          <DayShapeSection />
-        </main>
+    <div
+      className="min-h-screen bg-[#faf9f6] text-[#111111] antialiased"
+      style={{ fontFamily: "Inter, system-ui, sans-serif" }}
+    >
+      {/* Nav strip */}
+      <nav className="border-b border-[#111]/10">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-8 py-5 text-[13px]">
+          <div className="flex items-baseline gap-8">
+            <span
+              className="text-[18px] leading-none tracking-tight"
+              style={{ fontFamily: "'Instrument Serif', serif" }}
+            >
+              Seondya
+            </span>
+            <div className="hidden items-baseline gap-6 md:flex">
+              {NAV.map((item, i) => (
+                <button
+                  key={item}
+                  className={`text-[12px] tracking-wide transition-colors ${
+                    i === 0
+                      ? "text-[#111]"
+                      : "text-[#111]/40 hover:text-[#111]/70"
+                  }`}
+                >
+                  {item.toLowerCase()}
+                  {i === 0 && (
+                    <span className="ml-2 inline-block h-[6px] w-[6px] rounded-full bg-[#c8482e] align-middle" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div
+            className="text-[12px] tracking-wide text-[#111]/50"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          >
+            front desk · alba
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero: time as the character */}
+      <section className="border-b border-[#111]/10">
+        <div className="mx-auto grid max-w-[1400px] grid-cols-12 gap-8 px-8 pt-16 pb-14">
+          <div className="col-span-12 md:col-span-8">
+            <div
+              className="text-[11px] uppercase tracking-[0.18em] text-[#111]/40"
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              now
+            </div>
+            <div
+              className="mt-6 flex items-baseline gap-6 leading-none"
+              style={{ fontFamily: "'Instrument Serif', serif" }}
+            >
+              <span
+                className="text-[168px] tabular-nums tracking-[-0.04em]"
+                style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 400 }}
+              >
+                {time}
+              </span>
+              <span className="hidden text-[40px] italic text-[#111]/50 md:inline">
+                {date}
+              </span>
+            </div>
+            <p
+              className="mt-8 max-w-xl text-[17px] leading-relaxed text-[#111]/70"
+              style={{ fontFamily: "'Instrument Serif', serif" }}
+            >
+              Three things need you.{" "}
+              <span className="text-[#c8482e]">One is urgent.</span> Four guests
+              move through the next fifteen minutes.
+            </p>
+          </div>
+
+          <aside className="col-span-12 border-l border-[#111]/10 pl-8 md:col-span-4">
+            <div
+              className="text-[11px] uppercase tracking-[0.18em] text-[#111]/40"
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              today at a glance
+            </div>
+            <dl
+              className="mt-5 space-y-4 text-[13px]"
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              {[
+                ["guests", "14"],
+                ["services", "22"],
+                ["rooms in use", "3 / 6"],
+                ["practitioners on", "5"],
+                ["revenue expected", "€4,280"],
+              ].map(([k, v]) => (
+                <div key={k} className="flex items-baseline justify-between border-b border-dotted border-[#111]/15 pb-2">
+                  <dt className="text-[#111]/50">{k}</dt>
+                  <dd className="tabular-nums">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </aside>
+        </div>
+      </section>
+
+      {/* Body: three columns */}
+      <section className="mx-auto grid max-w-[1400px] grid-cols-12 gap-0 px-8 py-16">
+        {/* Attention */}
+        <div className="col-span-12 md:col-span-5 md:pr-10">
+          <SectionHeader index="I" label="Attention" count={ATTENTION.length} />
+          <ol className="mt-8 space-y-8">
+            {ATTENTION.map((a, i) => (
+              <li key={a.id} className="border-t border-[#111]/15 pt-6">
+                <div className="flex items-baseline gap-4">
+                  <span
+                    className="text-[11px] tabular-nums text-[#111]/40"
+                    style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span
+                    className={`text-[10px] uppercase tracking-[0.18em] ${
+                      a.level === "critical" ? "text-[#c8482e]" : "text-[#a67c00]"
+                    }`}
+                    style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                  >
+                    {a.level}
+                  </span>
+                </div>
+                <h3
+                  className="mt-3 text-[26px] leading-[1.15] tracking-tight"
+                  style={{ fontFamily: "'Instrument Serif', serif" }}
+                >
+                  {a.headline}
+                </h3>
+                <p className="mt-2 text-[14px] leading-relaxed text-[#111]/60">
+                  {a.detail}
+                </p>
+                <button
+                  className="mt-4 text-[13px] tracking-wide text-[#111] underline decoration-[#111]/30 underline-offset-[6px] transition-colors hover:decoration-[#c8482e] hover:text-[#c8482e]"
+                >
+                  {a.action.toLowerCase()} →
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        {/* Next 15 */}
+        <div className="col-span-12 mt-16 border-t border-[#111]/10 pt-8 md:col-span-7 md:mt-0 md:border-l md:border-t-0 md:pl-10 md:pt-0">
+          <SectionHeader index="II" label="Next 15 minutes" count={NEXT_15.length} />
+          <table
+            className="mt-8 w-full border-collapse text-left"
+            style={{ fontFamily: "Inter, sans-serif" }}
+          >
+            <thead>
+              <tr
+                className="text-[10px] uppercase tracking-[0.18em] text-[#111]/40"
+                style={{ fontFamily: "'JetBrains Mono', monospace" }}
+              >
+                <th className="border-b border-[#111]/20 pb-3 pr-4 font-normal">time</th>
+                <th className="border-b border-[#111]/20 pb-3 pr-4 font-normal">guest</th>
+                <th className="hidden border-b border-[#111]/20 pb-3 pr-4 font-normal md:table-cell">service · room</th>
+                <th className="border-b border-[#111]/20 pb-3 pr-4 font-normal">state</th>
+                <th className="border-b border-[#111]/20 pb-3 text-right font-normal">action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {NEXT_15.map((n) => (
+                <tr
+                  key={n.id}
+                  className="group border-b border-[#111]/10 align-baseline transition-colors hover:bg-[#111]/[0.02]"
+                >
+                  <td className="py-5 pr-4">
+                    <div
+                      className="text-[15px] tabular-nums"
+                      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                    >
+                      {n.time}
+                    </div>
+                    <div
+                      className="text-[10px] uppercase tracking-[0.14em] text-[#111]/40"
+                      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                    >
+                      in {n.minutesAway}m
+                    </div>
+                  </td>
+                  <td className="py-5 pr-4">
+                    <div
+                      className="text-[22px] leading-tight tracking-tight"
+                      style={{ fontFamily: "'Instrument Serif', serif" }}
+                    >
+                      {n.guest}
+                    </div>
+                    <div className="mt-0.5 text-[12px] text-[#111]/50 md:hidden">
+                      {n.service} · {n.location}
+                    </div>
+                  </td>
+                  <td className="hidden py-5 pr-4 text-[13px] text-[#111]/70 md:table-cell">
+                    <div>{n.service}</div>
+                    <div className="text-[#111]/45">{n.location}</div>
+                  </td>
+                  <td className="py-5 pr-4">
+                    <span
+                      className={`text-[10px] uppercase tracking-[0.18em] ${
+                        n.state === "arriving"
+                          ? "text-[#2e6b4f]"
+                          : n.state === "turnover"
+                          ? "text-[#a67c00]"
+                          : n.state === "checkout"
+                          ? "text-[#c8482e]"
+                          : "text-[#111]/60"
+                      }`}
+                      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                    >
+                      {stateLabel(n.state)}
+                    </span>
+                  </td>
+                  <td className="py-5 text-right">
+                    <button className="text-[13px] tracking-wide text-[#111]/60 underline decoration-[#111]/20 underline-offset-[6px] transition-colors hover:text-[#111] hover:decoration-[#111]/60">
+                      {n.action.toLowerCase()}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Day shape */}
+      <section className="border-t border-[#111]/10">
+        <div className="mx-auto max-w-[1400px] px-8 py-16">
+          <SectionHeader index="III" label="Day shape" count={DAY_SHAPE.length} />
+
+          <div className="mt-10 grid grid-cols-12 gap-6">
+            {DAY_SHAPE.map((b, i) => (
+              <div
+                key={b.id}
+                className="col-span-12 border-t border-[#111]/15 pt-5 md:col-span-3"
+              >
+                <div
+                  className="flex items-baseline justify-between text-[10px] uppercase tracking-[0.18em] text-[#111]/40"
+                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                >
+                  <span>
+                    {String(i + 1).padStart(2, "0")} · {b.start}—{b.end}
+                  </span>
+                  <span className="tabular-nums">{Math.round(b.load * 100)}%</span>
+                </div>
+                <h3
+                  className="mt-4 text-[28px] leading-none tracking-tight"
+                  style={{ fontFamily: "'Instrument Serif', serif" }}
+                >
+                  {b.label}
+                </h3>
+                {b.note && (
+                  <p className="mt-3 text-[13px] leading-relaxed text-[#111]/55">
+                    {b.note}
+                  </p>
+                )}
+                {/* Load bar as vertical ticks */}
+                <div className="mt-6 flex h-8 items-end gap-[3px]">
+                  {Array.from({ length: 24 }).map((_, tickIndex) => {
+                    const active = tickIndex / 24 < b.load;
+                    return (
+                      <span
+                        key={tickIndex}
+                        className={`w-[3px] transition-all ${
+                          active ? "bg-[#111]" : "bg-[#111]/10"
+                        }`}
+                        style={{
+                          height: `${20 + ((tickIndex * 37) % 60) * 0.5}%`,
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer
+        className="border-t border-[#111]/10 py-8 text-center text-[11px] uppercase tracking-[0.2em] text-[#111]/35"
+        style={{ fontFamily: "'JetBrains Mono', monospace" }}
+      >
+        seondya · saturday, july 25 · shift 09:00 — 20:00
+      </footer>
+    </div>
+  );
+}
+
+function SectionHeader({
+  index,
+  label,
+  count,
+}: {
+  index: string;
+  label: string;
+  count: number;
+}) {
+  return (
+    <div className="flex items-baseline justify-between">
+      <div className="flex items-baseline gap-4">
+        <span
+          className="text-[11px] uppercase tracking-[0.22em] text-[#111]/40"
+          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+        >
+          {index}
+        </span>
+        <h2
+          className="text-[36px] leading-none tracking-tight"
+          style={{ fontFamily: "'Instrument Serif', serif" }}
+        >
+          {label}
+        </h2>
       </div>
-      <BottomNav />
+      <span
+        className="text-[11px] tabular-nums uppercase tracking-[0.18em] text-[#111]/40"
+        style={{ fontFamily: "'JetBrains Mono', monospace" }}
+      >
+        {String(count).padStart(2, "0")} items
+      </span>
     </div>
   );
 }
