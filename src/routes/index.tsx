@@ -312,51 +312,91 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* Focus on — cycles through attention items */}
+      {/* Coming up — single-focus choreography cue */}
       <section className="border-b border-black/[0.08]" style={{ background: "#fafafa" }}>
-        <div className="mx-auto max-w-[1440px] px-6 py-5">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] uppercase tracking-[0.18em] text-black/45" style={{ fontFamily: MONO }}>
-                Focus on
-              </span>
-              <span
-                className="rounded-[3px] bg-black/[0.06] px-1.5 py-0.5 text-[10px] tabular-nums text-black/55"
-                style={{ fontFamily: MONO }}
-              >
-                {String(noticeIdx + 1).padStart(2, "0")} / {String(ATTENTION.length).padStart(2, "0")}
-              </span>
-            </div>
+        <div className="mx-auto max-w-[1440px] px-6 py-6">
+          {cue ? (
+            <div
+              key={cue.id}
+              className="flex items-center justify-between gap-6 rounded-2xl border border-black/[0.08] bg-white px-7 py-5 shadow-[0_1px_0_rgba(0,0,0,0.02)] transition-opacity duration-200"
+              style={{ opacity: fadingId === cue.id ? 0 : 1 }}
+            >
+              <div className="flex min-w-0 items-center gap-4">
+                {cue.room && (
+                  <span
+                    aria-hidden
+                    className="h-10 w-[3px] shrink-0 rounded-full"
+                    style={{ background: roomColor(cue.room) }}
+                  />
+                )}
+                <div className="min-w-0">
+                  <div className="flex items-baseline gap-3">
+                    <span
+                      className="text-[10px] uppercase tracking-[0.18em] text-black/40"
+                      style={{ fontFamily: MONO }}
+                    >
+                      Coming up
+                    </span>
+                    {cue.room && (
+                      <span
+                        className="text-[11px] tracking-tight"
+                        style={{ color: roomColor(cue.room), fontFamily: MONO }}
+                      >
+                        {cue.room}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 truncate text-[20px] font-semibold tracking-tight text-black">
+                    {cue.headline}
+                  </div>
+                  <div className="mt-0.5 truncate text-[13.5px] text-black/55">
+                    {cue.reason}
+                  </div>
+                </div>
+              </div>
 
-            <div className="min-w-0 flex-1">
-              <div className="text-[20px] font-semibold tracking-tight">{notice.title}</div>
-              <div className="mt-0.5 text-[14px] text-black/60">{notice.detail}</div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {notice.action && (
-                <button className="rounded-full bg-black px-5 py-2 text-[14px] font-medium text-white hover:bg-black/85">
-                  {notice.action}
+              <div className="flex shrink-0 items-center gap-5">
+                <button
+                  className="text-[13.5px] font-medium text-black/40 transition-colors hover:text-black/70"
+                  onClick={() => {
+                    /* snooze placeholder */
+                  }}
+                >
+                  Snooze
                 </button>
-              )}
-              <button
-                onClick={prevNotice}
-                aria-label="Previous"
-                className="grid h-9 w-9 place-items-center rounded-full border border-black/10 bg-white text-black/60 hover:border-black/25 hover:text-black"
-              >
-                ‹
-              </button>
-              <button
-                onClick={nextNotice}
-                aria-label="Next"
-                className="grid h-9 w-9 place-items-center rounded-full border border-black/10 bg-white text-black/60 hover:border-black/25 hover:text-black"
-              >
-                ›
-              </button>
+                <button
+                  onClick={() => completeCue(cue.id)}
+                  className="rounded-full bg-black px-5 py-2.5 text-[13.5px] font-medium text-white transition-all hover:bg-black/85 active:scale-[0.98]"
+                >
+                  {cue.primary}
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between gap-6 rounded-2xl border border-black/[0.06] bg-white px-7 py-5">
+              <div className="flex items-center gap-4">
+                <span aria-hidden className="h-10 w-[3px] shrink-0 rounded-full bg-black/10" />
+                <div>
+                  <div
+                    className="text-[10px] uppercase tracking-[0.18em] text-black/40"
+                    style={{ fontFamily: MONO }}
+                  >
+                    Coming up
+                  </div>
+                  <div className="mt-1 text-[20px] font-medium tracking-tight text-black/70">
+                    You're clear.
+                  </div>
+                  <div className="mt-0.5 text-[13.5px] text-black/45">
+                    Next event 2:47 — Amara arriving.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </section>
+
+
 
       {/* Timeline (rooms across, time down) */}
       <section className="border-b border-black/[0.08]">
