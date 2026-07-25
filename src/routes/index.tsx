@@ -1657,7 +1657,20 @@ function FocusOverlay({ cue, onClose }: { cue: Prompt; onClose: () => void }) {
           { icon: UserCheck, label: "Cue guest arrival", hint: "Bring guest 2 min before start." },
         );
         break;
-      case "handoff":
+      case "notify":
+        base.push(
+          { icon: Bell, label: service ? `Give ${service.practitioner} a heads-up` : "Notify practitioner", hint: service ? `${service.service} at ${fmt(service.start)} · ${service.room}` : "Quiet heads-up before session" },
+          { icon: Sparkles, label: "Confirm room is ready", hint: service ? `${service.room} — props, linens, ventilation` : "Room ready" },
+          { icon: ClipboardCheck, label: "Check guest is here", hint: service ? `${service.guest} — arrival window open` : "Confirm arrival" },
+        );
+        break;
+      case "pickup":
+        base.push(
+          { icon: DoorOpen, label: "Collect guest from ending room", hint: service ? `Meet at door as ${service.service} closes` : "Meet at door" },
+          { icon: Footprints, label: service ? `Walk to ${service.room}` : "Walk to next room", hint: "Unhurried pace, offer water on the way." },
+          { icon: Sparkles, label: "Hand off to next practitioner", hint: service ? `${service.practitioner} — ready to begin` : "Signal ready" },
+        );
+        break;
         base.push(
           { icon: Waves, label: "Notify practitioner", hint: service ? `${service.practitioner} — short turnover` : "Short turnover heads-up" },
           { icon: RefreshCcw, label: "Fast room reset", hint: "Skip full ventilation, refresh linens only." },
