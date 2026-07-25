@@ -1064,26 +1064,35 @@ function Timeline({
                   else plainNote = s.note;
                 }
 
+                const baseShadow = isLive
+                  ? `2px 3px 0 -1px rgba(15,23,42,0.05), 4px 8px 18px -10px ${tint(gc, 0.45)}, 0 0 0 1px ${tint(gc, 0.15)}`
+                  : isRequest
+                    ? "2px 3px 0 -1px rgba(15,23,42,0.05), 4px 8px 16px -10px rgba(217,119,6,0.35)"
+                    : "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)";
+                const hoverShadow = `3px 5px 0 -1px rgba(15,23,42,0.06), 10px 18px 36px -14px ${tint(gc, 0.3)}, 0 0 0 1px ${tint(gc, 0.22)}`;
+
                 return (
                   <div
                     key={s.id}
-                    className="group absolute inset-x-0 flex flex-col rounded-none bg-white transition-all hover:z-20"
+                    className="group absolute inset-x-0 flex flex-col rounded-none bg-white transition-[transform,box-shadow] duration-200 ease-out will-change-transform hover:z-20 hover:-translate-y-[2px] cursor-pointer"
                     style={{
                       top: top + 1,
                       minHeight: Math.max(height - 2, 96),
-                      boxShadow: isLive
-                        ? `2px 3px 0 -1px rgba(15,23,42,0.05), 4px 8px 18px -10px ${tint(gc, 0.45)}, 0 0 0 1px ${tint(gc, 0.15)}`
-                        : isRequest
-                          ? "2px 3px 0 -1px rgba(15,23,42,0.05), 4px 8px 16px -10px rgba(217,119,6,0.35)"
-                          : "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)",
+                      boxShadow: baseShadow,
                       opacity: isPast ? 0.9 : 1,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = hoverShadow;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = baseShadow;
                     }}
                     title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
                   >
-                    {/* Top color rail — thinner, high-chroma */}
+                    {/* Top color rail — thinner, high-chroma, thickens on hover */}
                     <span
                       aria-hidden
-                      className="absolute inset-x-0 top-0 h-[2px]"
+                      className="absolute inset-x-0 top-0 h-[2px] transition-[height,opacity] duration-200 ease-out group-hover:h-[4px]"
                       style={{
                         background: isRequest
                           ? "repeating-linear-gradient(to right, #d97706 0 6px, transparent 6px 10px)"
@@ -1091,8 +1100,17 @@ function Timeline({
                       }}
                     />
 
+                    {/* Soft chroma wash that fades in on hover */}
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100"
+                      style={{
+                        background: `linear-gradient(180deg, ${tint(gc, 0.92)} 0%, rgba(255,255,255,0) 55%)`,
+                      }}
+                    />
 
-                    <div className="flex flex-1 flex-col px-3 pt-3 pb-2.5">
+
+                    <div className="relative z-10 flex flex-1 flex-col px-3 pt-3 pb-2.5">
                       {/* Time — from on one line, to on the next, so it reads calmly */}
                       <div className="flex items-start justify-between gap-2">
                         <div
