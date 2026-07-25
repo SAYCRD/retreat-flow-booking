@@ -52,6 +52,7 @@ type Cue = {
   reason: string;        // quiet reason line
   room?: string;         // for accent color
   primary: string;       // primary action label
+  urgent?: boolean;      // shows priority pulse + Urgent tag
 };
 
 
@@ -132,6 +133,7 @@ const CUES: Cue[] = [
     reason: "Sound Healing ends 3:30 · Infrared Sauna starts 3:20",
     room: "Infrared Room",
     primary: "Notified",
+    urgent: true,
   },
 ];
 
@@ -364,19 +366,43 @@ function TodayPage() {
               const Icon = CUE_ICON[cue.kind];
               const tint = cue.room ? roomColor(cue.room) : "#0a0a0a";
               return (
-                <span
-                  aria-hidden
-                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full"
-                  style={{ background: `${tint}14`, color: tint }}
-                >
-                  <Icon size={18} strokeWidth={2} />
+                <span className="relative shrink-0">
+                  <span
+                    aria-hidden
+                    className="grid h-10 w-10 place-items-center rounded-full"
+                    style={{ background: `${tint}14`, color: tint }}
+                  >
+                    <Icon size={18} strokeWidth={2} />
+                  </span>
+                  {cue.urgent && (
+                    <span
+                      aria-hidden
+                      className="absolute -right-0.5 -top-0.5 flex h-3 w-3"
+                    >
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-70" />
+                      <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-500 ring-2 ring-white" />
+                    </span>
+                  )}
                 </span>
               );
             })()}
 
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[20px] font-semibold tracking-tight text-black">
-                {cue.headline}
+              <div className="flex items-center gap-2.5">
+                <span
+                  className="shrink-0 text-[12px] font-semibold tabular-nums text-black/35"
+                  style={{ fontFamily: MONO }}
+                >
+                  #{String(cueIdx + 1).padStart(2, "0")}
+                </span>
+                <h3 className="truncate text-[20px] font-semibold tracking-tight text-black">
+                  {cue.headline}
+                </h3>
+                {cue.urgent && (
+                  <span className="shrink-0 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-tight text-amber-700">
+                    Urgent
+                  </span>
+                )}
               </div>
               <div className="mt-0.5 flex items-center gap-2 truncate text-[13.5px] text-black/55">
                 {cue.room && (
@@ -400,6 +426,7 @@ function TodayPage() {
           </div>
         </div>
       </section>
+
 
 
 
