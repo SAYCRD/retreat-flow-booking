@@ -1060,6 +1060,8 @@ function Timeline({
   highlightServiceId,
   highlightKind,
   highlightUrgent,
+  whispers = [],
+  activeCueId,
   activeRoom,
   onRoomClick,
   onOpenService,
@@ -1068,6 +1070,8 @@ function Timeline({
   highlightServiceId?: string;
   highlightKind?: WhisperKind;
   highlightUrgent?: boolean;
+  whispers?: Prompt[];
+  activeCueId?: string;
   activeRoom?: string | null;
   onRoomClick?: (room: string) => void;
   onOpenService?: (id: string) => void;
@@ -1078,6 +1082,17 @@ function Timeline({
   const trackHeight = DAY_SPAN * PX_PER_MIN;
   const gridRef = useRef<HTMLDivElement>(null);
   const scrolledRef = useRef(false);
+
+  // Group whispers by the service they touch, so the calendar can render
+  // little living notes right above each card ("footprints", "broom", "tea").
+  const whispersByService = useMemo(() => {
+    const map: Record<string, Prompt[]> = {};
+    for (const w of whispers) {
+      if (!w.serviceId) continue;
+      (map[w.serviceId] ??= []).push(w);
+    }
+    return map;
+  }, [whispers]);
 
   const hours = useMemo(() => {
     const out: number[] = [];
