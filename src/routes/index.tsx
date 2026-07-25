@@ -394,12 +394,11 @@ function TodayPage() {
   const inSession = SERVICES.filter((s) => s.start <= nowMin && s.end > nowMin).length;
   const stillToCome = SERVICES.filter((s) => s.start > nowMin).length;
   const overlaps = conflicts.length;
-  const revenue = FINANCES.reduce((a, b) => a + b.amount, 0);
-  const unpaid = FINANCES.filter((f) => !f.paid).reduce((a, b) => a + b.amount, 0);
 
-  const cue = CUES[cueIdx];
-  const prevCue = () => setCueIdx((i) => (i - 1 + CUES.length) % CUES.length);
-  const nextCue = () => setCueIdx((i) => (i + 1) % CUES.length);
+  const prompts = useMemo(() => generatePrompts(nowMin), [nowMin]);
+  const cue = prompts[cueIdx] ?? null;
+  const prevCue = () => setCueIdx((i) => (i - 1 + prompts.length) % prompts.length);
+  const nextCue = () => setCueIdx((i) => (i + 1) % prompts.length);
 
 
 
