@@ -719,6 +719,8 @@ function TodayPage() {
               highlightServiceId={cue?.serviceId}
               highlightKind={cue?.kind}
               highlightUrgent={cue?.urgent}
+              whispers={prompts}
+              activeCueId={cue?.id}
               activeRoom={activeRoom}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
@@ -1058,6 +1060,8 @@ function Timeline({
   highlightServiceId,
   highlightKind,
   highlightUrgent,
+  whispers = [],
+  activeCueId,
   activeRoom,
   onRoomClick,
   onOpenService,
@@ -1066,6 +1070,8 @@ function Timeline({
   highlightServiceId?: string;
   highlightKind?: WhisperKind;
   highlightUrgent?: boolean;
+  whispers?: Prompt[];
+  activeCueId?: string;
   activeRoom?: string | null;
   onRoomClick?: (room: string) => void;
   onOpenService?: (id: string) => void;
@@ -1076,6 +1082,17 @@ function Timeline({
   const trackHeight = DAY_SPAN * PX_PER_MIN;
   const gridRef = useRef<HTMLDivElement>(null);
   const scrolledRef = useRef(false);
+
+  // Group whispers by the service they touch, so the calendar can render
+  // little living notes right above each card ("footprints", "broom", "tea").
+  const whispersByService = useMemo(() => {
+    const map: Record<string, Prompt[]> = {};
+    for (const w of whispers) {
+      if (!w.serviceId) continue;
+      (map[w.serviceId] ??= []).push(w);
+    }
+    return map;
+  }, [whispers]);
 
   const hours = useMemo(() => {
     const out: number[] = [];
@@ -1235,6 +1252,8 @@ function Timeline({
                     : "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)";
                 const hoverShadow = `2px 4px 0 -1px rgba(15,23,42,0.05), 8px 14px 28px -12px ${tint(gc, 0.26)}, 0 0 0 1px ${tint(gc, 0.18)}`;
 
+                const cardWhispers = whispersByService[s.id] ?? [];
+
                 return (
                   <div
                     key={s.id}
@@ -1265,6 +1284,45 @@ function Timeline({
                       }}
                     />
 
+                    {/* Living whispers — icons floating just above the card that
+                        mirror what's in the Coming Up strip (footprints, broom, tea…). */}
+                    {cardWhispers.length > 0 && (
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute -top-3 right-1.5 z-20 flex items-center gap-1"
+                      >
+                        {cardWhispers.slice(0, 3).map((w) => {
+                          const WIcon = WHISPER_ICON[w.kind];
+                          const isActive = w.id === activeCueId;
+                          return (
+                            <span
+                              key={w.id}
+                              title={w.headline}
+                              className={`grid place-items-center rounded-full bg-white ring-1 transition-transform duration-200 ${
+                                isActive ? "h-6 w-6 scale-110" : "h-5 w-5"
+                              }`}
+                              style={{
+                                color: gc,
+                                boxShadow: isActive
+                                  ? `0 2px 6px -1px ${tint(gc, 0.35)}, 0 0 0 2px ${tint(gc, 0.22)}`
+                                  : `0 1px 3px -1px rgba(15,23,42,0.18)`,
+                                // @ts-expect-error ring color via CSS var
+                                "--tw-ring-color": tint(gc, 0.35),
+                              }}
+                            >
+                              <WIcon size={isActive ? 13 : 11} strokeWidth={2.25} />
+                              {isActive && w.urgent && (
+                                <span
+                                  aria-hidden
+                                  className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-amber-500 ring-1 ring-white"
+                                />
+                              )}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+
                     {/* Soft chroma wash that fades in on hover */}
                     <span
                       aria-hidden
@@ -1273,6 +1331,7 @@ function Timeline({
                         background: `linear-gradient(180deg, ${tint(gc, 0.95)} 0%, rgba(255,255,255,0) 50%)`,
                       }}
                     />
+
 
 
                     <div className="relative z-10 flex flex-1 flex-col px-3 pt-3 pb-2.5">
