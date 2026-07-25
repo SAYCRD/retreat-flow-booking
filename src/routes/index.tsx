@@ -1518,7 +1518,7 @@ function Timeline({
                 const wash = `color-mix(in oklab, ${cueMarker.gc} 34%, white)`;
                 const topPx = cueMarker.after && afterTopPx != null
                   ? afterTopPx
-                  : cueMarker.topMin * PX_PER_MIN;
+                  : minToPx(cueMarker.topMin);
                 const shift = cueMarker.overlapsNext && afterTopPx == null ? "translateY(-28px)" : undefined;
                 const isReset = cueMarker.kind === "reset";
                 return (
