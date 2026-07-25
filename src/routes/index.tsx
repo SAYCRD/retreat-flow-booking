@@ -518,13 +518,14 @@ function TodayPage() {
 
   // When the active cue changes, scroll the linked reservation card into view
   // so the operator's eyes travel to the exact card the notification is about.
+  // We leave extra room above the card so the pre-session whisper (the actual
+  // action item) is fully visible below the sticky header + strip + room headers.
   useEffect(() => {
     if (!cue?.serviceId) return;
     const el = document.getElementById(`svc-${cue.serviceId}`);
     if (!el) return;
-    // Account for the sticky header (~48) + Coming Up strip (~49) + room
-    // headers (~64) so the card lands just below them with breathing room.
-    const stickyOffset = 48 + 49 + 64 + 24;
+    // header (48) + Coming Up strip (~68) + room headers (64) + whisper space.
+    const stickyOffset = 48 + 68 + 64 + 48;
     const rect = el.getBoundingClientRect();
     const target = window.scrollY + rect.top - stickyOffset;
     window.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
@@ -625,29 +626,39 @@ function TodayPage() {
         </div>
       </section>
 
-      {/* Coming up — compact sticky strip pinned just below the header */}
+      {/* Coming up — tall sticky broadcast bar pinned just below the header */}
       <section
-        className="sticky z-20 border-y border-black/[0.08] bg-white/95 backdrop-blur-md"
+        className="sticky z-20 border-y border-black/[0.08] bg-white/95 backdrop-blur-md shadow-[0_12px_40px_-16px_rgba(0,0,0,0.12)]"
         style={{ top: 48 }}
       >
-        <div className="mx-auto flex max-w-[1440px] items-center gap-4 px-6 py-2.5">
-          {/* compact label */}
-          <div className="flex shrink-0 items-center gap-2">
-            <span className="text-black/60">
-              <Radio size={15} strokeWidth={2} />
+        <div className="mx-auto flex max-w-[1440px] items-center gap-4 px-6 py-5">
+          {/* broadcast label */}
+          <div className="flex shrink-0 items-center gap-2.5">
+            <span className="relative grid h-8 w-8 place-items-center text-black/70">
+              <span
+                aria-hidden
+                className="absolute inset-0 animate-ping rounded-full opacity-40"
+                style={{ background: ACCENT }}
+              />
+              <span
+                aria-hidden
+                className="absolute inset-0 rounded-full opacity-20"
+                style={{ background: ACCENT, boxShadow: `0 0 16px ${ACCENT}` }}
+              />
+              <Radio size={18} strokeWidth={2} className="relative z-10" />
             </span>
-            <span className="text-[12px] font-semibold tracking-tight text-black">
+            <span className="text-[14px] font-semibold tracking-tight text-black">
               <Highlight color="#fde047">Coming up</Highlight>
             </span>
             <span
-              className="hidden text-[11px] tabular-nums text-black/40 sm:inline"
+              className="hidden text-[12px] tabular-nums text-black/45 sm:inline"
               style={{ fontFamily: MONO }}
             >
               {String(cueIdx + 1).padStart(2, "0")}/{String(prompts.length).padStart(2, "0")}
             </span>
           </div>
 
-          <span className="h-6 w-px shrink-0 bg-black/10" />
+          <span className="h-7 w-px shrink-0 bg-black/10" />
 
           {/* cue body */}
           <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -659,10 +670,10 @@ function TodayPage() {
                   <span className="relative shrink-0">
                     <span
                       aria-hidden
-                      className="grid h-7 w-7 place-items-center rounded-full"
+                      className="grid h-8 w-8 place-items-center rounded-full"
                       style={{ background: `${tint}14`, color: tint }}
                     >
-                      <Icon size={14} strokeWidth={2} />
+                      <Icon size={16} strokeWidth={2} />
                     </span>
                     {cue.urgent && (
                       <span aria-hidden className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
@@ -674,23 +685,23 @@ function TodayPage() {
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline gap-2">
-                      <h3 className="truncate text-[14.5px] font-semibold tracking-tight text-black">
+                      <h3 className="truncate text-[16px] font-semibold tracking-tight text-black">
                         {cue.headline}
                       </h3>
                       {cue.urgent && (
-                        <span className="shrink-0 rounded-sm border border-amber-200 bg-amber-50 px-1 py-px text-[9.5px] font-bold uppercase tracking-tight text-amber-700">
+                        <span className="shrink-0 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-px text-[10.5px] font-bold uppercase tracking-tight text-amber-700">
                           Urgent
                         </span>
                       )}
                       {cue.room && (
                         <span
-                          className="hidden shrink-0 text-[11.5px] md:inline"
+                          className="hidden shrink-0 text-[12.5px] md:inline"
                           style={{ color: roomColor(cue.room), fontFamily: MONO }}
                         >
                           · {cue.room}
                         </span>
                       )}
-                      <span className="hidden truncate text-[12.5px] text-black/50 lg:inline">
+                      <span className="hidden truncate text-[13.5px] text-black/50 lg:inline">
                         · {cue.reason}
                       </span>
                     </div>
@@ -698,8 +709,8 @@ function TodayPage() {
                 </>
               );
             })() : (
-              <div className="flex items-center gap-2 text-[13px] text-black/50">
-                <Sparkles size={14} strokeWidth={1.75} />
+              <div className="flex items-center gap-2 text-[14px] text-black/50">
+                <Sparkles size={16} strokeWidth={1.75} />
                 <span>All caught up. The day is flowing.</span>
               </div>
             )}
@@ -711,13 +722,13 @@ function TodayPage() {
               <>
                 <button
                   onClick={() => setFocusOpen(true)}
-                  className="text-[12.5px] font-medium text-black/60 underline decoration-black/15 underline-offset-4 transition-colors hover:text-black hover:decoration-black"
+                  className="text-[13.5px] font-medium text-black/60 underline decoration-black/15 underline-offset-4 transition-colors hover:text-black hover:decoration-black"
                 >
                   Focus
                 </button>
                 <button
                   onClick={nextCue}
-                  className="text-[12.5px] font-medium text-black/85 underline decoration-black/25 underline-offset-4 transition-colors hover:decoration-black"
+                  className="text-[13.5px] font-medium text-black/85 underline decoration-black/25 underline-offset-4 transition-colors hover:decoration-black"
                 >
                   {cue.primary}
                 </button>
@@ -728,14 +739,14 @@ function TodayPage() {
               <button
                 onClick={prevCue}
                 aria-label="Previous cue"
-                className="grid h-7 w-7 place-items-center rounded-full text-[15px] leading-none text-black/45 transition-colors hover:bg-black/[0.05] hover:text-black"
+                className="grid h-8 w-8 place-items-center rounded-full text-[17px] leading-none text-black/45 transition-colors hover:bg-black/[0.05] hover:text-black"
               >
                 ‹
               </button>
               <button
                 onClick={nextCue}
                 aria-label="Next cue"
-                className="grid h-7 w-7 place-items-center rounded-full text-[15px] leading-none text-black/45 transition-colors hover:bg-black/[0.05] hover:text-black"
+                className="grid h-8 w-8 place-items-center rounded-full text-[17px] leading-none text-black/45 transition-colors hover:bg-black/[0.05] hover:text-black"
               >
                 ›
               </button>
@@ -1194,7 +1205,7 @@ function Timeline({
       {/* Room headers — stick under the top bar + Coming Up strip while the calendar scrolls */}
       <div
         className="sticky z-10 flex border-b border-black/[0.08] bg-white/95 backdrop-blur-md"
-        style={{ height: HEADER_H, top: 97 }}
+        style={{ height: HEADER_H, top: 120 }}
       >
         <div
           className="flex shrink-0 items-center justify-end border-r border-black/[0.06] pr-4 text-[11px] uppercase tracking-[0.14em] text-black/45"
