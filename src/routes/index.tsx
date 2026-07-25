@@ -102,6 +102,10 @@ function firstName(guest: string) {
   return guest.split(" ")[0];
 }
 
+function formatCurrency(n: number) {
+  return `$${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
 function generatePrompts(nowMin: number): Prompt[] {
   const out: Prompt[] = [];
 
