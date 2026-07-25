@@ -1452,24 +1452,27 @@ function Timeline({
                   like their own actions rather than decoration on a booking. */}
               {cueMarker && cueMarker.room === room && (() => {
                 const Icon = WHISPER_ICON[cueMarker.kind];
+                const wash = `color-mix(in oklab, ${cueMarker.gc} 34%, white)`;
+                const shift = cueMarker.overlapsNext ? "translateY(-28px)" : undefined;
                 return (
                   <div
                     id="active-cue-marker"
                     className="pointer-events-none absolute inset-x-0 z-30"
-                    style={{ top: cueMarker.topMin * PX_PER_MIN }}
+                    style={{ top: cueMarker.topMin * PX_PER_MIN, transform: shift }}
                   >
-                    <div className="flex items-center gap-2 px-2.5 py-1.5">
+                    <div className="mx-2 flex w-fit items-center gap-2 px-2 py-1"
+                      style={{
+                        background: `linear-gradient(178deg, transparent 8%, ${wash} 14%, ${wash} 92%, transparent 98%)`,
+                        borderRadius: "3px 7px 4px 8px",
+                      }}
+                    >
                       <Icon size={16} strokeWidth={2} style={{ color: cueMarker.gc, flexShrink: 0 }} />
                       <span className="text-[13px] font-semibold tracking-tight text-black">
                         {cueMarker.verb}
-                        <span className="mx-1.5 text-black/30">·</span>
+                        <span className="mx-1.5 text-black/40">·</span>
                         {cueMarker.label}
                       </span>
                     </div>
-                    <div
-                      className={`absolute inset-x-0 border-t border-dashed ${cueMarker.after ? "-top-[2px]" : "top-[26px]"}`}
-                      style={{ borderColor: cueMarker.gc, opacity: 0.35 }}
-                    />
                   </div>
                 );
               })()}
