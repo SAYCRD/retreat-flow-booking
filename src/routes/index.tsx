@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush } from "lucide-react";
 
 const WHISPER_ICON = {
@@ -1019,6 +1019,8 @@ function Timeline({
   const TIME_COL = 88;
   const HEADER_H = 64;
   const trackHeight = DAY_SPAN * PX_PER_MIN;
+  const gridRef = useRef<HTMLDivElement>(null);
+  const scrolledRef = useRef(false);
 
   const hours = useMemo(() => {
     const out: number[] = [];
@@ -1027,6 +1029,19 @@ function Timeline({
   }, []);
 
   const nowTop = nowMin * PX_PER_MIN;
+
+  // On first load, scroll the calendar so the current time is visible near the
+  // top of the viewport instead of showing 9 AM when it's mid-afternoon.
+  useEffect(() => {
+    if (scrolledRef.current || !gridRef.current) return;
+    scrolledRef.current = true;
+    const rect = gridRef.current.getBoundingClientRect();
+    const gridTop = rect.top + window.scrollY;
+    // Position the "Now" line a little below the sticky room headers (~140px)
+    // so the current hour and the next few hours are in view immediately.
+    const target = gridTop + nowTop - 140;
+    window.scrollTo({ top: Math.max(0, target), behavior: "auto" });
+  }, [nowTop]);
 
   return (
     <div className="border-y border-black/[0.08] bg-white">
@@ -1075,7 +1090,7 @@ function Timeline({
       </div>
 
       {/* Grid body */}
-      <div className="flex" style={{ height: trackHeight }}>
+      <div ref={gridRef} className="flex" style={{ height: trackHeight }}>
         {/* Time column */}
         <div
           className="relative shrink-0 border-r border-black/[0.06]"
