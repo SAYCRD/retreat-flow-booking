@@ -217,12 +217,12 @@ function generatePrompts(nowMin: number): Prompt[] {
           id: `turnover-${prev.id}-${next.id}`,
           kind: urgent ? "turnover" : "setup",
           headline: urgent
-            ? `${room} needs a quick reset before ${firstName(next.guest)}`
-            : `Set ${room} for ${next.service}`,
+            ? `Quick reset before ${firstName(next.guest)}`
+            : `Set for ${next.service}`,
           reason: `${prev.service} ends ${fmt(prev.end)} · ${next.service} at ${fmt(next.start)}`,
           room,
           serviceId: next.id,
-          primary: "Room ready",
+          primary: "Confirm room ready",
           urgent,
         });
       }
