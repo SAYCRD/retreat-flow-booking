@@ -1252,6 +1252,8 @@ function Timeline({
                     : "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)";
                 const hoverShadow = `2px 4px 0 -1px rgba(15,23,42,0.05), 8px 14px 28px -12px ${tint(gc, 0.26)}, 0 0 0 1px ${tint(gc, 0.18)}`;
 
+                const cardWhispers = whispersByService[s.id] ?? [];
+
                 return (
                   <div
                     key={s.id}
