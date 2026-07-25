@@ -517,42 +517,42 @@ function ServiceRow({ s, first }: { s: Service; first: boolean }) {
   const gc = guestColor(s.guest);
   return (
     <div
-      className={`relative grid grid-cols-12 items-center gap-4 px-5 py-4 pl-6 text-[13px] transition-colors hover:bg-black/[0.015] ${
+      className={`relative grid grid-cols-12 items-center gap-4 px-5 py-5 pl-7 text-[14px] transition-colors hover:bg-black/[0.015] ${
         first ? "" : "border-t border-black/[0.06]"
       }`}
     >
       <span
-        className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full"
+        className="absolute left-0 top-2 bottom-2 w-[4px] rounded-full"
         style={{ background: gc }}
       />
       <div className="col-span-2">
-        <div className="text-[15px] font-semibold tabular-nums tracking-tight" style={{ fontFamily: DISPLAY }}>
+        <div className="text-[17px] font-semibold tabular-nums tracking-tight" style={{ fontFamily: DISPLAY }}>
           {fmt(s.start)}
         </div>
-        <div className="mt-0.5 text-[11px] text-black/45" style={{ fontFamily: MONO }}>
-          {Math.round((s.end - s.start))}m · ends {fmt(s.end)}
+        <div className="mt-0.5 text-[12px] text-black/50" style={{ fontFamily: MONO }}>
+          {Math.round(s.end - s.start)}m · ends {fmt(s.end)}
         </div>
       </div>
       <div className="col-span-5 flex items-center gap-3">
         <Avatar name={s.guest} />
         <div className="min-w-0">
-          <div className="truncate font-semibold tracking-tight">
+          <div className="truncate text-[16px] font-semibold tracking-tight" style={{ color: gc }}>
             {s.guest}
             {s.partySize ? (
-              <span className="ml-2 text-[11px] font-normal text-black/45" style={{ fontFamily: MONO }}>
+              <span className="ml-2 text-[12px] font-normal text-black/45" style={{ fontFamily: MONO }}>
                 +{s.partySize - 1}
               </span>
             ) : null}
           </div>
-          <div className="truncate text-[12px] text-black/55">{s.service}</div>
+          <div className="text-[14px] text-black/70">{s.service}</div>
           {s.note && (
-            <div className="mt-1 truncate text-[12px] text-black/45">— {s.note}</div>
+            <div className="mt-1 text-[13px] text-black/50">— {s.note}</div>
           )}
         </div>
       </div>
       <div className="col-span-3">
-        <div className="text-[13px]">{s.room}</div>
-        <div className="text-[11px] text-black/50" style={{ fontFamily: MONO }}>
+        <div className="text-[14px] font-medium">{s.room}</div>
+        <div className="text-[12px] text-black/55" style={{ fontFamily: MONO }}>
           {s.practitioner}
         </div>
       </div>
@@ -560,7 +560,7 @@ function ServiceRow({ s, first }: { s: Service; first: boolean }) {
         <StatusPill status={s.status} guestHex={gc} />
       </div>
       <div className="col-span-1 text-right">
-        <button className="rounded-[6px] px-2 py-1 text-[12px] text-black/55 hover:bg-black/[0.05] hover:text-black">
+        <button className="rounded-[6px] px-2.5 py-1 text-[13px] text-black/60 hover:bg-black/[0.05] hover:text-black">
           Open
         </button>
       </div>
