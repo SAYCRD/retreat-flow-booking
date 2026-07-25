@@ -446,7 +446,7 @@ function TodayPage() {
         <div className="mx-auto max-w-[1440px] px-6 py-10">
           <SectionHeader eyebrow="01" label="Rooms" count={ROOMS.length} trailing={<TimelineLegend />} />
           <div className="mt-6">
-            <Timeline nowMin={nowMin} />
+            <Timeline nowMin={nowMin} highlightServiceId={cue.serviceId} highlightUrgent={cue.urgent} />
           </div>
         </div>
       </section>
@@ -788,7 +788,7 @@ function PaidPill({ paid }: { paid: boolean }) {
 // Timeline
 // ------------------------------------------------------------------
 
-function Timeline({ nowMin }: { nowMin: number }) {
+function Timeline({ nowMin, highlightServiceId, highlightUrgent }: { nowMin: number; highlightServiceId?: string; highlightUrgent?: boolean }) {
   const PX_PER_MIN = 2.4; // 144px per hour vertical
   const TIME_COL = 88;
   const HEADER_H = 56;
