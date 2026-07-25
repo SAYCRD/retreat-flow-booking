@@ -1671,6 +1671,7 @@ function FocusOverlay({ cue, onClose }: { cue: Prompt; onClose: () => void }) {
           { icon: Sparkles, label: "Hand off to next practitioner", hint: service ? `${service.practitioner} — ready to begin` : "Signal ready" },
         );
         break;
+      case "handoff":
         base.push(
           { icon: Waves, label: "Notify practitioner", hint: service ? `${service.practitioner} — short turnover` : "Short turnover heads-up" },
           { icon: RefreshCcw, label: "Fast room reset", hint: "Skip full ventilation, refresh linens only." },
