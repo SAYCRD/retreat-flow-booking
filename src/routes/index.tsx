@@ -550,20 +550,25 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
 
 function Highlight({
   children,
-  color = "#fef3c7",
+  color = "#fde047",
   className = "",
 }: {
   children: React.ReactNode;
   color?: string;
   className?: string;
 }) {
+  // Bold marker-pen highlight: covers most of the text, slightly uneven top/bottom
+  // to feel drawn by a human rather than a rectangle.
   return (
     <span
-      className={`inline px-1 -mx-0.5 ${className}`}
+      className={`relative inline px-1.5 -mx-1 ${className}`}
       style={{
-        background: `linear-gradient(180deg, transparent 55%, ${color} 55%, ${color} 92%, transparent 92%)`,
-        boxDecorationBreak: "clone",
+        background: `linear-gradient(100deg, ${color} 0%, ${color} 100%)`,
         WebkitBoxDecorationBreak: "clone",
+        boxDecorationBreak: "clone",
+        paddingTop: "0.02em",
+        paddingBottom: "0.05em",
+        borderRadius: "2px 4px 3px 6px",
       }}
     >
       {children}
