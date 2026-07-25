@@ -1360,9 +1360,13 @@ function Timeline({
   // Measure the referenced card's DOM bottom after render and use that.
   const [afterTopPx, setAfterTopPx] = useState<number | null>(null);
   useEffect(() => {
-    if (!cueMarker?.after || !cueMarker.serviceId) { setAfterTopPx(null); return; }
+    // Reset immediately so stale positions from a previously-active cue
+    // (often much further down the day) never leak into the new marker's
+    // paint or the scroll-into-view target.
+    setAfterTopPx(null);
+    if (!cueMarker?.after || !cueMarker.serviceId) return;
     const el = document.getElementById(`svc-${cueMarker.serviceId}`);
-    if (!el) { setAfterTopPx(null); return; }
+    if (!el) return;
     const measure = () => setAfterTopPx(el.offsetTop + el.offsetHeight + 8);
     measure();
     const ro = new ResizeObserver(measure);
