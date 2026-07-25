@@ -515,75 +515,82 @@ function TodayPage() {
         {/* the strip itself — hairline top and bottom, information-first */}
         <div className="border-y border-black/[0.08]">
           <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-6 py-5">
-            {cue && (() => {
+            {cue ? (() => {
               const Icon = WHISPER_ICON[cue.kind];
               const tint = cue.room ? roomColor(cue.room) : "#0a0a0a";
               return (
-                <span className="relative shrink-0">
-                  <span
-                    aria-hidden
-                    className="grid h-10 w-10 place-items-center rounded-full"
-                    style={{ background: `${tint}14`, color: tint }}
-                  >
-                    <Icon size={18} strokeWidth={2} />
-                  </span>
-                  {cue.urgent && (
+                <>
+                  <span className="relative shrink-0">
                     <span
                       aria-hidden
-                      className="absolute -right-0.5 -top-0.5 flex h-3 w-3"
+                      className="grid h-10 w-10 place-items-center rounded-full"
+                      style={{ background: `${tint}14`, color: tint }}
                     >
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-70" />
-                      <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-500 ring-2 ring-white" />
+                      <Icon size={18} strokeWidth={2} />
                     </span>
-                  )}
-                </span>
-              );
-            })()}
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2.5">
-                <span
-                  className="shrink-0 text-[12px] font-semibold tabular-nums text-black/35"
-                  style={{ fontFamily: MONO }}
-                >
-                  #{String(cueIdx + 1).padStart(2, "0")}
-                </span>
-                <h3 className="truncate text-[20px] font-semibold tracking-tight text-black">
-                  {cue.headline}
-                </h3>
-                {cue.urgent && (
-                  <span className="shrink-0 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-tight text-amber-700">
-                    Urgent
+                    {cue.urgent && (
+                      <span
+                        aria-hidden
+                        className="absolute -right-0.5 -top-0.5 flex h-3 w-3"
+                      >
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-70" />
+                        <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-500 ring-2 ring-white" />
+                      </span>
+                    )}
                   </span>
-                )}
-              </div>
-              <div className="mt-0.5 flex items-center gap-2 truncate text-[13.5px] text-black/55">
-                {cue.room && (
-                  <>
-                    <span style={{ color: roomColor(cue.room), fontFamily: MONO }}>
-                      {cue.room}
-                    </span>
-                    <span className="text-black/25">·</span>
-                  </>
-                )}
-                <span className="truncate">{cue.reason}</span>
-              </div>
-            </div>
 
-            <div className="flex shrink-0 items-center gap-4">
-              <button
-                onClick={() => setFocusOpen(true)}
-                className="text-[13.5px] font-medium text-black/60 underline decoration-black/15 underline-offset-4 transition-colors hover:text-black hover:decoration-black"
-              >
-                Focus
-              </button>
-              <button
-                className="text-[13.5px] font-medium text-black/80 underline decoration-black/20 underline-offset-4 transition-colors hover:decoration-black"
-                onClick={nextCue}
-              >
-                {cue.primary}
-              </button>
-            </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="shrink-0 text-[12px] font-semibold tabular-nums text-black/35"
+                        style={{ fontFamily: MONO }}
+                      >
+                        #{String(cueIdx + 1).padStart(2, "0")}
+                      </span>
+                      <h3 className="truncate text-[20px] font-semibold tracking-tight text-black">
+                        {cue.headline}
+                      </h3>
+                      {cue.urgent && (
+                        <span className="shrink-0 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-tight text-amber-700">
+                          Urgent
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-2 truncate text-[13.5px] text-black/55">
+                      {cue.room && (
+                        <>
+                          <span style={{ color: roomColor(cue.room), fontFamily: MONO }}>
+                            {cue.room}
+                          </span>
+                          <span className="text-black/25">·</span>
+                        </>
+                      )}
+                      <span className="truncate">{cue.reason}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-4">
+                    <button
+                      onClick={() => setFocusOpen(true)}
+                      className="text-[13.5px] font-medium text-black/60 underline decoration-black/15 underline-offset-4 transition-colors hover:text-black hover:decoration-black"
+                    >
+                      Focus
+                    </button>
+                    <button
+                      className="text-[13.5px] font-medium text-black/80 underline decoration-black/20 underline-offset-4 transition-colors hover:decoration-black"
+                      onClick={nextCue}
+                    >
+                      {cue.primary}
+                    </button>
+                  </div>
+                </>
+              );
+            })() : (
+              <div className="flex items-center gap-3 text-[15px] text-black/50">
+                <Sparkles size={18} strokeWidth={1.75} />
+                <span>All caught up. The day is flowing.</span>
+              </div>
+            )}
           </div>
 
           {/* Arrows anchored bottom-right of the strip — larger, easier to reach */}
