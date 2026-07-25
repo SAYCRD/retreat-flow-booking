@@ -1398,6 +1398,34 @@ function Timeline({
                 style={{ top: nowTop, background: ACCENT, opacity: 0.09 }}
               />
 
+              {/* Active cue marker — lives in the column as its own element,
+                  separate from the session card, so check-ins/room resets feel
+                  like their own actions rather than decoration on a booking. */}
+              {cueMarker && cueMarker.room === room && (() => {
+                const Icon = WHISPER_ICON[cueMarker.kind];
+                return (
+                  <div
+                    id="active-cue-marker"
+                    className="pointer-events-none absolute inset-x-0 z-30"
+                    style={{ top: cueMarker.topMin * PX_PER_MIN }}
+                  >
+                    <div className="flex items-center gap-2 px-2.5 py-1.5">
+                      <Icon size={16} strokeWidth={2} style={{ color: cueMarker.gc, flexShrink: 0 }} />
+                      <span className="text-[13px] font-semibold tracking-tight text-black">
+                        {cueMarker.verb}
+                        <span className="mx-1.5 text-black/30">·</span>
+                        {cueMarker.label}
+                      </span>
+                    </div>
+                    <div
+                      className="absolute inset-x-0 top-[26px] border-t border-dashed"
+                      style={{ borderColor: cueMarker.gc, opacity: 0.35 }}
+                    />
+                  </div>
+                );
+              })()}
+
+
 
 
               {services.map((s) => {
