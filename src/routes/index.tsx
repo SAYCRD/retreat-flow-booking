@@ -1321,7 +1321,7 @@ function Timeline({
       checkin: "Check in",
       escort: "Walk in",
       turnover: "Reset",
-      reset: "Notify",
+      reset: "Reset room",
       setup: "Set up",
       elixir: "Tea for",
       pickup: "Pick up",
