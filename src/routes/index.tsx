@@ -223,6 +223,7 @@ function TodayPage() {
   const now = useNow();
   const nowMin = DEMO_NOW;
   const [cueIdx, setCueIdx] = useState(0);
+  const [activeRoom, setActiveRoom] = useState<string | null>(null);
 
   const clock = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const date = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
