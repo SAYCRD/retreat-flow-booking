@@ -1467,6 +1467,14 @@ function Timeline({
           className="relative shrink-0 border-r border-black/[0.06]"
           style={{ width: TIME_COL }}
         >
+          {/* Soft bounce cap at the top — gives 5 AM breathing room and a gentle start */}
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 z-0 rounded-b-[18px]"
+            style={{
+              height: TOP_PAD,
+              background: "linear-gradient(180deg, rgba(0,0,0,0.045) 0%, rgba(0,0,0,0.015) 55%, transparent 100%)",
+            }}
+          />
           {hours.map((h, i) => {
             const top = hourTops[i];
             return (
