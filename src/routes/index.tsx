@@ -1386,16 +1386,16 @@ function Timeline({
     return out;
   }, []);
 
-  const hourTops = useMemo(() => hours.map((h) => minToPx(h * 60 - DAY_START)), [hours, minToPx]);
+  const hourTops = useMemo(() => hours.map((h) => TOP_PAD + minToPx(h * 60 - DAY_START)), [hours, minToPx]);
   const quarterTops = useMemo(() => {
     const out: number[] = [];
     for (let m = 15; m <= compressAfter; m += 15) {
-      if (m % 60 !== 0) out.push(minToPx(m));
+      if (m % 60 !== 0) out.push(TOP_PAD + minToPx(m));
     }
     return out;
   }, [compressAfter, minToPx]);
 
-  const nowTop = minToPx(nowMin);
+  const nowTop = TOP_PAD + minToPx(nowMin);
 
   // On first load, scroll the calendar so the current time is visible near the
   // top of the viewport instead of showing 9 AM when it's mid-afternoon.
