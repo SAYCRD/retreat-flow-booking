@@ -539,9 +539,17 @@ function TodayPage() {
   const [conflictDismissed, setConflictDismissed] = useState(false);
   const [openServiceId, setOpenServiceId] = useState<string | null>(null);
   const openService = openServiceId ? SERVICES.find((s) => s.id === openServiceId) ?? null : null;
+  const [heroPast, setHeroPast] = useState(false);
 
   const clock = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const date = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+
+  useEffect(() => {
+    const onScroll = () => setHeroPast(window.scrollY > 180);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const conflicts = useMemo(() => detectConflicts(SERVICES), []);
   const inSession = SERVICES.filter((s) => s.start <= nowMin && s.end > nowMin).length;
