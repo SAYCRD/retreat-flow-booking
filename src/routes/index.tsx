@@ -542,21 +542,21 @@ function ServiceRow({ s, first }: { s: Service; first: boolean }) {
       }`}
     >
       <span
-        className="absolute left-0 top-2 bottom-2 w-[4px] rounded-full"
+        className="absolute left-0 top-2 bottom-2 w-[4px]"
         style={{ background: gc }}
       />
       <div className="col-span-2">
-        <div className="text-[17px] font-semibold tabular-nums tracking-tight" style={{ fontFamily: DISPLAY }}>
-          {fmt(s.start)}
+        <div className="text-[18px] font-semibold tabular-nums tracking-tight" style={{ fontFamily: DISPLAY }}>
+          {fmt(s.start)} <span className="text-black/40">–</span> {fmt(s.end)}
         </div>
         <div className="mt-0.5 text-[12px] text-black/50" style={{ fontFamily: MONO }}>
-          {Math.round(s.end - s.start)}m · ends {fmt(s.end)}
+          {Math.round(s.end - s.start)} min
         </div>
       </div>
       <div className="col-span-5 flex items-center gap-3">
         <Avatar name={s.guest} />
         <div className="min-w-0">
-          <div className="truncate text-[16px] font-semibold tracking-tight" style={{ color: gc }}>
+          <div className="truncate text-[15px] font-semibold tracking-tight text-black">
             {s.guest}
             {s.partySize ? (
               <span className="ml-2 text-[12px] font-normal text-black/45" style={{ fontFamily: MONO }}>
@@ -564,14 +564,16 @@ function ServiceRow({ s, first }: { s: Service; first: boolean }) {
               </span>
             ) : null}
           </div>
-          <div className="text-[14px] text-black/70">{s.service}</div>
+          <div className="mt-1 text-[20px] font-semibold leading-tight tracking-tight" style={{ color: gc }}>
+            {s.service}
+          </div>
           {s.note && (
-            <div className="mt-1 text-[13px] text-black/50">— {s.note}</div>
+            <div className="mt-1 text-[13px] text-black/55">— {s.note}</div>
           )}
         </div>
       </div>
       <div className="col-span-3">
-        <div className="text-[14px] font-medium">{s.room}</div>
+        <div className="text-[15px] font-medium">{s.room}</div>
         <div className="text-[12px] text-black/55" style={{ fontFamily: MONO }}>
           {s.practitioner}
         </div>
