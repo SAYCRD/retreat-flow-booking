@@ -1382,7 +1382,7 @@ function Timeline({
 
   const hours = useMemo(() => {
     const out: number[] = [];
-    for (let h = 5; h <= 24; h++) out.push(h);
+    for (let h = 5; h <= 23; h++) out.push(h);
     return out;
   }, []);
 
