@@ -688,38 +688,42 @@ function Timeline({ nowMin }: { nowMin: number }) {
                   const width = ((s.end - s.start) / DAY_SPAN) * 100;
                   const isPast = s.end <= nowMin;
                   const isLive = s.start <= nowMin && s.end > nowMin;
+                  const gc = guestColor(s.guest);
 
                   const style: React.CSSProperties = (() => {
                     if (s.status === "requested")
                       return {
-                        background: "rgba(255,247,237,0.6)",
+                        background: "rgba(255,247,237,0.7)",
                         border: "1.5px dashed rgba(217,119,6,0.5)",
                         color: INK,
+                        boxShadow: `inset 3px 0 0 0 ${gc}`,
                       };
                     if (isLive)
                       return {
-                        background: "rgba(55,48,255,0.10)",
-                        border: `1.5px solid rgba(55,48,255,0.35)`,
+                        background: tint(gc, 0.12),
+                        border: `1.5px solid ${tint(gc, 0.35)}`,
                         color: INK,
-                        boxShadow: `inset 3px 0 0 0 ${ACCENT}, 0 0 0 3px rgba(55,48,255,0.08)`,
+                        boxShadow: `inset 4px 0 0 0 ${gc}, 0 0 0 3px ${tint(gc, 0.08)}`,
                       };
                     if (isPast)
                       return {
-                        background: "rgba(243,244,246,0.85)",
+                        background: "#f5f5f5",
                         border: "1.5px solid rgba(0,0,0,0.06)",
-                        color: INK,
+                        color: "rgba(10,10,10,0.55)",
+                        boxShadow: `inset 3px 0 0 0 ${tint(gc, 0.45)}`,
                       };
                     return {
-                      background: "rgba(250,248,245,0.9)",
-                      border: "1.5px solid rgba(0,0,0,0.10)",
+                      background: tint(gc, 0.06),
+                      border: `1.5px solid ${tint(gc, 0.22)}`,
                       color: INK,
+                      boxShadow: `inset 3px 0 0 0 ${gc}`,
                     };
                   })();
 
                   return (
                     <div
                       key={s.id}
-                      className="group absolute top-2 bottom-2 overflow-hidden rounded-[8px] px-3 py-2 leading-snug transition-all hover:z-20 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
+                      className="group absolute top-2 bottom-2 overflow-hidden rounded-[8px] px-3 py-2 leading-snug transition-all hover:z-20 hover:shadow-[0_8px_24px_rgba(0,0,0,0.10)]"
                       style={{
                         left: `calc(${left}% + 2px)`,
                         width: `calc(${width}% - 4px)`,
@@ -730,8 +734,8 @@ function Timeline({ nowMin }: { nowMin: number }) {
                       <div className="flex items-center gap-2">
                         {isLive && (
                           <span className="relative inline-flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50" style={{ background: ACCENT }} />
-                            <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: ACCENT }} />
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50" style={{ background: gc }} />
+                            <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: gc }} />
                           </span>
                         )}
                         <div className="truncate text-[13px] font-semibold tracking-tight">
@@ -742,7 +746,7 @@ function Timeline({ nowMin }: { nowMin: number }) {
                       <div className="mt-1 flex items-center gap-2 truncate text-[11px] font-medium text-black/70" style={{ fontFamily: MONO }}>
                         <span>{fmt(s.start)}</span>
                         <span className="text-black/30">·</span>
-                        <span className="truncate">{s.practitioner}</span>
+                        <span className="truncate">{s.service}</span>
                       </div>
                     </div>
                   );
