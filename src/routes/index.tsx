@@ -810,9 +810,18 @@ function TodayPage() {
                 ›
               </button>
             </div>
+            <span className="h-8 w-px shrink-0 bg-black/10" />
+            <div
+              className="shrink-0 text-right tabular-nums transition-opacity duration-300"
+              style={{ opacity: heroPast ? 1 : 0, fontFamily: DISPLAY }}
+              aria-hidden={!heroPast}
+            >
+              <div className="text-[22px] font-semibold leading-none tracking-tight text-black">{clock}</div>
+            </div>
           </div>
         </div>
       </section>
+
 
 
 
