@@ -1216,7 +1216,7 @@ function Timeline({
       {/* Room headers — stick under the top bar + Coming Up strip while the calendar scrolls */}
       <div
         className="sticky z-10 flex border-b border-black/[0.08] bg-white/95 backdrop-blur-md"
-        style={{ height: HEADER_H, top: 120 }}
+        style={{ height: HEADER_H, top: 136 }}
       >
         <div
           className="flex shrink-0 items-center justify-end border-r border-black/[0.06] pr-4 text-[11px] uppercase tracking-[0.14em] text-black/45"
