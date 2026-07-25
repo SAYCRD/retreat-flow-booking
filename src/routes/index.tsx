@@ -1110,7 +1110,7 @@ function Timeline({
                     />
 
 
-                    <div className="flex flex-1 flex-col px-3 pt-3 pb-2.5">
+                    <div className="relative z-10 flex flex-1 flex-col px-3 pt-3 pb-2.5">
                       {/* Time — from on one line, to on the next, so it reads calmly */}
                       <div className="flex items-start justify-between gap-2">
                         <div
