@@ -1271,7 +1271,7 @@ function Timeline({
   const markerKinds: WhisperKind[] = ["notify", "checkin", "escort", "turnover", "setup", "elixir", "pickup", "reset", "payment"];
 
   // The one currently highlighted cue gets its own marker on the timeline,
-  // separate from the session card, so check-ins and room resets read as
+  // separate from the session card, so check-ins and reset notifications read as
   // their own actions rather than decoration on top of a booking.
   const activeCue = useMemo(() => whispers.find((w) => w.id === activeCueId), [whispers, activeCueId]);
 
