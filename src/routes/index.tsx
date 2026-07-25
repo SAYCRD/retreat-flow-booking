@@ -573,19 +573,19 @@ function Timeline({ nowMin }: { nowMin: number }) {
   const nowPct = (nowMin / DAY_SPAN) * 100;
 
   return (
-    <div className="overflow-hidden rounded-[10px] border border-black/[0.08] bg-white">
+    <div className="overflow-hidden rounded-[14px] border border-black/[0.08] bg-white">
       {/* Hour scale */}
-      <div className="grid border-b border-black/[0.06]" style={{ gridTemplateColumns: "140px 1fr" }}>
-        <div className="border-r border-black/[0.06] px-4 py-2 text-[10px] uppercase tracking-[0.14em] text-black/40" style={{ fontFamily: MONO }}>
+      <div className="grid border-b border-black/[0.06]" style={{ gridTemplateColumns: "180px 1fr" }}>
+        <div className="border-r border-black/[0.06] px-5 py-3 text-[10px] uppercase tracking-[0.14em] text-black/50" style={{ fontFamily: MONO }}>
           Room
         </div>
-        <div className="relative h-8">
+        <div className="relative h-10">
           {hours.map((h) => {
             const pct = ((h * 60 - DAY_START) / DAY_SPAN) * 100;
             return (
               <div
                 key={h}
-                className="absolute top-2 -translate-x-1/2 text-[10px] font-medium text-black/40"
+                className="absolute top-3 -translate-x-1/2 text-[11px] font-semibold text-black/55"
                 style={{ left: `${pct}%`, fontFamily: MONO }}
               >
                 {((h + 11) % 12) + 1}
@@ -594,7 +594,7 @@ function Timeline({ nowMin }: { nowMin: number }) {
             );
           })}
           <div
-            className="absolute top-1 -translate-x-1/2 rounded-[3px] px-1.5 py-0.5 text-[9px] font-semibold text-white"
+            className="absolute top-2 -translate-x-1/2 rounded-[4px] px-2 py-0.5 text-[10px] font-semibold text-white"
             style={{ left: `${nowPct}%`, background: ACCENT, fontFamily: MONO }}
           >
             NOW
@@ -610,22 +610,22 @@ function Timeline({ nowMin }: { nowMin: number }) {
             <div
               key={room}
               className={`grid items-stretch ${idx > 0 ? "border-t border-black/[0.06]" : ""}`}
-              style={{ gridTemplateColumns: "140px 1fr" }}
+              style={{ gridTemplateColumns: "180px 1fr" }}
             >
-              <div className="flex flex-col justify-center border-r border-black/[0.06] px-4 py-3">
-                <span className="text-[13px] font-medium tracking-tight">{room}</span>
-                <span className="text-[10px] text-black/40" style={{ fontFamily: MONO }}>
+              <div className="flex flex-col justify-center border-r border-black/[0.06] px-5 py-4">
+                <span className="text-[15px] font-semibold tracking-tight text-black">{room}</span>
+                <span className="mt-1 text-[11px] font-medium text-black/50" style={{ fontFamily: MONO }}>
                   {services.length} bookings
                 </span>
               </div>
 
-              <div className="relative h-[62px]" style={{ background: "repeating-linear-gradient(to right, transparent 0, transparent calc(100%/9 - 1px), rgba(0,0,0,0.04) calc(100%/9 - 1px), rgba(0,0,0,0.04) calc(100%/9))" }}>
+              <div className="relative h-[88px]" style={{ background: "repeating-linear-gradient(to right, transparent 0, transparent calc(100%/9 - 1px), rgba(0,0,0,0.035) calc(100%/9 - 1px), rgba(0,0,0,0.035) calc(100%/9))" }}>
                 {/* now line */}
                 <div
                   className="pointer-events-none absolute inset-y-0 z-10 w-px"
                   style={{ left: `${nowPct}%`, background: ACCENT }}
                 >
-                  <div className="absolute -top-px h-1.5 w-1.5 -translate-x-1/2 rounded-full" style={{ background: ACCENT }} />
+                  <div className="absolute -top-px h-2 w-2 -translate-x-1/2 rounded-full" style={{ background: ACCENT }} />
                 </div>
 
                 {services.map((s) => {
@@ -637,26 +637,26 @@ function Timeline({ nowMin }: { nowMin: number }) {
                   const style: React.CSSProperties = (() => {
                     if (s.status === "requested")
                       return {
-                        background: "transparent",
-                        border: "1px dashed rgba(10,10,10,0.35)",
+                        background: "rgba(255,247,237,0.6)",
+                        border: "1.5px dashed rgba(217,119,6,0.5)",
                         color: INK,
                       };
                     if (isLive)
                       return {
-                        background: INK,
-                        border: `1px solid ${INK}`,
-                        color: "#f7f7f5",
-                        boxShadow: `0 0 0 2px rgba(55,48,255,0.15)`,
+                        background: "rgba(55,48,255,0.10)",
+                        border: `1.5px solid rgba(55,48,255,0.35)`,
+                        color: INK,
+                        boxShadow: `inset 3px 0 0 0 ${ACCENT}, 0 0 0 3px rgba(55,48,255,0.08)`,
                       };
                     if (isPast)
                       return {
-                        background: "rgba(10,10,10,0.04)",
-                        border: "1px solid rgba(10,10,10,0.06)",
-                        color: "rgba(10,10,10,0.45)",
+                        background: "rgba(243,244,246,0.85)",
+                        border: "1.5px solid rgba(0,0,0,0.06)",
+                        color: INK,
                       };
                     return {
-                      background: "#fff",
-                      border: "1px solid rgba(10,10,10,0.18)",
+                      background: "rgba(250,248,245,0.9)",
+                      border: "1.5px solid rgba(0,0,0,0.10)",
                       color: INK,
                     };
                   })();
@@ -664,25 +664,30 @@ function Timeline({ nowMin }: { nowMin: number }) {
                   return (
                     <div
                       key={s.id}
-                      className="group absolute top-1.5 bottom-1.5 overflow-hidden rounded-[6px] px-2 py-1 text-[11px] leading-tight transition-transform hover:z-20 hover:scale-[1.01]"
+                      className="group absolute top-2 bottom-2 overflow-hidden rounded-[8px] px-3 py-2 leading-snug transition-all hover:z-20 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
                       style={{
-                        left: `calc(${left}% + 1px)`,
-                        width: `calc(${width}% - 2px)`,
+                        left: `calc(${left}% + 2px)`,
+                        width: `calc(${width}% - 4px)`,
                         ...style,
                       }}
                       title={`${s.guest} · ${s.service} · ${fmt(s.start)}–${fmt(s.end)}`}
                     >
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2">
                         {isLive && (
-                          <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: ACCENT }} />
+                          <span className="relative inline-flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50" style={{ background: ACCENT }} />
+                            <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: ACCENT }} />
+                          </span>
                         )}
-                        <div className="truncate text-[12px] font-semibold tracking-tight">
+                        <div className="truncate text-[13px] font-semibold tracking-tight">
                           {s.guest}
                           {s.partySize ? ` +${s.partySize - 1}` : ""}
                         </div>
                       </div>
-                      <div className="mt-0.5 truncate opacity-70" style={{ fontFamily: MONO, fontSize: 10 }}>
-                        {fmt(s.start)} · {s.practitioner}
+                      <div className="mt-1 flex items-center gap-2 truncate text-[11px] font-medium text-black/70" style={{ fontFamily: MONO }}>
+                        <span>{fmt(s.start)}</span>
+                        <span className="text-black/30">·</span>
+                        <span className="truncate">{s.practitioner}</span>
                       </div>
                     </div>
                   );
