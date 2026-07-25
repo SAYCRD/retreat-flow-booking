@@ -192,12 +192,12 @@ const INK = "#0a0a0a";
 // Each room has its own color — the color follows the space, not the guest.
 // It carries through the timeline card top-bar, the ledger stripe, and the avatar tint.
 const ROOM_COLORS: Record<string, string> = {
-  "Infrared Room": "#ff7a90", // watermelon
-  "Buddha Massage": "#3ecfa8", // mint
-  "Ayurveda Room": "#f5b544", // butter
-  "Om Space": "#b48cff", // lilac
-  "The Temple": "#ff8fbf", // bubblegum
-  "Land": "#9dd66b", // pistachio
+  "Infrared Room": "#e94b6b",   // deep watermelon
+  "Buddha Massage": "#20b892",  // deep mint
+  "Ayurveda Room": "#e89a1c",   // amber butter
+  "Om Space": "#7b5cff",        // iris
+  "The Temple": "#c25aa8",      // magenta plum (differentiated from watermelon)
+  "Land": "#6cb32e",            // deep pistachio
 };
 
 const NEUTRAL = "#475569"; // slate for anything without a room
