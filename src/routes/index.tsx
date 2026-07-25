@@ -74,7 +74,7 @@ const ROOMS = [
   "Land",
 ];
 
-const DAY_START = 9 * 60;
+const DAY_START = 5 * 60;
 const DAY_END = 24 * 60;
 const DAY_SPAN = DAY_END - DAY_START;
 
@@ -1373,7 +1373,7 @@ function Timeline({
 
   const hours = useMemo(() => {
     const out: number[] = [];
-    for (let h = 9; h <= 24; h++) out.push(h);
+    for (let h = 5; h <= 24; h++) out.push(h);
     return out;
   }, []);
 
