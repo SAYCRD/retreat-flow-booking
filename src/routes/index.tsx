@@ -391,7 +391,7 @@ function TodayPage() {
           />
           <div className="mt-6 overflow-hidden rounded-[10px] border border-black/[0.08] bg-white">
             {FINANCES.map((f, i) => {
-              const gc = guestColor(f.guest);
+              const gc = guestRoomColor(f.guest);
               return (
                 <div
                   key={f.guest}
@@ -400,9 +400,9 @@ function TodayPage() {
                   } hover:bg-black/[0.015]`}
                 >
                   <div className="col-span-6 flex items-center gap-3">
-                    <Avatar name={f.guest} />
+                    <Avatar name={f.guest} color={gc} />
                     <div>
-                      <div className="text-[15px] font-semibold" style={{ color: gc }}>{f.guest}</div>
+                      <div className="text-[15px] font-semibold text-black">{f.guest}</div>
                       <div className="text-[12px] text-black/50" style={{ fontFamily: MONO }}>
                         {f.services} service{f.services > 1 ? "s" : ""}
                       </div>
