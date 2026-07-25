@@ -854,7 +854,7 @@ function Timeline({
   activeRoom?: string | null;
   onRoomClick?: (room: string) => void;
 }) {
-  const PX_PER_MIN = 2.4; // 144px per hour vertical
+  const PX_PER_MIN = 4; // 240px per hour vertical — gives 15/30-min slots room to breathe
   const TIME_COL = 88;
   const HEADER_H = 64;
   const trackHeight = DAY_SPAN * PX_PER_MIN;
