@@ -1236,7 +1236,7 @@ function Timeline({
   const TAIL_PX_PER_MIN = 1.2; // compress the quiet evening tail so midnight doesn't feel empty
   const TIME_COL = 88;
   const HEADER_H = 64;
-  const TOP_PAD = 36; // breathing room above 5 AM so the first hour label isn't clipped by the sticky header
+  const TOP_PAD = 160; // enough breathing room so the user can scroll 5 AM clear of the sticky nav + Coming Up strip + room header chrome
   const gridRef = useRef<HTMLDivElement>(null);
   const scrolledRef = useRef(false);
 
