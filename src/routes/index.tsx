@@ -1500,7 +1500,7 @@ function Timeline({
                       e.currentTarget.style.boxShadow = baseShadow;
                     }}
                     onClick={() => onOpenService?.(s.id)}
-                    title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
+                    
                   >
                     {/* Top color rail — thinner, high-chroma, thickens subtly on hover */}
                     <span
@@ -1523,7 +1523,7 @@ function Timeline({
                       return (
                         <span
                           aria-hidden
-                          title={badgeWhisper.headline}
+                          
                           className="pointer-events-none absolute -top-3 right-1.5 z-20 grid h-6 w-6 place-items-center rounded-full bg-white"
                           style={{
                             color: gc,
@@ -1629,7 +1629,7 @@ function Timeline({
                         <span
                           className="truncate text-[12.5px] font-medium leading-tight"
                           style={{ color: metaColor }}
-                          title={s.practitioner}
+                          
                         >
                           {s.practitioner}
                         </span>
@@ -1663,7 +1663,7 @@ function Timeline({
                               <span
                                 className="truncate text-[11.5px] font-medium leading-tight"
                                 style={{ color: metaColor }}
-                                title={orchestration.title}
+                                
                               >
                                 {orchestration.title}
                               </span>
@@ -1672,7 +1672,7 @@ function Timeline({
                             <div
                               className="truncate text-[11.5px] italic leading-snug"
                               style={{ color: metaColor }}
-                              title={plainNote ?? undefined}
+                              
                             >
                               {plainNote}
                             </div>
@@ -2023,7 +2023,7 @@ function ReservationPanel({
                       </button>
                       <button
                         className="inline-flex items-center gap-2 rounded-[8px] border border-black/10 bg-white px-3 py-2 text-[13px] font-medium text-black/70 hover:bg-black/[0.03] hover:text-black"
-                        title="Copy link"
+                        
                       >
                         <Copy size={13} strokeWidth={2} />
                         Copy
