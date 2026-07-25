@@ -1056,7 +1056,7 @@ function Timeline({
 }: {
   nowMin: number;
   highlightServiceId?: string;
-  highlightKind?: CueKind;
+  highlightKind?: WhisperKind;
   highlightUrgent?: boolean;
   activeRoom?: string | null;
   onRoomClick?: (room: string) => void;
