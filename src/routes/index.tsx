@@ -508,15 +508,15 @@ function TodayPage() {
             <Highlight color="#fde047">Coming up</Highlight>
           </h2>
           <span className="text-[13px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
-            {String(cueIdx + 1).padStart(2, "0")} / {String(CUES.length).padStart(2, "0")}
+            {String(cueIdx + 1).padStart(2, "0")} / {String(prompts.length).padStart(2, "0")}
           </span>
         </div>
 
         {/* the strip itself — hairline top and bottom, information-first */}
         <div className="border-y border-black/[0.08]">
           <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-6 py-5">
-            {(() => {
-              const Icon = CUE_ICON[cue.kind];
+            {cue && (() => {
+              const Icon = WHISPER_ICON[cue.kind];
               const tint = cue.room ? roomColor(cue.room) : "#0a0a0a";
               return (
                 <span className="relative shrink-0">
