@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio } from "lucide-react";
+import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight } from "lucide-react";
 
 const CUE_ICON = {
   message: MessageSquare,
