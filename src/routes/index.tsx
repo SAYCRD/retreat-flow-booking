@@ -655,10 +655,10 @@ function PaidPill({ paid }: { paid: boolean }) {
 // ------------------------------------------------------------------
 
 function Timeline({ nowMin }: { nowMin: number }) {
-  const PX_PER_MIN = 2.2; // 132px per hour → wide enough to read every card
-  const ROOM_COL = 200;
-  const ROW_H = 140;
-  const trackWidth = DAY_SPAN * PX_PER_MIN;
+  const PX_PER_MIN = 2.4; // 144px per hour vertical
+  const TIME_COL = 88;
+  const HEADER_H = 56;
+  const trackHeight = DAY_SPAN * PX_PER_MIN;
 
   const hours = useMemo(() => {
     const out: number[] = [];
@@ -666,183 +666,178 @@ function Timeline({ nowMin }: { nowMin: number }) {
     return out;
   }, []);
 
-  const nowLeft = nowMin * PX_PER_MIN;
+  const nowTop = nowMin * PX_PER_MIN;
 
   return (
-    <div className="overflow-hidden rounded-[14px] border border-black/[0.08] bg-white">
-      <div className="overflow-x-auto">
-        <div style={{ minWidth: ROOM_COL + trackWidth }}>
-          {/* Hour scale */}
-          <div className="flex border-b border-black/[0.06]">
+    <div className="overflow-hidden border-y border-black/[0.08] bg-white">
+      {/* Room headers */}
+      <div className="flex border-b border-black/[0.08]" style={{ height: HEADER_H }}>
+        <div
+          className="flex shrink-0 items-center justify-end border-r border-black/[0.06] pr-4 text-[11px] uppercase tracking-[0.14em] text-black/45"
+          style={{ width: TIME_COL, fontFamily: MONO }}
+        >
+          Time
+        </div>
+        {ROOMS.map((room, idx) => {
+          const count = SERVICES.filter((s) => s.room === room).length;
+          return (
             <div
-              className="shrink-0 border-r border-black/[0.06] px-5 py-3 text-[11px] uppercase tracking-[0.14em] text-black/50"
-              style={{ width: ROOM_COL, fontFamily: MONO }}
+              key={room}
+              className={`flex min-w-0 flex-1 flex-col justify-center px-4 ${
+                idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
+              }`}
             >
-              Room
-            </div>
-            <div className="relative h-12" style={{ width: trackWidth }}>
-              {hours.map((h) => {
-                const left = (h * 60 - DAY_START) * PX_PER_MIN;
-                return (
-                  <div
-                    key={h}
-                    className="absolute top-3 -translate-x-1/2 text-[13px] font-semibold text-black/60"
-                    style={{ left, fontFamily: MONO }}
-                  >
-                    {((h + 11) % 12) + 1}
-                    {h >= 12 ? " PM" : " AM"}
-                  </div>
-                );
-              })}
+              <div className="truncate text-[15px] font-semibold tracking-tight text-black">
+                {room}
+              </div>
               <div
-                className="absolute top-2 -translate-x-1/2 rounded-[4px] px-2 py-0.5 text-[10px] font-semibold text-white"
-                style={{ left: nowLeft, background: ACCENT, fontFamily: MONO }}
+                className="text-[11px] font-medium text-black/45"
+                style={{ fontFamily: MONO }}
               >
-                NOW
+                {count} booking{count === 1 ? "" : "s"}
               </div>
             </div>
-          </div>
+          );
+        })}
+      </div>
 
-          {/* Room rows */}
-          {ROOMS.map((room, idx) => {
-            const services = SERVICES.filter((s) => s.room === room);
+      {/* Grid body */}
+      <div className="flex" style={{ height: trackHeight }}>
+        {/* Time column */}
+        <div
+          className="relative shrink-0 border-r border-black/[0.06]"
+          style={{ width: TIME_COL }}
+        >
+          {hours.map((h) => {
+            const top = (h * 60 - DAY_START) * PX_PER_MIN;
             return (
               <div
-                key={room}
-                className={`flex items-stretch ${idx > 0 ? "border-t border-black/[0.06]" : ""}`}
+                key={h}
+                className="absolute right-3 -translate-y-1/2 text-[13px] font-semibold text-black/55"
+                style={{ top, fontFamily: MONO }}
               >
-                <div
-                  className="flex shrink-0 flex-col justify-center border-r border-black/[0.06] px-5"
-                  style={{ width: ROOM_COL, height: ROW_H }}
-                >
-                  <span className="text-[17px] font-semibold tracking-tight text-black">
-                    {room}
-                  </span>
-                  <span
-                    className="mt-1 text-[12px] font-medium text-black/50"
-                    style={{ fontFamily: MONO }}
-                  >
-                    {services.length} bookings
-                  </span>
-                </div>
-
-                <div
-                  className="relative"
-                  style={{
-                    width: trackWidth,
-                    height: ROW_H,
-                    background:
-                      "repeating-linear-gradient(to right, transparent 0, transparent calc(" +
-                      PX_PER_MIN * 60 +
-                      "px - 1px), rgba(0,0,0,0.05) calc(" +
-                      PX_PER_MIN * 60 +
-                      "px - 1px), rgba(0,0,0,0.05) " +
-                      PX_PER_MIN * 60 +
-                      "px)",
-                  }}
-                >
-                  {/* now line */}
-                  <div
-                    className="pointer-events-none absolute inset-y-0 z-10 w-px"
-                    style={{ left: nowLeft, background: ACCENT }}
-                  >
-                    <div
-                      className="absolute -top-px h-2 w-2 -translate-x-1/2 rounded-full"
-                      style={{ background: ACCENT }}
-                    />
-                  </div>
-
-                  {services.map((s) => {
-                    const left = s.start * PX_PER_MIN;
-                    const width = (s.end - s.start) * PX_PER_MIN;
-                    const isPast = s.end <= nowMin;
-                    const isLive = s.start <= nowMin && s.end > nowMin;
-                    const gc = guestColor(s.guest);
-
-                    const style: React.CSSProperties = (() => {
-                      if (s.status === "requested")
-                        return {
-                          background: "#fffbeb",
-                          border: "1.5px dashed rgba(217,119,6,0.55)",
-                          color: INK,
-                          boxShadow: `inset 6px 0 0 0 ${gc}`,
-                        };
-                      if (isLive)
-                        return {
-                          background: tint(gc, 0.1),
-                          border: `1.5px solid ${tint(gc, 0.4)}`,
-                          color: INK,
-                          boxShadow: `inset 6px 0 0 0 ${gc}, 0 0 0 3px ${tint(gc, 0.08)}`,
-                        };
-                      if (isPast)
-                        return {
-                          background: "#f7f7f7",
-                          border: "1.5px solid rgba(0,0,0,0.06)",
-                          color: "rgba(10,10,10,0.55)",
-                          boxShadow: `inset 6px 0 0 0 ${tint(gc, 0.45)}`,
-                        };
-                      return {
-                        background: tint(gc, 0.06),
-                        border: `1.5px solid ${tint(gc, 0.28)}`,
-                        color: INK,
-                        boxShadow: `inset 6px 0 0 0 ${gc}`,
-                      };
-                    })();
-
-                    return (
-                      <div
-                        key={s.id}
-                        className="group absolute top-2 bottom-2 flex flex-col justify-between overflow-hidden rounded-[10px] pl-4 pr-3 py-2.5 transition-all hover:z-20 hover:shadow-[0_10px_28px_rgba(0,0,0,0.12)]"
-                        style={{
-                          left: left + 2,
-                          width: Math.max(width - 4, 100),
-                          ...style,
-                        }}
-                        title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
-                      >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            {isLive && (
-                              <span className="relative inline-flex h-2 w-2 shrink-0">
-                                <span
-                                  className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50"
-                                  style={{ background: gc }}
-                                />
-                                <span
-                                  className="relative inline-flex h-2 w-2 rounded-full"
-                                  style={{ background: gc }}
-                                />
-                              </span>
-                            )}
-                            <div
-                              className="text-[15px] font-semibold leading-tight tracking-tight"
-                              style={{ color: gc }}
-                            >
-                              {s.guest}
-                              {s.partySize ? ` +${s.partySize - 1}` : ""}
-                            </div>
-                          </div>
-                          <div className="mt-1 text-[14px] font-medium leading-tight text-black/85">
-                            {s.service}
-                          </div>
-                          <div className="mt-0.5 text-[12px] leading-tight text-black/60">
-                            {s.practitioner}
-                          </div>
-                        </div>
-                        <div
-                          className="text-[12px] font-semibold tabular-nums text-black/70"
-                          style={{ fontFamily: MONO }}
-                        >
-                          {fmt(s.start)} – {fmt(s.end)}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                {((h + 11) % 12) + 1}
+                {h >= 12 ? " PM" : " AM"}
               </div>
             );
           })}
+          <div
+            className="absolute right-1 -translate-y-1/2 rounded-[3px] px-1.5 py-0.5 text-[10px] font-semibold text-white"
+            style={{ top: nowTop, background: ACCENT, fontFamily: MONO }}
+          >
+            NOW
+          </div>
         </div>
+
+        {/* Room columns */}
+        {ROOMS.map((room, idx) => {
+          const services = SERVICES.filter((s) => s.room === room);
+          return (
+            <div
+              key={room}
+              className={`relative min-w-0 flex-1 ${
+                idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
+              }`}
+              style={{
+                background:
+                  "repeating-linear-gradient(to bottom, transparent 0, transparent calc(" +
+                  PX_PER_MIN * 60 +
+                  "px - 1px), rgba(0,0,0,0.05) calc(" +
+                  PX_PER_MIN * 60 +
+                  "px - 1px), rgba(0,0,0,0.05) " +
+                  PX_PER_MIN * 60 +
+                  "px)",
+              }}
+            >
+              {/* Now line spanning column */}
+              <div
+                className="pointer-events-none absolute inset-x-0 z-10 h-px"
+                style={{ top: nowTop, background: ACCENT }}
+              />
+
+              {services.map((s) => {
+                const top = s.start * PX_PER_MIN;
+                const height = (s.end - s.start) * PX_PER_MIN;
+                const isPast = s.end <= nowMin;
+                const isLive = s.start <= nowMin && s.end > nowMin;
+                const gc = guestColor(s.guest);
+
+                const style: React.CSSProperties = (() => {
+                  if (s.status === "requested")
+                    return {
+                      background: "#fffbeb",
+                      border: "1px dashed rgba(217,119,6,0.6)",
+                      boxShadow: `inset 0 4px 0 0 ${gc}`,
+                    };
+                  if (isLive)
+                    return {
+                      background: tint(gc, 0.12),
+                      border: `1px solid ${tint(gc, 0.4)}`,
+                      boxShadow: `inset 0 4px 0 0 ${gc}`,
+                    };
+                  if (isPast)
+                    return {
+                      background: "#f7f7f7",
+                      border: "1px solid rgba(0,0,0,0.06)",
+                      boxShadow: `inset 0 4px 0 0 ${tint(gc, 0.5)}`,
+                    };
+                  return {
+                    background: tint(gc, 0.07),
+                    border: `1px solid ${tint(gc, 0.28)}`,
+                    boxShadow: `inset 0 4px 0 0 ${gc}`,
+                  };
+                })();
+
+                return (
+                  <div
+                    key={s.id}
+                    className="group absolute left-1.5 right-1.5 flex flex-col overflow-hidden rounded-[2px] px-3 pt-3 pb-2 transition-shadow hover:z-20 hover:shadow-[0_8px_24px_rgba(0,0,0,0.10)]"
+                    style={{
+                      top: top + 2,
+                      height: Math.max(height - 4, 60),
+                      ...style,
+                    }}
+                    title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      {isLive && (
+                        <span className="relative inline-flex h-2 w-2 shrink-0">
+                          <span
+                            className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50"
+                            style={{ background: gc }}
+                          />
+                          <span
+                            className="relative inline-flex h-2 w-2 rounded-full"
+                            style={{ background: gc }}
+                          />
+                        </span>
+                      )}
+                      <div className="truncate text-[13px] font-semibold leading-tight tracking-tight text-black">
+                        {s.guest}
+                        {s.partySize ? ` +${s.partySize - 1}` : ""}
+                      </div>
+                    </div>
+                    <div
+                      className="mt-1.5 text-[16px] font-semibold leading-[1.15] tracking-tight"
+                      style={{ color: gc }}
+                    >
+                      {s.service}
+                    </div>
+                    <div className="mt-1 text-[12px] leading-tight text-black/65">
+                      {s.practitioner}
+                    </div>
+                    <div
+                      className="mt-auto pt-2 text-[11px] font-semibold tabular-nums text-black/60"
+                      style={{ fontFamily: MONO }}
+                    >
+                      {fmt(s.start)} – {fmt(s.end)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
