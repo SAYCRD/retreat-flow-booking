@@ -159,9 +159,12 @@ function generatePrompts(nowMin: number): Prompt[] {
     });
   });
 
-  // 1c. Practitioner notifications — 15–25 min before session, give the
-  // practitioner a quiet heads-up so they can wrap prep / arrive on floor.
-  SERVICES.filter((s) => s.start > nowMin + 15 && s.start <= nowMin + 25).forEach((s) => {
+  // 1c. Practitioner notifications — a built-in cue for EVERY upcoming
+  // session on the day. Fires as soon as the session is on the horizon
+  // (up to ~3 hours out) and stays live until the practitioner is on-floor
+  // (within 10 min of start), so "notify practitioner" is a guaranteed
+  // step in every Coming Up cycle.
+  SERVICES.filter((s) => s.start > nowMin + 10 && s.start <= nowMin + 180).forEach((s) => {
     out.push({
       id: `notify-${s.id}`,
       kind: "notify",
