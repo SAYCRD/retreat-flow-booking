@@ -941,7 +941,7 @@ function Timeline({
         style={{ height: HEADER_H, top: 48 }}
       >
         <div
-          className="flex shrink-0 items-center justify-end border-r-[3px] border-white pr-4 text-[11px] uppercase tracking-[0.14em] text-black/45"
+          className="flex shrink-0 items-center justify-end border-r border-black/[0.06] pr-4 text-[11px] uppercase tracking-[0.14em] text-black/45"
           style={{ width: TIME_COL, fontFamily: MONO }}
         >
           Time
@@ -956,9 +956,10 @@ function Timeline({
               type="button"
               onClick={() => onRoomClick?.(room)}
               className={`group flex min-w-0 flex-1 flex-col justify-center px-4 text-left transition-colors ${
-                idx < ROOMS.length - 1 ? "border-r-[3px] border-white" : ""
+                idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
               } ${isActive ? "" : "hover:bg-black/[0.02]"}`}
             >
+
 
               <div className="truncate text-[20px] font-semibold leading-tight tracking-[-0.02em] text-black">
                 {isActive ? (
@@ -982,7 +983,7 @@ function Timeline({
       <div className="flex" style={{ height: trackHeight }}>
         {/* Time column */}
         <div
-          className="relative shrink-0 border-r-[3px] border-white"
+          className="relative shrink-0 border-r border-black/[0.06]"
           style={{ width: TIME_COL }}
         >
           {hours.map((h) => {
@@ -1012,16 +1013,15 @@ function Timeline({
           return (
             <div
               key={room}
-              className={`relative min-w-0 flex-1 ${
-                idx < ROOMS.length - 1 ? "border-r-[3px] border-white" : ""
+              className={`relative min-w-0 flex-1 bg-white ${
+                idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
               }`}
               style={{
-                backgroundColor: tint(roomColor(room), 0.09),
                 backgroundImage: [
                   // hour lines
-                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 60 - 1}px, rgba(255,255,255,0.55) ${PX_PER_MIN * 60 - 1}px, rgba(255,255,255,0.55) ${PX_PER_MIN * 60}px)`,
+                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 60 - 1}px, rgba(0,0,0,0.07) ${PX_PER_MIN * 60 - 1}px, rgba(0,0,0,0.07) ${PX_PER_MIN * 60}px)`,
                   // 15-minute lines
-                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 15 - 1}px, rgba(255,255,255,0.28) ${PX_PER_MIN * 15 - 1}px, rgba(255,255,255,0.28) ${PX_PER_MIN * 15}px)`,
+                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 15 - 1}px, rgba(0,0,0,0.03) ${PX_PER_MIN * 15 - 1}px, rgba(0,0,0,0.03) ${PX_PER_MIN * 15}px)`,
                 ].join(","),
               }}
             >
@@ -1030,6 +1030,7 @@ function Timeline({
                 className="pointer-events-none absolute inset-x-0 z-10 h-px"
                 style={{ top: nowTop, background: ACCENT, opacity: 0.28 }}
               />
+
 
 
               {services.map((s) => {
@@ -1091,15 +1092,14 @@ function Timeline({
                     />
 
                     <div className="flex flex-1 flex-col px-3 pt-3 pb-2.5">
-                      {/* Time — big, monospace, sits at the top so it reads first */}
-                      <div className="flex items-baseline justify-between gap-2">
+                      {/* Time — from on one line, to on the next, so it reads calmly */}
+                      <div className="flex items-start justify-between gap-2">
                         <div
-                          className="whitespace-nowrap text-[14px] font-semibold tabular-nums leading-none tracking-tight"
+                          className="whitespace-nowrap text-[15px] font-semibold tabular-nums leading-[1.15] tracking-tight"
                           style={{ color: metaColor, fontFamily: MONO }}
                         >
-                          {fmt(s.start)}
-                          <span className="mx-1 opacity-40">–</span>
-                          {fmt(s.end)}
+                          <div>{fmt(s.start)}</div>
+                          <div style={{ opacity: 0.55 }}>{fmt(s.end)}</div>
                         </div>
                         <div
                           className="shrink-0 whitespace-nowrap text-[10.5px] font-semibold tabular-nums tracking-[0.08em]"
@@ -1108,6 +1108,7 @@ function Timeline({
                           {duration}m
                         </div>
                       </div>
+
 
                       {/* Service — the offering, in the room's chroma */}
                       <div
