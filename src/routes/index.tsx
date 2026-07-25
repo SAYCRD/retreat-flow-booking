@@ -1236,6 +1236,7 @@ function Timeline({
   const TAIL_PX_PER_MIN = 1.2; // compress the quiet evening tail so midnight doesn't feel empty
   const TIME_COL = 88;
   const HEADER_H = 64;
+  const TOP_PAD = 36; // breathing room above 5 AM so the first hour label isn't clipped by the sticky header
   const gridRef = useRef<HTMLDivElement>(null);
   const scrolledRef = useRef(false);
 
@@ -1255,7 +1256,7 @@ function Timeline({
     };
   }, [compressAfter]);
 
-  const trackHeight = minToPx(DAY_SPAN);
+  const trackHeight = TOP_PAD + minToPx(DAY_SPAN);
 
   // Group whispers by the service they touch, so the calendar can render
   // little living notes right above each card ("footprints", "broom", "tea").
@@ -1385,16 +1386,16 @@ function Timeline({
     return out;
   }, []);
 
-  const hourTops = useMemo(() => hours.map((h) => minToPx(h * 60 - DAY_START)), [hours, minToPx]);
+  const hourTops = useMemo(() => hours.map((h) => TOP_PAD + minToPx(h * 60 - DAY_START)), [hours, minToPx]);
   const quarterTops = useMemo(() => {
     const out: number[] = [];
     for (let m = 15; m <= compressAfter; m += 15) {
-      if (m % 60 !== 0) out.push(minToPx(m));
+      if (m % 60 !== 0) out.push(TOP_PAD + minToPx(m));
     }
     return out;
   }, [compressAfter, minToPx]);
 
-  const nowTop = minToPx(nowMin);
+  const nowTop = TOP_PAD + minToPx(nowMin);
 
   // On first load, scroll the calendar so the current time is visible near the
   // top of the viewport instead of showing 9 AM when it's mid-afternoon.
@@ -1405,7 +1406,7 @@ function Timeline({
     scrolledRef.current = true;
     const rect = gridRef.current.getBoundingClientRect();
     const gridTop = rect.top + window.scrollY;
-    // Offset for sticky header (44) + sticky Coming Up strip (~88) + room headers + breathing room.
+    // Offset for sticky header (44) + sticky Coming Up strip (~88) + room headers + top bounce.
     const target = gridTop + nowTop - 180;
     smoothScrollTo(Math.max(0, target), 1400);
   }, [nowTop, activeCueId]);
@@ -1466,6 +1467,14 @@ function Timeline({
           className="relative shrink-0 border-r border-black/[0.06]"
           style={{ width: TIME_COL }}
         >
+          {/* Soft bounce cap at the top — gives 5 AM breathing room and a gentle start */}
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 z-0 rounded-b-[18px]"
+            style={{
+              height: TOP_PAD,
+              background: "linear-gradient(180deg, rgba(0,0,0,0.045) 0%, rgba(0,0,0,0.015) 55%, transparent 100%)",
+            }}
+          />
           {hours.map((h, i) => {
             const top = hourTops[i];
             return (
@@ -1490,12 +1499,20 @@ function Timeline({
         {ROOMS.map((room, idx) => {
           const services = SERVICES.filter((s) => s.room === room);
           return (
-            <div
+          <div
               key={room}
               className={`relative min-w-0 flex-1 bg-white ${
                 idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
               }`}
             >
+              {/* Soft bounce cap tinted by the room color — a gentle hill at the top of each column */}
+              <div
+                className="pointer-events-none absolute inset-x-0 top-0 z-0 rounded-b-[18px]"
+                style={{
+                  height: TOP_PAD,
+                  background: `linear-gradient(180deg, ${tint(roomColor(room), 0.92)} 0%, ${tint(roomColor(room), 0.97)} 45%, transparent 100%)`,
+                }}
+              />
               {/* Hour lines */}
               {hourTops.map((top, i) => (
                 <div
@@ -1526,7 +1543,7 @@ function Timeline({
                 const wash = `color-mix(in oklab, ${cueMarker.gc} 34%, white)`;
                 const topPx = cueMarker.after && afterTopPx != null
                   ? afterTopPx
-                  : minToPx(cueMarker.topMin);
+                  : TOP_PAD + minToPx(cueMarker.topMin);
                 const shift = cueMarker.overlapsNext && afterTopPx == null ? "translateY(-28px)" : undefined;
                 const isReset = cueMarker.kind === "reset";
                 return (
@@ -1577,7 +1594,7 @@ function Timeline({
 
 
               {services.map((s) => {
-                const top = minToPx(s.start);
+                const top = TOP_PAD + minToPx(s.start);
                 const height = minToPx(s.end) - minToPx(s.start);
                 const isPast = s.end <= nowMin;
                 const isLive = s.start <= nowMin && s.end > nowMin;
