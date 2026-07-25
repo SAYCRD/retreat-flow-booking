@@ -1168,6 +1168,7 @@ function Timeline({
                     onMouseLeave={(e) => {
                       e.currentTarget.style.boxShadow = baseShadow;
                     }}
+                    onClick={() => onOpenService?.(s.id)}
                     title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
                   >
                     {/* Top color rail — thinner, high-chroma, thickens subtly on hover */}
