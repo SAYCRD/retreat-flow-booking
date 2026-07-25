@@ -229,9 +229,9 @@ function generatePrompts(nowMin: number): Prompt[] {
     }
   });
 
-  // 2b. Room resets — EVERY completed session needs the room reset. Fires the
-  // moment a session ends and stays live for ~45 minutes as a generic notify cue
-  // so the right person (practitioner, front desk, or later-defined role) can act.
+  // 2b. Room reset notifications — EVERY completed session needs a reset. Fires
+  // the moment a session ends and stays live for ~45 minutes as a generic notify
+  // cue so the right person (practitioner, front desk, or later-defined role) can act.
   SERVICES.filter((s) => s.end <= nowMin + 2 && s.end > nowMin - 45).forEach((s) => {
     // Skip if a turnover prompt already exists for this ended session (it
     // covers the same reset action ahead of a tight follow-on booking).
@@ -1332,7 +1332,7 @@ function Timeline({
 
     const label =
       activeCue.kind === "reset"
-        ? "" // reset is elegant — just verb + tiny highlight, no room name
+        ? "" // notify is elegant — just verb + tiny highlight, no room name
         : activeCue.kind === "turnover" || activeCue.kind === "setup"
         ? s.room
         : activeCue.kind === "notify"
@@ -1499,7 +1499,7 @@ function Timeline({
               />
 
               {/* Active cue marker — lives in the column as its own element,
-                  separate from the session card, so check-ins/room resets feel
+                  separate from the session card, so check-ins/reset notifications feel
                   like their own actions rather than decoration on a booking. */}
               {cueMarker && cueMarker.room === room && (() => {
                 const Icon = WHISPER_ICON[cueMarker.kind];
