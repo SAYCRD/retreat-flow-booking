@@ -531,7 +531,7 @@ function TimelineLegend() {
 }
 
 function ServiceRow({ s, first }: { s: Service; first: boolean }) {
-  const gc = guestColor(s.guest);
+  const gc = roomColor(s.room);
   return (
     <div
       className={`relative grid grid-cols-12 items-center gap-4 px-5 py-5 pl-7 text-[14px] transition-colors hover:bg-black/[0.015] ${
@@ -551,7 +551,7 @@ function ServiceRow({ s, first }: { s: Service; first: boolean }) {
         </div>
       </div>
       <div className="col-span-5 flex items-center gap-3">
-        <Avatar name={s.guest} />
+        <Avatar name={s.guest} color={gc} />
         <div className="min-w-0">
           <div className="truncate text-[15px] font-semibold tracking-tight text-black">
             {s.guest}
@@ -570,7 +570,7 @@ function ServiceRow({ s, first }: { s: Service; first: boolean }) {
         </div>
       </div>
       <div className="col-span-3">
-        <div className="text-[15px] font-medium">{s.room}</div>
+        <div className="text-[15px] font-medium" style={{ color: gc }}>{s.room}</div>
         <div className="text-[12px] text-black/55" style={{ fontFamily: MONO }}>
           {s.practitioner}
         </div>
@@ -587,21 +587,20 @@ function ServiceRow({ s, first }: { s: Service; first: boolean }) {
   );
 }
 
-function Avatar({ name }: { name: string }) {
+function Avatar({ name, color = NEUTRAL }: { name: string; color?: string }) {
   const initials = name
     .split(/\s+/)
     .slice(0, 2)
     .map((w) => w[0])
     .join("")
     .toUpperCase();
-  const gc = guestColor(name);
   return (
     <div
       className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[13px] font-semibold"
       style={{
-        background: tint(gc, 0.16),
-        color: gc,
-        boxShadow: `inset 0 0 0 1.5px ${tint(gc, 0.45)}`,
+        background: tint(color, 0.16),
+        color,
+        boxShadow: `inset 0 0 0 1.5px ${tint(color, 0.45)}`,
       }}
     >
       {initials}
