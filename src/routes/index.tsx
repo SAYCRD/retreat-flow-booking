@@ -627,26 +627,6 @@ function TodayPage() {
             <span className="text-[13px] font-medium tracking-tight text-black/80">Seondya</span>
           </div>
 
-          <nav className="hidden items-center gap-0.5 md:flex">
-            {NAV.map((item, i) => (
-              <button
-                key={item.label}
-                className={`group flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[12px] transition-colors ${
-                  i === 0 ? "bg-black/[0.05] text-black" : "text-black/45 hover:bg-black/[0.03] hover:text-black/70"
-                }`}
-              >
-                {item.label}
-                <span
-                  className={`hidden rounded-[3px] px-1 text-[9px] font-medium tracking-wide md:inline ${
-                    i === 0 ? "bg-black/10 text-black/55" : "bg-black/[0.03] text-black/30 group-hover:bg-black/[0.06]"
-                  }`}
-                  style={{ fontFamily: MONO }}
-                >
-                  {item.key}
-                </span>
-              </button>
-            ))}
-          </nav>
 
           <div className="ml-auto flex items-center gap-2">
             <button
