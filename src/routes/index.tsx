@@ -1826,7 +1826,7 @@ function FocusOverlay({ cue, onClose }: { cue: Prompt; onClose: () => void }) {
       case "turnover":
         base.push(
           { icon: DoorOpen, label: "Close out prior session", hint: "Escort guest out, collect linens." },
-          { icon: BellRing, label: "Notify reset", hint: "Let the right person know the room needs refreshing." },
+          { icon: Brush, label: "Reset room", hint: "Sweep, refresh, and make the space feel new again." },
           { icon: Sparkles, label: "Set for next service", hint: service ? `Prepare for ${service.service}` : "Prepare space" },
         );
         break;
