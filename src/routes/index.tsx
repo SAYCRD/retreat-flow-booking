@@ -952,9 +952,9 @@ function Timeline({
                 background:
                   "repeating-linear-gradient(to bottom, transparent 0, transparent calc(" +
                   PX_PER_MIN * 60 +
-                  "px - 1px), rgba(0,0,0,0.05) calc(" +
+                  "px - 1px), rgba(0,0,0,0.04) calc(" +
                   PX_PER_MIN * 60 +
-                  "px - 1px), rgba(0,0,0,0.05) " +
+                  "px - 1px), rgba(0,0,0,0.04) " +
                   PX_PER_MIN * 60 +
                   "px)",
               }}
@@ -970,33 +970,18 @@ function Timeline({
                 const height = (s.end - s.start) * PX_PER_MIN;
                 const isPast = s.end <= nowMin;
                 const isLive = s.start <= nowMin && s.end > nowMin;
+                const isRequest = s.status === "requested";
                 const gc = roomColor(s.room);
 
-                const style: React.CSSProperties = (() => {
-                  if (s.status === "requested")
-                    return {
-                      background: "#fffbeb",
-                      border: "1px dashed rgba(217,119,6,0.6)",
-                      boxShadow: `inset 0 4px 0 0 ${gc}`,
-                    };
-                  if (isLive)
-                    return {
-                      background: tint(gc, 0.12),
-                      border: `1px solid ${tint(gc, 0.4)}`,
-                      boxShadow: `inset 0 4px 0 0 ${gc}`,
-                    };
-                  if (isPast)
-                    return {
-                      background: "#f7f7f7",
-                      border: "1px solid rgba(0,0,0,0.06)",
-                      boxShadow: `inset 0 4px 0 0 ${tint(gc, 0.5)}`,
-                    };
-                  return {
-                    background: tint(gc, 0.07),
-                    border: `1px solid ${tint(gc, 0.28)}`,
-                    boxShadow: `inset 0 4px 0 0 ${gc}`,
-                  };
-                })();
+                // Clean card: transparent body, strong left color rail, no fills.
+                const rail = isRequest
+                  ? "repeating-linear-gradient(to bottom, #d97706 0 6px, transparent 6px 10px)"
+                  : isPast
+                    ? tint(gc, 0.55)
+                    : gc;
+                const guestColor = isPast ? "rgba(0,0,0,0.42)" : "#0a0a0a";
+                const serviceColor = isPast ? "rgba(0,0,0,0.38)" : gc;
+                const metaColor = isPast ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.55)";
 
                 const isHighlighted = highlightServiceId === s.id;
                 const HighlightIcon = highlightKind ? CUE_ICON[highlightKind] : null;
@@ -1005,14 +990,21 @@ function Timeline({
                 return (
                   <div
                     key={s.id}
-                    className="group absolute left-1.5 right-1.5 flex flex-col overflow-hidden rounded-[2px] px-3 pt-3 pb-2 transition-shadow hover:z-20 hover:shadow-[0_8px_24px_rgba(0,0,0,0.10)]"
+                    className="group absolute left-1 right-1 flex flex-col overflow-hidden pl-4 pr-3 pt-2.5 pb-2 transition-colors hover:z-20 hover:bg-black/[0.02]"
                     style={{
                       top: top + 2,
                       height: Math.max(height - 4, 60),
-                      ...style,
+                      background: isLive ? tint(gc, 0.06) : "transparent",
                     }}
                     title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
                   >
+                    {/* Left color rail */}
+                    <span
+                      aria-hidden
+                      className="absolute left-0 top-1 bottom-1 w-[3px] rounded-full"
+                      style={{ background: rail }}
+                    />
+
                     {isHighlighted && HighlightIcon && (
                       <span
                         aria-hidden
@@ -1036,27 +1028,40 @@ function Timeline({
                           />
                         </span>
                       )}
-                      <div className="truncate text-[13px] font-semibold leading-tight tracking-tight text-black">
+                      <div
+                        className="truncate text-[13.5px] font-semibold leading-tight tracking-[-0.01em]"
+                        style={{ color: guestColor, fontFamily: DISPLAY }}
+                      >
                         {s.guest}
                         {s.partySize ? ` +${s.partySize - 1}` : ""}
                       </div>
+                      {isRequest && (
+                        <span
+                          className="ml-1 rounded-sm px-1 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em]"
+                          style={{ color: "#b45309", background: "rgba(217,119,6,0.10)", fontFamily: MONO }}
+                        >
+                          Request
+                        </span>
+                      )}
                     </div>
                     <div
-                      className="mt-1.5 text-[16px] font-semibold leading-[1.15] tracking-tight"
-                      style={{ color: gc }}
+                      className="mt-1 text-[17px] font-semibold leading-[1.1] tracking-[-0.02em]"
+                      style={{ color: serviceColor, fontFamily: DISPLAY }}
                     >
                       {s.service}
                     </div>
-                    <div className="mt-1 text-[12px] leading-tight text-black/65">
+                    <div
+                      className="mt-1 truncate text-[12px] leading-tight"
+                      style={{ color: metaColor }}
+                    >
                       {s.practitioner}
                     </div>
                     <div
-                      className="mt-auto pt-2 text-[11px] font-semibold tabular-nums text-black/60"
-                      style={{ fontFamily: MONO }}
+                      className="mt-auto pt-2 text-[11px] font-semibold tabular-nums"
+                      style={{ color: metaColor, fontFamily: MONO }}
                     >
                       {fmt(s.start)} – {fmt(s.end)}
                     </div>
-
                   </div>
                 );
               })}
