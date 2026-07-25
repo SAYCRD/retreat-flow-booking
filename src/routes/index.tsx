@@ -334,37 +334,19 @@ function TodayPage() {
       {/* Coming up — label sits above the divider; strip carries only what matters */}
       <section className="relative bg-white">
         {/* label above the top hairline */}
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between px-6 pt-4 pb-2">
-          <div className="flex items-center gap-2">
-            <span
-              className="text-[10px] uppercase tracking-[0.22em] text-black/40"
-              style={{ fontFamily: MONO }}
-            >
-              Coming up
-            </span>
-            <span
-              className="text-[10px] tabular-nums text-black/30"
-              style={{ fontFamily: MONO }}
-            >
-              {String(cueIdx + 1).padStart(2, "0")} / {String(CUES.length).padStart(2, "0")}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={prevCue}
-              aria-label="Previous"
-              className="grid h-7 w-7 place-items-center text-[16px] text-black/35 transition-colors hover:text-black"
-            >
-              ‹
-            </button>
-            <button
-              onClick={nextCue}
-              aria-label="Next"
-              className="grid h-7 w-7 place-items-center text-[16px] text-black/35 transition-colors hover:text-black"
-            >
-              ›
-            </button>
-          </div>
+        <div className="mx-auto flex max-w-[1440px] items-center gap-2 px-6 pt-4 pb-2">
+          <span
+            className="text-[10px] uppercase tracking-[0.22em] text-black/40"
+            style={{ fontFamily: MONO }}
+          >
+            Coming up
+          </span>
+          <span
+            className="text-[10px] tabular-nums text-black/30"
+            style={{ fontFamily: MONO }}
+          >
+            {String(cueIdx + 1).padStart(2, "0")} / {String(CUES.length).padStart(2, "0")}
+          </span>
         </div>
 
         {/* the strip itself — hairline top and bottom, information-first */}
@@ -428,11 +410,31 @@ function TodayPage() {
             <button
               className="shrink-0 text-[13.5px] font-medium text-black/80 underline decoration-black/20 underline-offset-4 transition-colors hover:decoration-black"
               onClick={nextCue}
+
             >
               {cue.primary}
             </button>
           </div>
+
+          {/* Arrows anchored bottom-right of the strip — larger, easier to reach */}
+          <div className="mx-auto flex max-w-[1440px] items-center justify-end gap-1 px-6 pb-3">
+            <button
+              onClick={prevCue}
+              aria-label="Previous cue"
+              className="grid h-9 w-9 place-items-center rounded-full text-[18px] text-black/45 transition-colors hover:bg-black/[0.04] hover:text-black"
+            >
+              ‹
+            </button>
+            <button
+              onClick={nextCue}
+              aria-label="Next cue"
+              className="grid h-9 w-9 place-items-center rounded-full text-[18px] text-black/45 transition-colors hover:bg-black/[0.04] hover:text-black"
+            >
+              ›
+            </button>
+          </div>
         </div>
+
       </section>
 
 
