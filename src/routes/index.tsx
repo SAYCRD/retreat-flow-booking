@@ -839,10 +839,24 @@ function PaidPill({ paid }: { paid: boolean }) {
 // Timeline
 // ------------------------------------------------------------------
 
-function Timeline({ nowMin, highlightServiceId, highlightKind, highlightUrgent }: { nowMin: number; highlightServiceId?: string; highlightKind?: CueKind; highlightUrgent?: boolean }) {
+function Timeline({
+  nowMin,
+  highlightServiceId,
+  highlightKind,
+  highlightUrgent,
+  activeRoom,
+  onRoomClick,
+}: {
+  nowMin: number;
+  highlightServiceId?: string;
+  highlightKind?: CueKind;
+  highlightUrgent?: boolean;
+  activeRoom?: string | null;
+  onRoomClick?: (room: string) => void;
+}) {
   const PX_PER_MIN = 2.4; // 144px per hour vertical
   const TIME_COL = 88;
-  const HEADER_H = 56;
+  const HEADER_H = 64;
   const trackHeight = DAY_SPAN * PX_PER_MIN;
 
   const hours = useMemo(() => {
@@ -865,23 +879,31 @@ function Timeline({ nowMin, highlightServiceId, highlightKind, highlightUrgent }
         </div>
         {ROOMS.map((room, idx) => {
           const count = SERVICES.filter((s) => s.room === room).length;
+          const rc = roomColor(room);
+          const isActive = activeRoom === room;
           return (
-            <div
+            <button
               key={room}
-              className={`flex min-w-0 flex-1 flex-col justify-center px-4 ${
+              type="button"
+              onClick={() => onRoomClick?.(room)}
+              className={`group flex min-w-0 flex-1 flex-col justify-center px-4 text-left transition-colors ${
                 idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
-              }`}
+              } ${isActive ? "" : "hover:bg-black/[0.02]"}`}
             >
-              <div className="truncate text-[15px] font-semibold tracking-tight text-black">
-                {room}
+              <div className="truncate text-[20px] font-semibold leading-tight tracking-[-0.02em] text-black">
+                {isActive ? (
+                  <Highlight color={tint(rc, 0.5)}>{room}</Highlight>
+                ) : (
+                  room
+                )}
               </div>
               <div
-                className="text-[11px] font-medium text-black/45"
+                className="mt-0.5 text-[11px] font-medium text-black/45"
                 style={{ fontFamily: MONO }}
               >
                 {count} booking{count === 1 ? "" : "s"}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
