@@ -580,12 +580,14 @@ function SectionHeader({
   count,
   trailing,
   highlightColor,
+  icon: Icon,
 }: {
   eyebrow: string;
   label: string;
   count: number;
   trailing?: React.ReactNode;
   highlightColor?: string;
+  icon?: React.ComponentType<{ size?: number; strokeWidth?: number }>;
 }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-4">
@@ -593,6 +595,11 @@ function SectionHeader({
         <span className="text-[12px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
           {eyebrow}
         </span>
+        {Icon && (
+          <span className="self-center text-black/70">
+            <Icon size={22} strokeWidth={1.75} />
+          </span>
+        )}
         <h2 className="text-[26px] font-semibold tracking-[-0.02em]">
           {highlightColor ? <Highlight color={highlightColor}>{label}</Highlight> : label}
         </h2>
