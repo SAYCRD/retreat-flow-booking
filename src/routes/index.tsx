@@ -1,19 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush, ClipboardCheck, Bell, ArrowRight } from "lucide-react";
+import { MessageSquare, Footprints, RefreshCcw, Sparkles, Sparkle, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush, ClipboardCheck, Bell, BellRing, ArrowRight, HandHeart, Wand2, Flower2, Wind, PartyPopper, Hand, Feather } from "lucide-react";
 
 const WHISPER_ICON = {
   message: MessageSquare,
-  notify: Bell,
+  notify: BellRing,
   escort: Footprints,
-  checkin: ClipboardCheck,
-  turnover: Brush,
-  reset: Brush,
-  setup: Sparkles,
-  pickup: ArrowRight,
-  handoff: Radio,
+  checkin: HandHeart,
+  turnover: Wind,
+  reset: Feather,
+  setup: Flower2,
+  pickup: Hand,
+  handoff: Wand2,
   elixir: Coffee,
-  payment: CreditCard,
+  payment: PartyPopper,
   conflict: AlertTriangle,
 } as const;
 
