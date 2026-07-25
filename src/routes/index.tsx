@@ -1458,16 +1458,15 @@ function Timeline({
           className="relative shrink-0 border-r border-black/[0.06]"
           style={{ width: TIME_COL }}
         >
-          {hours.map((h) => {
-            const top = (h * 60 - DAY_START) * PX_PER_MIN;
+          {hours.map((h, i) => {
+            const top = hourTops[i];
             return (
               <div
                 key={h}
                 className="absolute right-3 -translate-y-1/2 text-[13px] font-semibold text-black/55"
                 style={{ top, fontFamily: MONO }}
               >
-                {((h + 11) % 12) + 1}
-                {h >= 12 ? " PM" : " AM"}
+                {fmt(h * 60 - DAY_START)}
               </div>
             );
           })}
