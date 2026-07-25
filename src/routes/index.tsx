@@ -594,6 +594,7 @@ function TodayPage() {
               highlightUrgent={cue.urgent}
               activeRoom={activeRoom}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
+              onOpenService={(id) => setOpenServiceId(id)}
             />
           </div>
         </div>
