@@ -1001,7 +1001,7 @@ function Timeline({
           })}
           <div
             className="absolute right-2 -translate-y-1/2 text-[9.5px] font-semibold tracking-[0.14em]"
-            style={{ top: nowTop, color: ACCENT, fontFamily: MONO, opacity: 0.7 }}
+            style={{ top: nowTop, color: ACCENT, fontFamily: MONO, opacity: 0.35 }}
           >
             NOW
           </div>
