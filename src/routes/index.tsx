@@ -550,6 +550,7 @@ function TodayPage() {
   const now = useNow();
   const nowMin = useNowMin();
   const [cueIdx, setCueIdx] = useState(0);
+  const [resolvedIds, setResolvedIds] = useState<Set<string>>(() => new Set());
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
   const [focusOpen, setFocusOpen] = useState(false);
   const [conflictDismissed, setConflictDismissed] = useState(false);
