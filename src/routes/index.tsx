@@ -518,13 +518,14 @@ function TodayPage() {
 
   // When the active cue changes, scroll the linked reservation card into view
   // so the operator's eyes travel to the exact card the notification is about.
+  // We leave extra room above the card so the pre-session whisper (the actual
+  // action item) is fully visible below the sticky header + strip + room headers.
   useEffect(() => {
     if (!cue?.serviceId) return;
     const el = document.getElementById(`svc-${cue.serviceId}`);
     if (!el) return;
-    // Account for the sticky header (~48) + Coming Up strip (~49) + room
-    // headers (~64) so the card lands just below them with breathing room.
-    const stickyOffset = 48 + 49 + 64 + 24;
+    // header (48) + Coming Up strip (~68) + room headers (64) + whisper space.
+    const stickyOffset = 48 + 68 + 64 + 48;
     const rect = el.getBoundingClientRect();
     const target = window.scrollY + rect.top - stickyOffset;
     window.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
@@ -1204,7 +1205,7 @@ function Timeline({
       {/* Room headers — stick under the top bar + Coming Up strip while the calendar scrolls */}
       <div
         className="sticky z-10 flex border-b border-black/[0.08] bg-white/95 backdrop-blur-md"
-        style={{ height: HEADER_H, top: 97 }}
+        style={{ height: HEADER_H, top: 120 }}
       >
         <div
           className="flex shrink-0 items-center justify-end border-r border-black/[0.06] pr-4 text-[11px] uppercase tracking-[0.14em] text-black/45"
