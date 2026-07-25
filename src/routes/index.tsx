@@ -1258,7 +1258,7 @@ function Timeline({
           ? s.practitioner.replace(/^(Dr\.?|Mr\.?|Ms\.?)\s+/i, "").split(/\s+/)[0]
           : firstName(s.guest);
 
-    const verb = {
+    const verb = ({
       notify: "Notify",
       checkin: "Check in",
       escort: "Walk in",
@@ -1266,7 +1266,12 @@ function Timeline({
       setup: "Set up",
       elixir: "Tea for",
       pickup: "Pick up",
-    }[activeCue.kind];
+      message: "",
+      handoff: "",
+      payment: "",
+      conflict: "",
+    } as Record<WhisperKind, string>)[activeCue.kind];
+
 
     return { topMin, label, verb, kind: activeCue.kind, room: s.room, gc: roomColor(s.room) };
   }, [activeCue]);
