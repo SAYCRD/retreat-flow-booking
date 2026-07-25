@@ -8,6 +8,7 @@ const WHISPER_ICON = {
   escort: Footprints,
   checkin: ClipboardCheck,
   turnover: Brush,
+  reset: Brush,
   setup: Sparkles,
   pickup: ArrowRight,
   handoff: Radio,
@@ -50,7 +51,7 @@ type Service = {
   note?: string;
 };
 
-type WhisperKind = "message" | "notify" | "escort" | "checkin" | "turnover" | "setup" | "pickup" | "handoff" | "elixir" | "payment" | "conflict";
+type WhisperKind = "message" | "notify" | "escort" | "checkin" | "turnover" | "reset" | "setup" | "pickup" | "handoff" | "elixir" | "payment" | "conflict";
 type Prompt = {
   id: string;
   kind: WhisperKind;
@@ -224,6 +225,28 @@ function generatePrompts(nowMin: number): Prompt[] {
       }
     }
   });
+
+  // 2b. Room resets — EVERY completed session needs the room reset. Fires the
+  // moment a session ends and stays live for ~45 minutes so housekeeping has a
+  // clear signal even when no back-to-back booking follows.
+  SERVICES.filter((s) => s.end <= nowMin + 2 && s.end > nowMin - 45).forEach((s) => {
+    // Skip if a turnover prompt already exists for this ended session (it
+    // covers the same reset action ahead of a tight follow-on booking).
+    const hasTurnover = out.some(
+      (p) => (p.kind === "turnover" || p.kind === "setup") && p.id.includes(`-${s.id}-`),
+    );
+    if (hasTurnover) return;
+    out.push({
+      id: `reset-${s.id}`,
+      kind: "reset",
+      headline: `Reset ${s.room} after ${firstName(s.guest)}`,
+      reason: `${s.service} ended ${fmt(s.end)} · notify housekeeping`,
+      room: s.room,
+      serviceId: s.id,
+      primary: "Room reset",
+    });
+  });
+
 
   // 3. Elixir windows — a guest has a break between two services.
   const byGuest: Record<string, Service[]> = {};
@@ -648,8 +671,8 @@ function TodayPage() {
         className="sticky z-20 border-y border-black/[0.08] backdrop-blur-md"
         style={{
           top: 44,
-          background: "rgba(255,253,244,0.97)",
-          boxShadow: "0 1px 0 rgba(253,224,71,0.35) inset, 0 18px 50px -20px rgba(0,0,0,0.18)",
+          background: "rgba(253,242,248,0.97)",
+          boxShadow: "0 1px 0 rgba(244,114,182,0.28) inset, 0 18px 50px -20px rgba(0,0,0,0.18)",
         }}
       >
         <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-6 py-6">
@@ -1212,7 +1235,7 @@ function Timeline({
     return map;
   }, [whispers]);
 
-  const preSessionKinds: WhisperKind[] = ["notify", "checkin", "escort", "turnover", "setup", "elixir", "pickup"];
+  const markerKinds: WhisperKind[] = ["notify", "checkin", "escort", "turnover", "setup", "elixir", "pickup", "reset", "payment"];
 
   // The one currently highlighted cue gets its own marker on the timeline,
   // separate from the session card, so check-ins and room resets read as
@@ -1222,7 +1245,7 @@ function Timeline({
   const cueMarker = useMemo(() => {
     if (!activeCue?.serviceId) return null;
     const s = SERVICES.find((x) => x.id === activeCue.serviceId);
-    if (!s || !preSessionKinds.includes(activeCue.kind)) return null;
+    if (!s || !markerKinds.includes(activeCue.kind)) return null;
 
     const roomServices = SERVICES.filter((x) => x.room === s.room).sort((a, b) => a.start - b.start);
     const prevInRoom = roomServices.find((s2, i, arr) => arr[i + 1]?.id === s.id);
@@ -1231,12 +1254,14 @@ function Timeline({
     const prevGuest = guestIdx > 0 ? guestServices[guestIdx - 1] : null;
 
     let topMin: number;
+    let after = false; // marker sits after the session card, not before
     switch (activeCue.kind) {
       case "checkin":
         topMin = s.start - 15;
         break;
       case "escort":
-        topMin = s.start - 5;
+        // Give the "Walk in" marker meaningful breathing room above the card.
+        topMin = s.start - 12;
         break;
       case "notify":
         topMin = s.start - 20;
@@ -1251,13 +1276,21 @@ function Timeline({
       case "elixir":
         topMin = prevGuest ? Math.round((prevGuest.end + s.start) / 2) : s.start - 10;
         break;
+      case "reset":
+        topMin = s.end + 2;
+        after = true;
+        break;
+      case "payment":
+        topMin = s.end + 2;
+        after = true;
+        break;
       default:
         topMin = s.start - 10;
     }
     topMin = Math.max(0, topMin);
 
     const label =
-      activeCue.kind === "turnover" || activeCue.kind === "setup"
+      activeCue.kind === "turnover" || activeCue.kind === "setup" || activeCue.kind === "reset"
         ? s.room
         : activeCue.kind === "notify"
           ? s.practitioner.replace(/^(Dr\.?|Mr\.?|Ms\.?)\s+/i, "").split(/\s+/)[0]
@@ -1268,17 +1301,18 @@ function Timeline({
       checkin: "Check in",
       escort: "Walk in",
       turnover: "Reset",
+      reset: "Reset room",
       setup: "Set up",
       elixir: "Tea for",
       pickup: "Pick up",
+      payment: "Checkout",
       message: "",
       handoff: "",
-      payment: "",
       conflict: "",
     } as Record<WhisperKind, string>)[activeCue.kind];
 
 
-    return { topMin, label, verb, kind: activeCue.kind, room: s.room, gc: roomColor(s.room) };
+    return { topMin, label, verb, after, kind: activeCue.kind, room: s.room, gc: roomColor(s.room) };
   }, [activeCue]);
 
 
@@ -1425,7 +1459,7 @@ function Timeline({
                       </span>
                     </div>
                     <div
-                      className="absolute inset-x-0 top-[26px] border-t border-dashed"
+                      className={`absolute inset-x-0 border-t border-dashed ${cueMarker.after ? "-top-[2px]" : "top-[26px]"}`}
                       style={{ borderColor: cueMarker.gc, opacity: 0.35 }}
                     />
                   </div>
@@ -1479,7 +1513,7 @@ function Timeline({
                 const activeWhisper = (whispersByService[s.id] ?? []).find(
                   (w) => w.id === activeCueId,
                 );
-                const badgeWhisper = activeWhisper && !preSessionKinds.includes(activeWhisper.kind) ? activeWhisper : null;
+                const badgeWhisper = activeWhisper && !markerKinds.includes(activeWhisper.kind) ? activeWhisper : null;
 
 
                 return (
