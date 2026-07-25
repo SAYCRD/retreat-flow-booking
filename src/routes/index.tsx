@@ -431,13 +431,20 @@ function TodayPage() {
               </div>
             </div>
 
-            <button
-              className="shrink-0 text-[13.5px] font-medium text-black/80 underline decoration-black/20 underline-offset-4 transition-colors hover:decoration-black"
-              onClick={nextCue}
-
-            >
-              {cue.primary}
-            </button>
+            <div className="flex shrink-0 items-center gap-4">
+              <button
+                onClick={() => setFocusOpen(true)}
+                className="text-[13.5px] font-medium text-black/60 underline decoration-black/15 underline-offset-4 transition-colors hover:text-black hover:decoration-black"
+              >
+                Focus
+              </button>
+              <button
+                className="text-[13.5px] font-medium text-black/80 underline decoration-black/20 underline-offset-4 transition-colors hover:decoration-black"
+                onClick={nextCue}
+              >
+                {cue.primary}
+              </button>
+            </div>
           </div>
 
           {/* Arrows anchored bottom-right of the strip — larger, easier to reach */}
