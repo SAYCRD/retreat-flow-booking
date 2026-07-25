@@ -719,6 +719,8 @@ function TodayPage() {
               highlightServiceId={cue?.serviceId}
               highlightKind={cue?.kind}
               highlightUrgent={cue?.urgent}
+              whispers={prompts}
+              activeCueId={cue?.id}
               activeRoom={activeRoom}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
