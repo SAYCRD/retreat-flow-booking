@@ -1,19 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush, ClipboardCheck, Bell, ArrowRight } from "lucide-react";
+import { MessageSquare, Footprints, RefreshCcw, Sparkles, Sparkle, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush, ClipboardCheck, Bell, BellRing, ArrowRight, HandHeart, Wand2, Flower2, Wind, PartyPopper, Hand, Feather } from "lucide-react";
 
 const WHISPER_ICON = {
   message: MessageSquare,
-  notify: Bell,
+  notify: BellRing,
   escort: Footprints,
-  checkin: ClipboardCheck,
-  turnover: Brush,
-  reset: Brush,
-  setup: Sparkles,
-  pickup: ArrowRight,
-  handoff: Radio,
+  checkin: HandHeart,
+  turnover: Wind,
+  reset: Feather,
+  setup: Flower2,
+  pickup: Hand,
+  handoff: Wand2,
   elixir: Coffee,
-  payment: CreditCard,
+  payment: PartyPopper,
   conflict: AlertTriangle,
 } as const;
 
@@ -1249,6 +1249,8 @@ function Timeline({
 
     const roomServices = SERVICES.filter((x) => x.room === s.room).sort((a, b) => a.start - b.start);
     const prevInRoom = roomServices.find((s2, i, arr) => arr[i + 1]?.id === s.id);
+    const idxInRoom = roomServices.findIndex((x) => x.id === s.id);
+    const nextInRoom = idxInRoom >= 0 ? roomServices[idxInRoom + 1] ?? null : null;
     const guestServices = SERVICES.filter((x) => x.guest === s.guest).sort((a, b) => a.start - b.start);
     const guestIdx = guestServices.findIndex((x) => x.id === s.id);
     const prevGuest = guestIdx > 0 ? guestServices[guestIdx - 1] : null;
@@ -1289,6 +1291,12 @@ function Timeline({
     }
     topMin = Math.max(0, topMin);
 
+    // If the next session in this room starts right after the current one,
+    // an "after" marker would sit on top of it — nudge it up into the tail
+    // of the current card. The highlighter background keeps it legible.
+    const gapMin = nextInRoom ? nextInRoom.start - s.end : Infinity;
+    const overlapsNext = after && gapMin < 6;
+
     const label =
       activeCue.kind === "turnover" || activeCue.kind === "setup" || activeCue.kind === "reset"
         ? s.room
@@ -1312,7 +1320,7 @@ function Timeline({
     } as Record<WhisperKind, string>)[activeCue.kind];
 
 
-    return { topMin, label, verb, after, kind: activeCue.kind, room: s.room, gc: roomColor(s.room) };
+    return { topMin, label, verb, after, overlapsNext, kind: activeCue.kind, room: s.room, gc: roomColor(s.room) };
   }, [activeCue]);
 
 
@@ -1444,24 +1452,27 @@ function Timeline({
                   like their own actions rather than decoration on a booking. */}
               {cueMarker && cueMarker.room === room && (() => {
                 const Icon = WHISPER_ICON[cueMarker.kind];
+                const wash = `color-mix(in oklab, ${cueMarker.gc} 34%, white)`;
+                const shift = cueMarker.overlapsNext ? "translateY(-28px)" : undefined;
                 return (
                   <div
                     id="active-cue-marker"
                     className="pointer-events-none absolute inset-x-0 z-30"
-                    style={{ top: cueMarker.topMin * PX_PER_MIN }}
+                    style={{ top: cueMarker.topMin * PX_PER_MIN, transform: shift }}
                   >
-                    <div className="flex items-center gap-2 px-2.5 py-1.5">
+                    <div className="mx-2 flex w-fit items-center gap-2 px-2 py-1"
+                      style={{
+                        background: `linear-gradient(178deg, transparent 8%, ${wash} 14%, ${wash} 92%, transparent 98%)`,
+                        borderRadius: "3px 7px 4px 8px",
+                      }}
+                    >
                       <Icon size={16} strokeWidth={2} style={{ color: cueMarker.gc, flexShrink: 0 }} />
                       <span className="text-[13px] font-semibold tracking-tight text-black">
                         {cueMarker.verb}
-                        <span className="mx-1.5 text-black/30">·</span>
+                        <span className="mx-1.5 text-black/40">·</span>
                         {cueMarker.label}
                       </span>
                     </div>
-                    <div
-                      className={`absolute inset-x-0 border-t border-dashed ${cueMarker.after ? "-top-[2px]" : "top-[26px]"}`}
-                      style={{ borderColor: cueMarker.gc, opacity: 0.35 }}
-                    />
                   </div>
                 );
               })()}
