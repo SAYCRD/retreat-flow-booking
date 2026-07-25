@@ -1504,32 +1504,51 @@ function Timeline({
               {cueMarker && cueMarker.room === room && (() => {
                 const Icon = WHISPER_ICON[cueMarker.kind];
                 const wash = `color-mix(in oklab, ${cueMarker.gc} 34%, white)`;
-                // For after-markers, anchor to the card's actual rendered
-                // bottom (cards grow past their time-block when notes wrap).
-                // Fall back to time-based placement until measurement lands.
                 const topPx = cueMarker.after && afterTopPx != null
                   ? afterTopPx
                   : cueMarker.topMin * PX_PER_MIN;
                 const shift = cueMarker.overlapsNext && afterTopPx == null ? "translateY(-28px)" : undefined;
+                const isReset = cueMarker.kind === "reset";
                 return (
                   <div
                     id="active-cue-marker"
                     className="pointer-events-none absolute inset-x-0 z-30"
                     style={{ top: topPx, transform: shift }}
                   >
-                    <div className="mx-2 flex w-fit items-center gap-2 px-2 py-1"
-                      style={{
-                        background: `linear-gradient(178deg, transparent 8%, ${wash} 14%, ${wash} 92%, transparent 98%)`,
-                        borderRadius: "3px 7px 4px 8px",
-                      }}
-                    >
-                      <Icon size={16} strokeWidth={2} style={{ color: cueMarker.gc, flexShrink: 0 }} />
-                      <span className="text-[13px] font-semibold tracking-tight text-black">
-                        {cueMarker.verb}
-                        <span className="mx-1.5 text-black/40">·</span>
-                        {cueMarker.label}
-                      </span>
-                    </div>
+                    {isReset ? (
+                      // Elegant, minimal — a thin marker-pen underline behind
+                      // just the verb, no room name, no card chrome.
+                      <div className="mx-3 flex w-fit items-center gap-1.5">
+                        <Icon size={13} strokeWidth={1.75} style={{ color: cueMarker.gc, flexShrink: 0 }} />
+                        <span
+                          className="text-[12px] font-medium tracking-tight text-black/85"
+                          style={{
+                            backgroundImage: `linear-gradient(transparent 62%, ${wash} 62%, ${wash} 96%, transparent 96%)`,
+                            padding: "0 3px",
+                          }}
+                        >
+                          {cueMarker.verb}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="mx-2 flex w-fit items-center gap-2 px-2 py-1"
+                        style={{
+                          background: `linear-gradient(178deg, transparent 8%, ${wash} 14%, ${wash} 92%, transparent 98%)`,
+                          borderRadius: "3px 7px 4px 8px",
+                        }}
+                      >
+                        <Icon size={16} strokeWidth={2} style={{ color: cueMarker.gc, flexShrink: 0 }} />
+                        <span className="text-[13px] font-semibold tracking-tight text-black">
+                          {cueMarker.verb}
+                          {cueMarker.label && (
+                            <>
+                              <span className="mx-1.5 text-black/40">·</span>
+                              {cueMarker.label}
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
