@@ -1,14 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageSquare, Footprints, RefreshCcw, Sparkles, Sparkle, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush, ClipboardCheck, Bell, BellRing, ArrowRight, HandHeart, Wand2, Flower2, Wind, PartyPopper, Hand, Feather } from "lucide-react";
+import { MessageSquare, Footprints, RefreshCcw, Sparkles, Sparkle, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush, ClipboardCheck, Bell, ArrowRight, HandHeart, Wand2, Flower2, Wind, PartyPopper, Hand, Feather } from "lucide-react";
 
 const WHISPER_ICON = {
   message: MessageSquare,
-  notify: BellRing,
+  notify: Sparkles,
   escort: Footprints,
   checkin: HandHeart,
   turnover: Wind,
-  reset: BellRing,
+  reset: Brush,
   setup: Flower2,
   pickup: Hand,
   handoff: Wand2,
@@ -1321,7 +1321,7 @@ function Timeline({
       checkin: "Check in",
       escort: "Walk in",
       turnover: "Reset",
-      reset: "Notify",
+      reset: "Reset room",
       setup: "Set up",
       elixir: "Tea for",
       pickup: "Pick up",
@@ -1826,7 +1826,7 @@ function FocusOverlay({ cue, onClose }: { cue: Prompt; onClose: () => void }) {
       case "turnover":
         base.push(
           { icon: DoorOpen, label: "Close out prior session", hint: "Escort guest out, collect linens." },
-          { icon: BellRing, label: "Notify reset", hint: "Let the right person know the room needs refreshing." },
+          { icon: Brush, label: "Reset room", hint: "Sweep, refresh, and make the space feel new again." },
           { icon: Sparkles, label: "Set for next service", hint: service ? `Prepare for ${service.service}` : "Prepare space" },
         );
         break;
@@ -1854,7 +1854,7 @@ function FocusOverlay({ cue, onClose }: { cue: Prompt; onClose: () => void }) {
       case "handoff":
         base.push(
           { icon: Waves, label: "Notify practitioner", hint: service ? `${service.practitioner} — short turnover` : "Short turnover heads-up" },
-          { icon: BellRing, label: "Fast notify reset", hint: "Quick heads-up: room needs a fast refresh." },
+          { icon: Brush, label: "Reset room", hint: "Quick sweep and refresh between guests." },
           { icon: UserCheck, label: "Guide next guest in", hint: "Signal ready to front desk." },
         );
         break;
