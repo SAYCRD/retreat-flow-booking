@@ -80,42 +80,44 @@ const SERVICES: Service[] = [
   { id: "s11", guest: "Lena Costa", service: "Grandmother Crystal Bowl", room: "The Temple", practitioner: "Uqualla", start: t(16, 30), end: t(17, 15), status: "confirmed" },
 ];
 
-const ATTENTION: Attention[] = [
+const CUES: Cue[] = [
   {
-    id: "a1",
-    severity: "critical",
-    title: "Om Space double-booked",
-    detail: "Amara's reading ends 2:50 PM. Marcus's Sound Healing starts 2:40 PM. 10-minute overlap.",
-    action: "Resolve",
+    id: "c1",
+    headline: "Text Amara — arrival window open",
+    reason: "Intuitive Reading · Om Space · 2:00 PM",
+    room: "Om Space",
+    primary: "Mark done",
   },
   {
-    id: "a2",
-    severity: "warn",
-    title: "Short turnover · Sofia Park",
-    detail: "Sound Healing in Om Space ends 3:30 PM. Infrared Sauna starts 3:20 PM — 15 min between sessions. Let Sofia know.",
-    action: "Notify Sofia",
+    id: "c2",
+    headline: "Walk Amara to Om Space",
+    reason: "Session begins in 5 min · low light, quiet arrival",
+    room: "Om Space",
+    primary: "Walked in",
   },
   {
-    id: "a3",
-    severity: "warn",
-    title: "Short turnover · The Temple",
-    detail: "Ceremonial Tea ends 3:20 PM. Grandmother Crystal Bowl starts 4:30 PM — reset room, low light, clear tea service.",
-    action: "Mark ready",
+    id: "c3",
+    headline: "Turn Om Space for Sound Healing",
+    reason: "Amara's reading ends 2:50 PM · Marcus arrives 2:40 PM",
+    room: "Om Space",
+    primary: "Room ready",
   },
   {
-    id: "a4",
-    severity: "warn",
-    title: "Room set required · The Temple",
-    detail: "Amara's Ceremonial Tea starts 2:50 PM — 20 min out. Tea service + low light.",
-    action: "Mark ready",
+    id: "c4",
+    headline: "Set The Temple for Ceremonial Tea",
+    reason: "Amara arrives 2:50 PM · tea service, low light",
+    room: "The Temple",
+    primary: "Room ready",
   },
   {
-    id: "a5",
-    severity: "info",
-    title: "Amara · 3-service journey",
-    detail: "Reading → Tea → Infrared. Smooth handoff after 3:20 PM.",
+    id: "c5",
+    headline: "Let Sofia know about short turnover",
+    reason: "Sound Healing ends 3:30 · Infrared Sauna starts 3:20",
+    room: "Infrared Room",
+    primary: "Notified",
   },
 ];
+
 
 const FINANCES = [
   { guest: "Amara Okonkwo", services: 3, amount: 340, paid: false },
