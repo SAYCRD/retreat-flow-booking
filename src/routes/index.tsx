@@ -53,7 +53,9 @@ type Cue = {
   room?: string;         // for accent color
   primary: string;       // primary action label
   urgent?: boolean;      // shows priority pulse + Urgent tag
+  serviceId?: string;    // links cue to a booking card on the timeline
 };
+
 
 
 const ROOMS = [
@@ -101,6 +103,7 @@ const CUES: Cue[] = [
     reason: "Intuitive Reading · Om Space · 2:00 PM",
     room: "Om Space",
     primary: "Mark done",
+    serviceId: "s6",
   },
   {
     id: "c2",
@@ -109,6 +112,7 @@ const CUES: Cue[] = [
     reason: "Session begins in 5 min · low light, quiet arrival",
     room: "Om Space",
     primary: "Walked in",
+    serviceId: "s6",
   },
   {
     id: "c3",
@@ -117,6 +121,7 @@ const CUES: Cue[] = [
     reason: "Amara's reading ends 2:50 PM · Marcus arrives 2:40 PM",
     room: "Om Space",
     primary: "Room ready",
+    serviceId: "s7",
   },
   {
     id: "c4",
@@ -125,6 +130,7 @@ const CUES: Cue[] = [
     reason: "Amara arrives 2:50 PM · tea service, low light",
     room: "The Temple",
     primary: "Room ready",
+    serviceId: "s8",
   },
   {
     id: "c5",
@@ -134,8 +140,10 @@ const CUES: Cue[] = [
     room: "Infrared Room",
     primary: "Notified",
     urgent: true,
+    serviceId: "s9",
   },
 ];
+
 
 
 
@@ -438,7 +446,7 @@ function TodayPage() {
         <div className="mx-auto max-w-[1440px] px-6 py-10">
           <SectionHeader eyebrow="01" label="Rooms" count={ROOMS.length} trailing={<TimelineLegend />} />
           <div className="mt-6">
-            <Timeline nowMin={nowMin} />
+            <Timeline nowMin={nowMin} highlightServiceId={cue.serviceId} highlightUrgent={cue.urgent} />
           </div>
         </div>
       </section>
@@ -780,7 +788,7 @@ function PaidPill({ paid }: { paid: boolean }) {
 // Timeline
 // ------------------------------------------------------------------
 
-function Timeline({ nowMin }: { nowMin: number }) {
+function Timeline({ nowMin, highlightServiceId, highlightUrgent }: { nowMin: number; highlightServiceId?: string; highlightUrgent?: boolean }) {
   const PX_PER_MIN = 2.4; // 144px per hour vertical
   const TIME_COL = 88;
   const HEADER_H = 56;
@@ -914,6 +922,16 @@ function Timeline({ nowMin }: { nowMin: number }) {
                   };
                 })();
 
+                const isHighlighted = highlightServiceId === s.id;
+                const highlightRing: React.CSSProperties = isHighlighted
+                  ? {
+                      outline: `2px solid ${highlightUrgent ? "#f59e0b" : gc}`,
+                      outlineOffset: 2,
+                      zIndex: 15,
+                      boxShadow: `${style.boxShadow ?? ""}, 0 8px 24px ${tint(highlightUrgent ? "#f59e0b" : gc, 0.25)}`.replace(/^,\s*/, ""),
+                    }
+                  : {};
+
                 return (
                   <div
                     key={s.id}
@@ -922,9 +940,25 @@ function Timeline({ nowMin }: { nowMin: number }) {
                       top: top + 2,
                       height: Math.max(height - 4, 60),
                       ...style,
+                      ...highlightRing,
                     }}
                     title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
                   >
+                    {isHighlighted && (
+                      <span
+                        aria-hidden
+                        className="absolute right-2 top-2 flex h-3 w-3"
+                      >
+                        <span
+                          className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-70"
+                          style={{ background: highlightUrgent ? "#f59e0b" : gc }}
+                        />
+                        <span
+                          className="relative inline-flex h-3 w-3 rounded-full ring-2 ring-white"
+                          style={{ background: highlightUrgent ? "#f59e0b" : gc }}
+                        />
+                      </span>
+                    )}
                     <div className="flex items-center gap-1.5">
                       {isLive && (
                         <span className="relative inline-flex h-2 w-2 shrink-0">
@@ -958,6 +992,7 @@ function Timeline({ nowMin }: { nowMin: number }) {
                     >
                       {fmt(s.start)} – {fmt(s.end)}
                     </div>
+
                   </div>
                 );
               })}
