@@ -1423,7 +1423,7 @@ function Timeline({
                       // end; for guest tasks, hover just above this card.
                       const gapMinutes = prevEnd !== null ? s.start - prevEnd : 0;
                       const gapBottom = isRoomTask && gapMinutes > 0
-                        ? Math.max(22, gapMinutes * PX_PER_MIN - 44)
+                        ? Math.min(80, Math.max(28, gapMinutes * PX_PER_MIN * 0.45))
                         : 10;
                       return (
                         <div
