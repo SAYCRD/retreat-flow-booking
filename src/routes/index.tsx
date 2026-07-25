@@ -147,9 +147,37 @@ const DEMO_NOW = t(14, 30);
 const DISPLAY = "'Inter Tight', Inter, system-ui, sans-serif";
 const MONO = "'JetBrains Mono', ui-monospace, monospace";
 
-const ACCENT = "#3730ff"; // electric indigo
-const SURFACE = "#f7f7f5";
+const ACCENT = "#3730ff"; // electric indigo (system accent, not a guest)
+const SURFACE = "#ffffff";
 const INK = "#0a0a0a";
+
+// Curated guest palette — each guest gets a consistent, distinct color that
+// carries through their avatar, their timeline stripe, and their row.
+const GUEST_PALETTE = [
+  "#c85a3c", // terracotta
+  "#b8862f", // ochre
+  "#5f8a54", // moss
+  "#2f8a86", // teal
+  "#4b5cd6", // indigo
+  "#8a4a86", // plum
+  "#c85c7e", // rose
+  "#556b7d", // slate
+  "#d97706", // amber
+  "#0f766e", // deep teal
+] as const;
+
+function guestColor(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return GUEST_PALETTE[h % GUEST_PALETTE.length];
+}
+
+function tint(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 function TodayPage() {
   const now = useNow();
