@@ -467,7 +467,20 @@ function useNow() {
   return now;
 }
 
+// Fallback anchor for the demo timeline when the wall clock sits outside
+// the day span (e.g. late night, early morning). Keeps the choreography
+// engine believable when no one is actually on the property.
 const DEMO_NOW = t(14, 30);
+
+// The intelligence layer runs off the real wall clock: at 4pm you see the
+// 4pm cues (turn over Infrared, set up The Temple, respond to Priya's
+// request), so the system reads as alive and reactive rather than scripted.
+function useNowMin(): number {
+  const now = useNow();
+  const wall = now.getHours() * 60 + now.getMinutes() - DAY_START;
+  if (wall < 0 || wall > DAY_SPAN) return DEMO_NOW;
+  return wall;
+}
 
 // ------------------------------------------------------------------
 
