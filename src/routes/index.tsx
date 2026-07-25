@@ -840,6 +840,10 @@ function TodayPage() {
         </div>
       </section>
 
+      {/* Extra runway so the calendar can scroll far enough to bring late-day
+          action items into the viewport with breathing room below them. */}
+      <div className="h-[600px]" aria-hidden="true" />
+
       <footer className="py-8 text-center text-[11px] text-black/35" style={{ fontFamily: MONO }}>
         SEONDYA · SHIFT 09:00 — 20:00
       </footer>
