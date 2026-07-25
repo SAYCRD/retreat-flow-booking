@@ -539,31 +539,31 @@ function TodayPage() {
       className="min-h-screen antialiased"
       style={{ background: SURFACE, color: INK, fontFamily: DISPLAY }}
     >
-      {/* Top bar */}
-      <header className="sticky top-0 z-30 border-b border-black/[0.08] backdrop-blur-md" style={{ background: "rgba(255,255,255,0.85)" }}>
-        <div className="mx-auto flex max-w-[1440px] items-center gap-8 px-6 py-3">
+      {/* Top bar — quiet, receded navigation so the broadcast bar owns attention */}
+      <header className="sticky top-0 z-30 border-b border-black/[0.06] backdrop-blur-md" style={{ background: "rgba(255,255,255,0.72)" }}>
+        <div className="mx-auto flex max-w-[1440px] items-center gap-6 px-6 py-2.5">
           <div className="flex items-center gap-2">
             <div
-              className="grid h-6 w-6 place-items-center rounded-[6px] text-[11px] font-semibold text-white"
+              className="grid h-5 w-5 place-items-center rounded-[5px] text-[10px] font-semibold text-white"
               style={{ background: INK }}
             >
               S
             </div>
-            <span className="text-[14px] font-semibold tracking-tight">Seondya</span>
+            <span className="text-[13px] font-medium tracking-tight text-black/80">Seondya</span>
           </div>
 
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-0.5 md:flex">
             {NAV.map((item, i) => (
               <button
                 key={item.label}
-                className={`group flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[13px] transition-colors ${
-                  i === 0 ? "bg-black/[0.06] text-black" : "text-black/55 hover:bg-black/[0.04] hover:text-black"
+                className={`group flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[12px] transition-colors ${
+                  i === 0 ? "bg-black/[0.05] text-black" : "text-black/45 hover:bg-black/[0.03] hover:text-black/70"
                 }`}
               >
                 {item.label}
                 <span
                   className={`hidden rounded-[3px] px-1 text-[9px] font-medium tracking-wide md:inline ${
-                    i === 0 ? "bg-black/10 text-black/60" : "bg-black/[0.04] text-black/35 group-hover:bg-black/[0.08]"
+                    i === 0 ? "bg-black/10 text-black/55" : "bg-black/[0.03] text-black/30 group-hover:bg-black/[0.06]"
                   }`}
                   style={{ fontFamily: MONO }}
                 >
@@ -575,20 +575,20 @@ function TodayPage() {
 
           <div className="ml-auto flex items-center gap-2">
             <button
-              className="flex items-center gap-2 rounded-[6px] border border-black/10 bg-white px-2.5 py-1.5 text-[12px] text-black/55 shadow-[0_1px_0_rgba(0,0,0,0.02)] hover:text-black"
+              className="flex items-center gap-2 rounded-[6px] border border-black/10 bg-white/70 px-2 py-1 text-[11.5px] text-black/45 shadow-[0_1px_0_rgba(0,0,0,0.02)] hover:bg-white hover:text-black/60"
             >
-              <span>Search or command</span>
+              <span>Search</span>
               <span
-                className="rounded-[3px] border border-black/10 bg-black/[0.03] px-1 py-px text-[10px] text-black/50"
+                className="rounded-[3px] border border-black/10 bg-black/[0.03] px-1 py-px text-[9.5px] text-black/45"
                 style={{ fontFamily: MONO }}
               >
                 ⌘K
               </span>
             </button>
-            <div className="h-6 w-px bg-black/10" />
-            <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-gradient-to-br from-[#ffb98a] to-[#e06b5c] ring-1 ring-black/10" />
-              <span className="text-[13px] font-medium">Alba</span>
+            <div className="h-5 w-px bg-black/8" />
+            <div className="flex items-center gap-1.5">
+              <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#ffb98a] to-[#e06b5c] ring-1 ring-black/10" />
+              <span className="text-[12px] font-medium text-black/70">Alba</span>
             </div>
           </div>
         </div>
