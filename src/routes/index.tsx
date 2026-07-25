@@ -4,11 +4,11 @@ import { MessageSquare, Footprints, RefreshCcw, Sparkles, Sparkle, Radio, Calend
 
 const WHISPER_ICON = {
   message: MessageSquare,
-  notify: BellRing,
+  notify: Sparkles,
   escort: Footprints,
   checkin: HandHeart,
   turnover: Wind,
-  reset: BellRing,
+  reset: Brush,
   setup: Flower2,
   pickup: Hand,
   handoff: Wand2,
