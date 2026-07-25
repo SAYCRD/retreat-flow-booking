@@ -1249,6 +1249,8 @@ function Timeline({
 
     const roomServices = SERVICES.filter((x) => x.room === s.room).sort((a, b) => a.start - b.start);
     const prevInRoom = roomServices.find((s2, i, arr) => arr[i + 1]?.id === s.id);
+    const idxInRoom = roomServices.findIndex((x) => x.id === s.id);
+    const nextInRoom = idxInRoom >= 0 ? roomServices[idxInRoom + 1] ?? null : null;
     const guestServices = SERVICES.filter((x) => x.guest === s.guest).sort((a, b) => a.start - b.start);
     const guestIdx = guestServices.findIndex((x) => x.id === s.id);
     const prevGuest = guestIdx > 0 ? guestServices[guestIdx - 1] : null;
@@ -1289,6 +1291,12 @@ function Timeline({
     }
     topMin = Math.max(0, topMin);
 
+    // If the next session in this room starts right after the current one,
+    // an "after" marker would sit on top of it — nudge it up into the tail
+    // of the current card. The highlighter background keeps it legible.
+    const gapMin = nextInRoom ? nextInRoom.start - s.end : Infinity;
+    const overlapsNext = after && gapMin < 6;
+
     const label =
       activeCue.kind === "turnover" || activeCue.kind === "setup" || activeCue.kind === "reset"
         ? s.room
@@ -1312,7 +1320,7 @@ function Timeline({
     } as Record<WhisperKind, string>)[activeCue.kind];
 
 
-    return { topMin, label, verb, after, kind: activeCue.kind, room: s.room, gc: roomColor(s.room) };
+    return { topMin, label, verb, after, overlapsNext, kind: activeCue.kind, room: s.room, gc: roomColor(s.room) };
   }, [activeCue]);
 
 
