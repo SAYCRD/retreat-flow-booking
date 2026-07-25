@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight } from "lucide-react";
+import { MessageSquare, Footprints, RefreshCcw, Sparkles, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves } from "lucide-react";
 
 const CUE_ICON = {
   message: MessageSquare,
@@ -88,9 +88,9 @@ const SERVICES: Service[] = [
   { id: "s4", guest: "Nadia Farrow", service: "Cupping", room: "The Temple", practitioner: "Maya Chen", start: t(11, 15), end: t(11, 45), status: "confirmed" },
   { id: "s5", guest: "Gerald & June Pierce", partySize: 2, service: "Couples Ayurvedic Massage", room: "Ayurveda Room", practitioner: "Daniel Reyes", start: t(13, 30), end: t(15), status: "in-session", note: "25th anniversary · June has a hip injury" },
   { id: "s6", guest: "Amara Okonkwo", service: "Intuitive Reading", room: "Om Space", practitioner: "Uqualla", start: t(14), end: t(14, 50), status: "in-session", note: "Return guest · prefers low light and quiet arrival" },
-  { id: "s7", guest: "Marcus Hale", service: "Sound Healing", room: "Om Space", practitioner: "Sofia Park", start: t(14, 40), end: t(15, 30), status: "confirmed" },
-  { id: "s8", guest: "Amara Okonkwo", service: "Ceremonial Tea & Integration", room: "The Temple", practitioner: "Uqualla", start: t(14, 50), end: t(15, 20), status: "confirmed" },
-  { id: "s9", guest: "Amara Okonkwo", service: "Infrared Sauna", room: "Infrared Room", practitioner: "Sofia Park", start: t(15, 20), end: t(16, 5), status: "confirmed" },
+  { id: "s7", guest: "Marcus Hale", service: "Sound Healing", room: "Buddha Massage", practitioner: "Sofia Park", start: t(14, 40), end: t(15, 30), status: "confirmed", note: "First visit · greet at door" },
+  { id: "s8", guest: "Amara Okonkwo", service: "Ceremonial Tea & Integration", room: "The Temple", practitioner: "Uqualla", start: t(14, 50), end: t(15, 20), status: "confirmed", note: "Part 2 of 3 · Amara's afternoon journey" },
+  { id: "s9", guest: "Amara Okonkwo", service: "Infrared Sauna", room: "Infrared Room", practitioner: "Sofia Park", start: t(15, 20), end: t(16, 5), status: "confirmed", note: "Part 3 of 3 · closes Amara's journey" },
   { id: "s10", guest: "Priya Anand", service: "Medicine Walk", room: "Land", practitioner: "Uqualla", start: t(16), end: t(17, 30), status: "requested", note: "Awaiting confirmation" },
   { id: "s11", guest: "Lena Costa", service: "Grandmother Crystal Bowl", room: "The Temple", practitioner: "Uqualla", start: t(16, 30), end: t(17, 15), status: "confirmed" },
 ];
@@ -219,18 +219,41 @@ function tint(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+function detectConflicts(services: Service[]) {
+  const out: { a: Service; b: Service }[] = [];
+  const byRoom = new Map<string, Service[]>();
+  services.forEach((s) => {
+    const arr = byRoom.get(s.room) ?? [];
+    arr.push(s);
+    byRoom.set(s.room, arr);
+  });
+  byRoom.forEach((arr) => {
+    const sorted = [...arr].sort((a, b) => a.start - b.start);
+    for (let i = 0; i < sorted.length - 1; i++) {
+      for (let j = i + 1; j < sorted.length; j++) {
+        if (sorted[j].start < sorted[i].end) out.push({ a: sorted[i], b: sorted[j] });
+        else break;
+      }
+    }
+  });
+  return out;
+}
+
 function TodayPage() {
   const now = useNow();
   const nowMin = DEMO_NOW;
   const [cueIdx, setCueIdx] = useState(0);
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
+  const [focusOpen, setFocusOpen] = useState(false);
+  const [conflictDismissed, setConflictDismissed] = useState(false);
 
   const clock = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const date = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
+  const conflicts = useMemo(() => detectConflicts(SERVICES), []);
   const inSession = SERVICES.filter((s) => s.start <= nowMin && s.end > nowMin).length;
   const stillToCome = SERVICES.filter((s) => s.start > nowMin).length;
-  const overlaps = 1;
+  const overlaps = conflicts.length;
   const revenue = FINANCES.reduce((a, b) => a + b.amount, 0);
   const unpaid = FINANCES.filter((f) => !f.paid).reduce((a, b) => a + b.amount, 0);
 
@@ -408,13 +431,20 @@ function TodayPage() {
               </div>
             </div>
 
-            <button
-              className="shrink-0 text-[13.5px] font-medium text-black/80 underline decoration-black/20 underline-offset-4 transition-colors hover:decoration-black"
-              onClick={nextCue}
-
-            >
-              {cue.primary}
-            </button>
+            <div className="flex shrink-0 items-center gap-4">
+              <button
+                onClick={() => setFocusOpen(true)}
+                className="text-[13.5px] font-medium text-black/60 underline decoration-black/15 underline-offset-4 transition-colors hover:text-black hover:decoration-black"
+              >
+                Focus
+              </button>
+              <button
+                className="text-[13.5px] font-medium text-black/80 underline decoration-black/20 underline-offset-4 transition-colors hover:decoration-black"
+                onClick={nextCue}
+              >
+                {cue.primary}
+              </button>
+            </div>
           </div>
 
           {/* Arrows anchored bottom-right of the strip — larger, easier to reach */}
@@ -448,6 +478,36 @@ function TodayPage() {
       <section className="border-b border-black/[0.08]">
         <div className="mx-auto max-w-[1440px] px-6 py-10">
           <SectionHeader eyebrow="01" label="Reservations" count={ROOMS.length} highlightColor="#86efac" icon={CalendarRange} trailing={<TimelineLegend />} />
+          {conflicts.length > 0 && !conflictDismissed && (
+            <div
+              role="alert"
+              className="mt-5 flex items-start gap-3 rounded-[8px] border px-4 py-3"
+              style={{ background: "#fff8ec", borderColor: "#fbd38d" }}
+            >
+              <span className="mt-0.5 shrink-0 text-amber-600">
+                <AlertTriangle size={18} strokeWidth={2} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[13.5px] font-semibold text-amber-900">
+                  {conflicts.length} room conflict{conflicts.length > 1 ? "s" : ""} — two services can't share a room
+                </div>
+                <ul className="mt-1 space-y-0.5 text-[12.5px] text-amber-900/85">
+                  {conflicts.map((c, i) => (
+                    <li key={i}>
+                      <span style={{ fontFamily: MONO }}>{c.a.room}</span> · {c.a.service} ({fmt(c.a.start)}–{fmt(c.a.end)}) overlaps {c.b.service} ({fmt(c.b.start)}–{fmt(c.b.end)})
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <button
+                onClick={() => setConflictDismissed(true)}
+                aria-label="Dismiss"
+                className="shrink-0 rounded p-1 text-amber-800/70 hover:bg-amber-100 hover:text-amber-900"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
           <div className="mt-6">
             <Timeline
               nowMin={nowMin}
@@ -522,6 +582,10 @@ function TodayPage() {
       <footer className="py-8 text-center text-[11px] text-black/35" style={{ fontFamily: MONO }}>
         SEONDYA · SHIFT 09:00 — 20:00
       </footer>
+
+      {focusOpen && (
+        <FocusOverlay cue={cue} onClose={() => setFocusOpen(false)} />
+      )}
     </div>
   );
 }
@@ -932,8 +996,8 @@ function Timeline({
             );
           })}
           <div
-            className="absolute right-1 -translate-y-1/2 rounded-[3px] px-1.5 py-0.5 text-[10px] font-semibold text-white"
-            style={{ top: nowTop, background: ACCENT, fontFamily: MONO }}
+            className="absolute right-2 -translate-y-1/2 text-[9.5px] font-semibold tracking-[0.14em]"
+            style={{ top: nowTop, color: ACCENT, fontFamily: MONO, opacity: 0.7 }}
           >
             NOW
           </div>
@@ -949,20 +1013,18 @@ function Timeline({
                 idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
               }`}
               style={{
-                background:
-                  "repeating-linear-gradient(to bottom, transparent 0, transparent calc(" +
-                  PX_PER_MIN * 60 +
-                  "px - 1px), rgba(0,0,0,0.04) calc(" +
-                  PX_PER_MIN * 60 +
-                  "px - 1px), rgba(0,0,0,0.04) " +
-                  PX_PER_MIN * 60 +
-                  "px)",
+                backgroundImage: [
+                  // hour lines
+                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 60 - 1}px, rgba(0,0,0,0.09) ${PX_PER_MIN * 60 - 1}px, rgba(0,0,0,0.09) ${PX_PER_MIN * 60}px)`,
+                  // 15-minute lines
+                  `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_MIN * 15 - 1}px, rgba(0,0,0,0.035) ${PX_PER_MIN * 15 - 1}px, rgba(0,0,0,0.035) ${PX_PER_MIN * 15}px)`,
+                ].join(","),
               }}
             >
-              {/* Now line spanning column */}
+              {/* Now line — barely visible */}
               <div
                 className="pointer-events-none absolute inset-x-0 z-10 h-px"
-                style={{ top: nowTop, background: ACCENT }}
+                style={{ top: nowTop, background: ACCENT, opacity: 0.28 }}
               />
 
               {services.map((s) => {
@@ -999,34 +1061,40 @@ function Timeline({
                 return (
                   <div
                     key={s.id}
-                    className="group absolute left-1 right-1 flex flex-col overflow-hidden pl-3 pr-3 pt-2.5 pb-2 transition-colors hover:z-20 hover:bg-black/[0.02]"
+                    className="group absolute left-1 right-1 flex flex-col overflow-hidden rounded-[3px] px-2.5 pt-2 pb-2 transition-colors hover:z-20"
                     style={{
                       top: top + 2,
-                      height: Math.max(height - 4, 72),
-                      background: isLive ? tint(gc, 0.05) : "transparent",
-                      borderTop: `1px solid ${rail}`,
+                      height: Math.max(height - 4, 88),
+                      background: isLive ? tint(gc, 0.06) : isRequest ? "rgba(255,251,235,0.55)" : "rgba(255,255,255,0.65)",
+                      border: isRequest
+                        ? `1px dashed ${tint("#d97706", 0.55)}`
+                        : `1px solid ${tint(gc, isPast ? 0.35 : 0.6)}`,
                     }}
                     title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
                   >
-                    {/* Left color rail — very thin */}
+                    {/* Paid marker — small dot top-right */}
                     <span
                       aria-hidden
-                      className="absolute left-0 top-0 bottom-0 w-[2px]"
-                      style={{ background: rail }}
+                      className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full"
+                      style={{
+                        background: paid ? "#10b981" : "transparent",
+                        boxShadow: paid ? "none" : "inset 0 0 0 1px rgba(0,0,0,0.28)",
+                      }}
+                      title={paid ? "Paid" : "Unpaid"}
                     />
 
                     {isHighlighted && HighlightIcon && (
                       <span
                         aria-hidden
-                        className="absolute right-2 top-2"
+                        className="absolute right-4 top-1.5"
                         style={{ color: highlightColor }}
                       >
-                        <HighlightIcon size={13} strokeWidth={2.25} />
+                        <HighlightIcon size={12} strokeWidth={2.25} />
                       </span>
                     )}
 
                     {/* Guest name + live dot */}
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 pr-6">
                       {isLive && (
                         <span className="relative inline-flex h-2 w-2 shrink-0">
                           <span
@@ -1040,7 +1108,7 @@ function Timeline({
                         </span>
                       )}
                       <div
-                        className="truncate text-[14px] font-semibold leading-tight tracking-[-0.01em]"
+                        className="truncate text-[13.5px] font-semibold leading-tight tracking-[-0.01em]"
                         style={{ color: nameColor, fontFamily: DISPLAY }}
                       >
                         {s.guest}
@@ -1056,18 +1124,29 @@ function Timeline({
                       )}
                     </div>
 
-                    {/* Service — the chroma color */}
-                    <div
-                      className="mt-1 text-[17px] font-semibold leading-[1.1] tracking-[-0.02em]"
-                      style={{ color: serviceColor, fontFamily: DISPLAY }}
-                    >
-                      {s.service}
+                    {/* Service — chroma, with subtle marker highlight */}
+                    <div className="mt-1">
+                      <span
+                        className="inline text-[17px] font-semibold leading-[1.15] tracking-[-0.02em]"
+                        style={{
+                          color: serviceColor,
+                          fontFamily: DISPLAY,
+                          background: isPast
+                            ? "transparent"
+                            : `linear-gradient(180deg, transparent 62%, ${tint(gc, 0.22)} 62%, ${tint(gc, 0.22)} 96%, transparent 96%)`,
+                          padding: "0 2px",
+                          boxDecorationBreak: "clone",
+                          WebkitBoxDecorationBreak: "clone",
+                        }}
+                      >
+                        {s.service}
+                      </span>
                     </div>
 
-                    {/* Practitioner row: initials chip + name */}
-                    <div className="mt-1.5 flex items-center gap-1.5">
+                    {/* Practitioner + time (time sits under practitioner name) */}
+                    <div className="mt-1.5 flex items-start gap-1.5">
                       <span
-                        className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[9.5px] font-bold"
+                        className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[9.5px] font-bold"
                         style={{
                           background: tint(gc, 0.18),
                           color: isPast ? metaColor : "#111111",
@@ -1077,51 +1156,163 @@ function Timeline({
                       >
                         {practInitials}
                       </span>
-                      <span
-                        className="truncate text-[12.5px] font-medium leading-tight"
-                        style={{ color: metaColor }}
-                      >
-                        {s.practitioner}
-                      </span>
+                      <div className="min-w-0">
+                        <div
+                          className="truncate text-[12.5px] font-medium leading-tight"
+                          style={{ color: nameColor }}
+                        >
+                          {s.practitioner}
+                        </div>
+                        <div
+                          className="mt-0.5 text-[11px] font-medium tabular-nums leading-tight"
+                          style={{ color: metaColor, fontFamily: MONO }}
+                        >
+                          {fmt(s.start)}–{fmt(s.end)} · {duration}m
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Footer: time · duration · paid */}
-                    <div
-                      className="mt-auto flex items-center gap-2 pt-2 text-[11px] font-semibold tabular-nums"
-                      style={{ color: metaColor, fontFamily: MONO }}
-                    >
-                      <span>{fmt(s.start)} – {fmt(s.end)}</span>
-                      <span className="opacity-40">·</span>
-                      <span>{duration}m</span>
-                      <span className="ml-auto" title={paid ? "Paid" : "Unpaid"}>
-                        {paid ? (
-                          <span
-                            className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold"
-                            style={{ background: "rgba(16,185,129,0.14)", color: "#059669" }}
-                          >
-                            $
-                          </span>
-                        ) : (
-                          <span
-                            className="relative inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold"
-                            style={{ background: "rgba(0,0,0,0.05)", color: "rgba(0,0,0,0.45)" }}
-                          >
-                            $
-                            <span
-                              aria-hidden
-                              className="absolute left-1/2 top-1/2 h-[1.5px] w-[14px] -translate-x-1/2 -translate-y-1/2 rotate-45"
-                              style={{ background: "rgba(0,0,0,0.55)" }}
-                            />
-                          </span>
-                        )}
-                      </span>
-                    </div>
+                    {/* Note */}
+                    {s.note && height > 100 && (
+                      <div
+                        className="mt-1.5 truncate text-[11px] italic leading-snug"
+                        style={{ color: isPast ? "rgba(0,0,0,0.4)" : "#4b5563" }}
+                        title={s.note}
+                      >
+                        — {s.note}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------
+// Focus overlay — the choreography behind a single cue
+// ------------------------------------------------------------------
+
+function FocusOverlay({ cue, onClose }: { cue: Cue; onClose: () => void }) {
+  const service = cue.serviceId ? SERVICES.find((s) => s.id === cue.serviceId) : undefined;
+  const rc = cue.room ? roomColor(cue.room) : ACCENT;
+
+  // Choreographed steps per cue kind — small, opinionated defaults.
+  const steps = useMemo(() => {
+    const base: { icon: React.ComponentType<{ size?: number; strokeWidth?: number }>; label: string; hint: string; done?: boolean }[] = [];
+    switch (cue.kind) {
+      case "message":
+        base.push(
+          { icon: MessageSquare, label: "Text guest — arrival window open", hint: "Warm, one line. Confirm they're on the way.", done: true },
+          { icon: UserCheck, label: "Check in on arrival", hint: "Greet by name, offer water." },
+          { icon: DoorOpen, label: "Walk to room", hint: service ? `Escort to ${service.room}` : "Escort to room" },
+        );
+        break;
+      case "escort":
+        base.push(
+          { icon: UserCheck, label: "Confirm guest is checked in", hint: "", done: true },
+          { icon: DoorOpen, label: service ? `Walk guest to ${service.room}` : "Walk guest to room", hint: "Low voice, unhurried pace." },
+          { icon: Sparkles, label: "Practitioner arrival", hint: service ? `Cue ${service.practitioner}` : "Cue practitioner" },
+        );
+        break;
+      case "turnover":
+        base.push(
+          { icon: DoorOpen, label: "Close out prior session", hint: "Escort guest out, collect linens." },
+          { icon: RefreshCcw, label: "Room reset", hint: "Reset props, ventilate, wipe surfaces." },
+          { icon: Sparkles, label: "Set for next service", hint: service ? `Prepare for ${service.service}` : "Prepare space" },
+        );
+        break;
+      case "setup":
+        base.push(
+          { icon: Sparkles, label: "Set the room", hint: service ? `${service.service} — ${service.room}` : "Set room" },
+          { icon: Coffee, label: "Elixir / tea break window", hint: "If part of an orchestration, offer between-service pause." },
+          { icon: UserCheck, label: "Cue guest arrival", hint: "Bring guest 2 min before start." },
+        );
+        break;
+      case "handoff":
+        base.push(
+          { icon: Waves, label: "Notify practitioner", hint: service ? `${service.practitioner} — short turnover` : "Short turnover heads-up" },
+          { icon: RefreshCcw, label: "Fast room reset", hint: "Skip full ventilation, refresh linens only." },
+          { icon: UserCheck, label: "Guide next guest in", hint: "Signal ready to front desk." },
+        );
+        break;
+    }
+    return base;
+  }, [cue.kind, service]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-[560px] rounded-t-[16px] bg-white shadow-2xl sm:rounded-[16px]"
+        onClick={(e) => e.stopPropagation()}
+        style={{ borderTop: `4px solid ${rc}` }}
+      >
+        <div className="flex items-start justify-between px-6 pt-5 pb-3">
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-[0.16em] text-black/45" style={{ fontFamily: MONO }}>
+              Focus · {cue.kind}
+            </div>
+            <h3 className="mt-1 text-[22px] font-semibold tracking-tight text-black">{cue.headline}</h3>
+            <div className="mt-1 text-[13px] text-black/55">
+              {cue.room && (
+                <span style={{ color: rc, fontFamily: MONO }}>{cue.room} · </span>
+              )}
+              {cue.reason}
+            </div>
+          </div>
+          <button
+            aria-label="Close"
+            onClick={onClose}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-black/50 hover:bg-black/[0.05] hover:text-black"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <ol className="px-6 pb-6">
+          {steps.map((step, i) => {
+            const Icon = step.icon;
+            const done = step.done;
+            return (
+              <li
+                key={i}
+                className={`flex items-start gap-3 border-t border-black/[0.06] py-3 ${
+                  done ? "opacity-60" : ""
+                }`}
+              >
+                <span
+                  className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full"
+                  style={{
+                    background: done ? "rgba(16,185,129,0.14)" : tint(rc, 0.14),
+                    color: done ? "#059669" : rc,
+                  }}
+                >
+                  {done ? <Check size={14} strokeWidth={2.5} /> : <Icon size={14} strokeWidth={2} />}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[14px] font-semibold text-black">
+                    <span className="mr-2 text-[11px] tabular-nums text-black/40" style={{ fontFamily: MONO }}>
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    {step.label}
+                  </div>
+                  {step.hint && (
+                    <div className="mt-0.5 text-[12.5px] text-black/55">{step.hint}</div>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
       </div>
     </div>
   );
