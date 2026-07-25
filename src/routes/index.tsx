@@ -1090,7 +1090,7 @@ function Timeline({
       </div>
 
       {/* Grid body */}
-      <div className="flex" style={{ height: trackHeight }}>
+      <div ref={gridRef} className="flex" style={{ height: trackHeight }}>
         {/* Time column */}
         <div
           className="relative shrink-0 border-r border-black/[0.06]"
