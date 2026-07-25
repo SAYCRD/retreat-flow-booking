@@ -1854,7 +1854,7 @@ function FocusOverlay({ cue, onClose }: { cue: Prompt; onClose: () => void }) {
       case "handoff":
         base.push(
           { icon: Waves, label: "Notify practitioner", hint: service ? `${service.practitioner} — short turnover` : "Short turnover heads-up" },
-          { icon: BellRing, label: "Fast notify reset", hint: "Quick heads-up: room needs a fast refresh." },
+          { icon: Brush, label: "Reset room", hint: "Quick sweep and refresh between guests." },
           { icon: UserCheck, label: "Guide next guest in", hint: "Signal ready to front desk." },
         );
         break;
