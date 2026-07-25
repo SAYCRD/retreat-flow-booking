@@ -582,6 +582,10 @@ function TodayPage() {
       <footer className="py-8 text-center text-[11px] text-black/35" style={{ fontFamily: MONO }}>
         SEONDYA · SHIFT 09:00 — 20:00
       </footer>
+
+      {focusOpen && (
+        <FocusOverlay cue={cue} onClose={() => setFocusOpen(false)} />
+      )}
     </div>
   );
 }
