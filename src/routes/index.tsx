@@ -530,20 +530,22 @@ function TodayPage() {
   const prevCue = () => setCueIdx((i) => (i - 1 + prompts.length) % prompts.length);
   const nextCue = () => setCueIdx((i) => (i + 1) % prompts.length);
 
-  // When the active cue changes, scroll the linked reservation card into view
-  // so the operator's eyes travel to the exact card the notification is about.
-  // We leave extra room above the card so the pre-session whisper (the actual
-  // action item) is fully visible below the sticky header + strip + room headers.
+  // When the active cue changes, scroll to its action marker (or the linked
+  // reservation card as a fallback) so the operator's eyes travel to the exact
+  // spot the notification is about. We stop a little higher up, leaving calm
+  // space between the sticky header and the actual action item.
   useEffect(() => {
     if (!cue?.serviceId) return;
-    const el = document.getElementById(`svc-${cue.serviceId}`);
+    const marker = document.getElementById("active-cue-marker");
+    const el = marker ?? document.getElementById(`svc-${cue.serviceId}`);
     if (!el) return;
-    // header (~44) + Coming Up strip (~88) + room headers (64) + whisper space.
-    const stickyOffset = 44 + 88 + 64 + 48;
+    // header (~44) + Coming Up strip (~88) + room headers (64) + calm buffer.
+    const stickyOffset = 44 + 88 + 64 + 96;
     const rect = el.getBoundingClientRect();
     const target = window.scrollY + rect.top - stickyOffset;
-    window.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+    smoothScrollTo(Math.max(0, target), 1000);
   }, [cue?.id, cue?.serviceId]);
+
 
 
 
