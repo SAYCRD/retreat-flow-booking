@@ -1069,12 +1069,12 @@ function Timeline({
                   : isRequest
                     ? "2px 3px 0 -1px rgba(15,23,42,0.05), 4px 8px 16px -10px rgba(217,119,6,0.35)"
                     : "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)";
-                const hoverShadow = `3px 5px 0 -1px rgba(15,23,42,0.06), 10px 18px 36px -14px ${tint(gc, 0.3)}, 0 0 0 1px ${tint(gc, 0.22)}`;
+                const hoverShadow = `2px 4px 0 -1px rgba(15,23,42,0.05), 8px 14px 28px -12px ${tint(gc, 0.26)}, 0 0 0 1px ${tint(gc, 0.18)}`;
 
                 return (
                   <div
                     key={s.id}
-                    className="group absolute inset-x-0 flex flex-col rounded-none bg-white transition-[transform,box-shadow] duration-200 ease-out will-change-transform hover:z-20 hover:-translate-y-[2px] cursor-pointer"
+                    className="group absolute inset-x-0 flex flex-col rounded-none bg-white transition-[transform,box-shadow] duration-200 ease-out will-change-transform hover:z-20 hover:-translate-y-[1px] cursor-pointer"
                     style={{
                       top: top + 1,
                       minHeight: Math.max(height - 2, 96),
@@ -1089,10 +1089,10 @@ function Timeline({
                     }}
                     title={`${s.guest} · ${s.service} · ${s.practitioner} · ${fmt(s.start)}–${fmt(s.end)}`}
                   >
-                    {/* Top color rail — thinner, high-chroma, thickens on hover */}
+                    {/* Top color rail — thinner, high-chroma, thickens subtly on hover */}
                     <span
                       aria-hidden
-                      className="absolute inset-x-0 top-0 h-[2px] transition-[height,opacity] duration-200 ease-out group-hover:h-[4px]"
+                      className="absolute inset-x-0 top-0 h-[2px] transition-[height,opacity] duration-200 ease-out group-hover:h-[3px]"
                       style={{
                         background: isRequest
                           ? "repeating-linear-gradient(to right, #d97706 0 6px, transparent 6px 10px)"
@@ -1103,9 +1103,9 @@ function Timeline({
                     {/* Soft chroma wash that fades in on hover */}
                     <span
                       aria-hidden
-                      className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100"
+                      className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-70"
                       style={{
-                        background: `linear-gradient(180deg, ${tint(gc, 0.92)} 0%, rgba(255,255,255,0) 55%)`,
+                        background: `linear-gradient(180deg, ${tint(gc, 0.95)} 0%, rgba(255,255,255,0) 50%)`,
                       }}
                     />
 
