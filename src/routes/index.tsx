@@ -665,6 +665,8 @@ function TodayPage() {
       {focusOpen && (
         <FocusOverlay cue={cue} onClose={() => setFocusOpen(false)} />
       )}
+
+      <ReservationPanel service={openService} onClose={() => setOpenServiceId(null)} />
     </div>
   );
 }
