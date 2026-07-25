@@ -1390,7 +1390,7 @@ function Timeline({
                       }}
                     />
 
-                    {/* Gap whisper — candy-pill sitting fully above the card
+                    {/* Gap whisper — flat instruction tag sitting fully above the card
                         in the pre-session space (Set up · Om Space, Walk in ·
                         Amara, Tea for · Marcus…). Only visible when this cue
                         is the one being shown in Coming Up. */}
@@ -1399,33 +1399,25 @@ function Timeline({
                       return (
                         <div
                           aria-hidden
-                          className="pointer-events-none absolute left-2 z-30 flex items-center gap-2 whitespace-nowrap rounded-full pl-2 pr-3.5 py-1.5"
+                          className="pointer-events-none absolute left-2 z-30 flex items-center gap-1.5 whitespace-nowrap bg-white pl-1.5 pr-2.5 py-1"
                           style={{
                             bottom: "100%",
                             marginBottom: 8,
-                            background: `linear-gradient(180deg, #ffffff 0%, ${tint(gc, 0.14)} 100%)`,
-                            color: gc,
-                            boxShadow: `0 6px 18px -6px ${tint(gc, 0.55)}, 0 2px 4px -2px ${tint(gc, 0.35)}, inset 0 0 0 1.5px ${tint(gc, 0.4)}, inset 0 1px 0 rgba(255,255,255,0.8)`,
+                            color: "#0a0a0a",
+                            borderLeft: `2px solid ${gc}`,
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.04)",
                           }}
                         >
-                          <span
-                            className="grid h-6 w-6 place-items-center rounded-full"
-                            style={{ background: tint(gc, 0.22), color: gc }}
-                          >
-                            <WIcon size={14} strokeWidth={2.25} />
-                          </span>
-                          <span
-                            className="text-[12.5px] font-semibold tracking-tight"
-                            style={{ color: "#0a0a0a" }}
-                          >
-                            <span style={{ color: gc, opacity: 0.85 }}>{gapWhisperVerb}</span>
-                            <span className="mx-1 text-black/30">·</span>
+                          <WIcon size={13} strokeWidth={2} style={{ color: gc }} />
+                          <span className="text-[12px] font-medium tracking-tight">
+                            <span style={{ color: gc }}>{gapWhisperVerb}</span>
+                            <span className="mx-1 text-black/25">·</span>
                             {gapWhisperLabel}
                           </span>
                           {gapWhisper.urgent && (
                             <span
                               aria-hidden
-                              className="ml-0.5 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white"
+                              className="ml-0.5 h-1.5 w-1.5 rounded-full bg-amber-500"
                             />
                           )}
                         </div>
