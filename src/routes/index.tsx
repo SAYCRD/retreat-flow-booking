@@ -977,15 +977,34 @@ function TodayPage() {
           <div className="flex shrink-0 items-center gap-3">
             {cue && (
               <>
-                <button
-                  onClick={confirmCue}
-                  className="text-[13.5px] font-medium text-black/85 underline decoration-black/25 underline-offset-4 transition-colors hover:decoration-black"
-                >
-                  {cue.primary}
-                </button>
+                {cue.kind === "notify" && cue.serviceId ? (
+                  <div className="flex items-center gap-1">
+                    {(["confirmed", "here", "on-way"] as ReplyStatus[]).map((status) => {
+                      const meta = REPLY_META[status];
+                      return (
+                        <button
+                          key={status}
+                          onClick={() => { setReply(cue.serviceId!, status); confirmCue(); }}
+                          className="inline-flex items-center gap-1 rounded-full border border-black/10 bg-white px-2.5 py-1 text-[12px] font-semibold text-black/75 transition-colors hover:border-black/40 hover:text-black"
+                        >
+                          <span aria-hidden>{meta.emoji}</span>
+                          <span className="capitalize">{meta.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <button
+                    onClick={confirmCue}
+                    className="text-[13.5px] font-medium text-black/85 underline decoration-black/25 underline-offset-4 transition-colors hover:decoration-black"
+                  >
+                    {cue.primary}
+                  </button>
+                )}
                 <span className="h-5 w-px bg-black/10" />
               </>
             )}
+
             <div className="flex items-center gap-0.5">
               <button
                 onClick={prevCue}
