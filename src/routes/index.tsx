@@ -698,6 +698,9 @@ function TodayPage() {
   const openService = openServiceId ? SERVICES.find((s) => s.id === openServiceId) ?? null : null;
   const [heroPast, setHeroPast] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  const [blocks, setBlocks] = useState<Block[]>([]);
+  const [openBlockId, setOpenBlockId] = useState<string | null>(null);
+  const openBlock = openBlockId ? blocks.find((b) => b.id === openBlockId) ?? null : null;
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const prevDateKeyRef = useRef<string>(new Date().toDateString());
 
