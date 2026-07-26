@@ -728,8 +728,13 @@ function TodayPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [createdServices, setCreatedServices] = useState<Service[]>([]);
+  const [canceledIds, setCanceledIds] = useState<Set<string>>(() => new Set());
   const [openSlot, setOpenSlot] = useState<SlotDraft | null>(null);
-  const openService = openServiceId ? [...SERVICES, ...createdServices].find((s) => s.id === openServiceId) ?? null : null;
+  const liveServices = useMemo(
+    () => [...SERVICES, ...createdServices].filter((s) => !canceledIds.has(s.id)),
+    [createdServices, canceledIds],
+  );
+  const openService = openServiceId ? liveServices.find((s) => s.id === openServiceId) ?? null : null;
 
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const prevDateKeyRef = useRef<string>(new Date().toDateString());
