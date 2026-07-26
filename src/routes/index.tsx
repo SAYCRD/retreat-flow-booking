@@ -906,7 +906,13 @@ function TodayPage() {
           <span className="h-10 w-px shrink-0 bg-black/10" />
 
           {/* cue body */}
-          <div className="flex min-w-0 flex-1 items-center gap-3.5">
+          <div
+            className={`flex min-w-0 flex-1 items-center gap-3.5 ${cue?.serviceId ? "cursor-pointer" : ""}`}
+            onClick={cue?.serviceId ? scrollToActiveCue : undefined}
+            role={cue?.serviceId ? "button" : undefined}
+            aria-label={cue?.serviceId ? "Scroll to this cue on the timeline" : undefined}
+          >
+
             {cue ? (() => {
               const emoji = CUE_EMOJI[cue.kind];
               const tint = cue.room ? roomColor(cue.room) : "#0a0a0a";
