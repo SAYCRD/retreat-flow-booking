@@ -243,12 +243,19 @@ export function hasAvailabilityCovering(
 
 // ---------- Services (live: seed + created − canceled) ----------
 
-export function getLiveServices(): Service[] {
+export function getLiveServices(dateKey?: string): Service[] {
+  const today = dateKeyOf(new Date());
+  const key = dateKey ?? today;
+  const tomorrow = dateKeyOf(new Date(Date.now() + 86400000));
+  const seed = key === tomorrow ? SEED_SERVICES_TOMORROW
+             : key === today ? SEED_SERVICES
+             : [];
   const ov = state.serviceOverrides;
-  return [...SEED_SERVICES, ...state.createdServices]
+  return [...seed, ...state.createdServices]
     .filter((s) => !state.canceledIds.has(s.id))
     .map((s) => (ov[s.id] ? { ...s, start: ov[s.id].start, end: ov[s.id].end } : s));
 }
+
 
 export function addService(svc: Service) {
   set({ createdServices: [...state.createdServices, svc] });
