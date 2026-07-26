@@ -2151,35 +2151,40 @@ function Timeline({
 
               })}
 
-              {/* Renders a block-style card (white, top color rail, ROOM BLOCK
-                  label). Used for committed blocks, live drag previews, and
-                  the pending range while the confirm menu is open — so the
-                  block always sits at exactly the time it was drawn. */}
+              {/* Unified slot card — used for committed room blocks, live drag
+                  previews, and the pinned draft while the side panel is open.
+                  Same typographic scale as reservation cards: large time top-
+                  left, big room name, third-line label (reason for a block, or
+                  "New reservation" for an in-flight draft). */}
               {(() => {
-                const renderBlockCard = (opts: {
+                const renderSlotCard = (opts: {
                   key: string;
                   startMin: number;
                   endMin: number;
-                  label: string;   // reason or "New block" / "Overlaps"
+                  headline: string;   // room name (kept prominent, matches reservation layout)
+                  subline: string;    // reason or "New reservation"
                   bad?: boolean;
                   past?: boolean;
-                  pending?: boolean; // preview / not yet committed
+                  pending?: boolean;  // preview / not yet committed
                   onClick?: (e: React.MouseEvent) => void;
                 }) => {
                   const bTop = TOP_PAD + minToPx(opts.startMin);
-                  const bH = Math.max(minToPx(opts.endMin) - minToPx(opts.startMin), 60);
+                  const bH = Math.max(minToPx(opts.endMin) - minToPx(opts.startMin), 96);
                   const rail = opts.bad ? "#dc2626" : rc;
+                  const duration = Math.round(opts.endMin - opts.startMin);
+                  const subColor = opts.bad ? "#7f1d1d" : rc;
                   return (
                     <div
                       key={opts.key}
-                      data-block-chip
-                      className={`absolute inset-x-0 z-[5] flex flex-col rounded-none bg-white px-2.5 py-2 ${opts.pending ? "pointer-events-none" : "cursor-pointer"}`}
+                      data-slot-draft={opts.pending ? "" : undefined}
+                      data-block-chip={opts.pending ? undefined : ""}
+                      className={`absolute inset-x-0 z-[6] flex flex-col rounded-none bg-white ${opts.pending ? "pointer-events-none" : "cursor-pointer"}`}
                       style={{
                         top: bTop + 1,
                         minHeight: bH - 2,
                         boxShadow: opts.pending
-                          ? `0 0 0 1px ${opts.bad ? "rgba(220,38,38,0.55)" : tint(rail, 0.55)}`
-                          : "0 1px 2px rgba(15,23,42,0.06), 0 6px 14px -8px rgba(15,23,42,0.12)",
+                          ? `0 0 0 1px ${opts.bad ? "rgba(220,38,38,0.55)" : tint(rail, 0.55)}, 0 8px 24px -12px ${tint(rail, 0.35)}`
+                          : "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)",
                         opacity: opts.past ? 0.6 : 1,
                       }}
                       onMouseDown={(e) => e.stopPropagation()}
@@ -2190,25 +2195,37 @@ function Timeline({
                         className="absolute inset-x-0 top-0 h-[2px]"
                         style={{ background: rail }}
                       />
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className="truncate text-[10.5px] font-bold uppercase tracking-[0.16em]"
-                          style={{ color: opts.bad ? "#7f1d1d" : "#0a0a0a", fontFamily: MONO }}
+                      <div className="relative z-10 flex flex-1 flex-col px-3 pt-3 pb-2.5">
+                        {/* Time — same scale as reservation card */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div
+                            className="whitespace-nowrap text-[17px] font-semibold tabular-nums leading-[1.15] tracking-tight"
+                            style={{ color: "#2a2a2a", fontFamily: MONO }}
+                          >
+                            <div>{fmt(opts.startMin)}</div>
+                            <div style={{ opacity: 0.55 }}>{fmt(opts.endMin)}</div>
+                          </div>
+                          <div
+                            className="shrink-0 whitespace-nowrap text-[12px] font-semibold tabular-nums tracking-[0.08em]"
+                            style={{ color: "#2a2a2a", fontFamily: MONO, opacity: 0.65 }}
+                          >
+                            {duration}m
+                          </div>
+                        </div>
+                        {/* Room name — same weight and size as reservation cards */}
+                        <div
+                          className="mt-2.5 text-[21px] font-semibold leading-[1.05] tracking-[-0.025em]"
+                          style={{ color: "#0a0a0a", fontFamily: DISPLAY }}
                         >
-                          Room block
-                        </span>
-                        <span
-                          className="shrink-0 text-[11px] font-semibold tabular-nums"
-                          style={{ color: "#2a2a2a", fontFamily: MONO }}
+                          {opts.headline}
+                        </div>
+                        {/* Third line — reason or draft label, in the room's chroma */}
+                        <div
+                          className="mt-1 text-[17px] font-semibold leading-[1.15] tracking-[-0.015em]"
+                          style={{ color: subColor, fontFamily: DISPLAY }}
                         >
-                          {fmt(opts.startMin)}–{fmt(opts.endMin)}
-                        </span>
-                      </div>
-                      <div
-                        className="mt-1 truncate text-[15px] font-semibold leading-tight"
-                        style={{ color: "#0a0a0a", fontFamily: DISPLAY }}
-                      >
-                        {opts.label}
+                          {opts.subline}
+                        </div>
                       </div>
                     </div>
                   );
@@ -2217,95 +2234,42 @@ function Timeline({
                 return (
                   <>
                     {roomBlocks.map((b) =>
-                      renderBlockCard({
+                      renderSlotCard({
                         key: b.id,
                         startMin: b.start,
                         endMin: b.end,
-                        label: b.reason,
+                        headline: b.room,
+                        subline: b.reason,
                         past: b.end <= nowMin,
-                        onClick: (e) => { e.stopPropagation(); onOpenBlock?.(b.id); },
+                        onClick: (e) => { e.stopPropagation(); onOpenSlot?.(b.room, b.start, b.end, b.id); },
                       }),
                     )}
 
                     {activeDrag && activeDrag.endMin > activeDrag.startMin &&
-                      renderBlockCard({
+                      renderSlotCard({
                         key: "drag-preview",
                         startMin: activeDrag.startMin,
                         endMin: activeDrag.endMin,
-                        label: dragBad ? "Overlaps a session" : "New block — release to choose reason",
+                        headline: room,
+                        subline: dragBad ? "Overlaps a session" : "New reservation",
                         bad: dragBad,
                         pending: true,
                       })}
 
-                    {activeMenu &&
-                      renderBlockCard({
-                        key: "menu-preview",
-                        startMin: activeMenu.startMin,
-                        endMin: activeMenu.endMin,
-                        label: menuBad ? "Overlaps a session" : "New block — pick a reason",
-                        bad: menuBad,
+                    {activeDraft &&
+                      renderSlotCard({
+                        key: "draft-preview",
+                        startMin: activeDraft.start,
+                        endMin: activeDraft.end,
+                        headline: room,
+                        subline: activeDraft.mode === "block" ? "New room block" : "New reservation",
                         pending: true,
                       })}
                   </>
                 );
               })()}
-
-              {/* Confirm menu — anchored below the range so it doesn't cover it */}
-              {activeMenu && (() => {
-                const mTop = TOP_PAD + minToPx(activeMenu.endMin) + 6;
-                return (
-                  <div
-                    className="absolute inset-x-1 z-40 border border-black/[0.08] bg-white p-3 shadow-[0_10px_30px_-8px_rgba(15,23,42,0.25)]"
-                    style={{ top: mTop, fontFamily: DISPLAY }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="mb-1 flex items-center justify-between gap-2">
-                      <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-black/55" style={{ fontFamily: MONO }}>
-                        Block {room}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setMenu(null)}
-                        className="grid h-5 w-5 place-items-center text-black/40 hover:text-black"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                    <div className="mb-2 text-[13px] font-semibold tabular-nums text-black" style={{ fontFamily: MONO }}>
-                      {fmt(activeMenu.startMin)} – {fmt(activeMenu.endMin)}
-                    </div>
-                    {menuBad ? (
-                      <div className="mb-2 rounded-sm bg-red-50 px-2 py-1 text-[11.5px] font-medium text-red-700">
-                        Overlaps an existing session — shorten the range or cancel.
-                      </div>
-                    ) : null}
-                    <div className="mb-2 flex flex-wrap gap-1">
-                      {BLOCK_REASONS.map((r) => (
-                        <button
-                          key={r}
-                          type="button"
-                          disabled={menuBad}
-                          onClick={() => commitBlock(r)}
-                          className="rounded-sm border border-black/10 bg-white px-2 py-1 text-[11.5px] font-medium text-black transition-colors hover:border-black/30 hover:bg-black/[0.03] disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {r}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setMenu(null)}
-                        className="px-2 py-1 text-[11.5px] font-medium text-black/55 hover:text-black"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                );
-              })()}
             </div>
+
           );
         })}
       </div>
