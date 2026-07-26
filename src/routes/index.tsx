@@ -128,6 +128,35 @@ const BLOCK_REASONS = [
   "Other",
 ] as const;
 
+// Which offerings each room can host. Sourced from the (backend) room config;
+// stubbed here so the create-reservation flow can filter offerings by room.
+const OFFERINGS_BY_ROOM: Record<string, string[]> = {
+  "Infrared Room": ["Infrared Sauna", "BEMER Session"],
+  "Buddha Massage": ["Deep Tissue Massage", "Swedish Massage", "Sound Healing"],
+  "Ayurveda Room": ["Couples Ayurvedic Massage", "Ayurvedic Consultation"],
+  "Om Space": ["Intuitive Reading", "Sound Healing", "Meditation"],
+  "The Temple": ["Ceremonial Tea & Integration", "Cupping", "Grandmother Crystal Bowl"],
+  "Land": ["Myers Cocktail IV", "Medicine Walk"],
+};
+
+type Practitioner = { name: string; offerings: string[]; onCalendarToday: boolean };
+const PRACTITIONERS: Practitioner[] = [
+  { name: "Maya Chen", offerings: ["Deep Tissue Massage", "Swedish Massage", "Cupping"], onCalendarToday: true },
+  { name: "Sofia Park", offerings: ["Sound Healing", "BEMER Session", "Infrared Sauna"], onCalendarToday: true },
+  { name: "Daniel Reyes", offerings: ["Couples Ayurvedic Massage", "Ayurvedic Consultation"], onCalendarToday: true },
+  { name: "Uqualla", offerings: ["Intuitive Reading", "Ceremonial Tea & Integration", "Medicine Walk", "Grandmother Crystal Bowl", "Meditation"], onCalendarToday: true },
+  { name: "Dr. Elise Warren", offerings: ["Myers Cocktail IV"], onCalendarToday: false },
+];
+
+type SlotDraft = {
+  room: string;
+  start: number;
+  end: number;
+  mode: "reservation" | "block";
+  editingBlockId?: string;
+};
+
+
 function firstName(guest: string) {
   return guest.split(" ")[0];
 }
