@@ -265,8 +265,11 @@ function SiteRow({ site, cueCount }: { site: Site; cueCount: number }) {
 
   return (
     <div
-      className="group relative bg-white border border-neutral-200 rounded-xl p-6 transition-shadow hover:shadow-[0_8px_28px_-12px_rgba(0,0,0,0.15)]"
-      style={{ borderLeft: `4px solid ${site.accent}` }}
+      className="group relative bg-white border border-neutral-200 p-6 transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_14px_36px_-18px_rgba(0,0,0,0.25)]"
+      style={{
+        borderLeft: `3px solid ${site.accent}`,
+        boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -18px rgba(0,0,0,0.15)",
+      }}
     >
       <div className="flex items-start justify-between">
         <div>
@@ -284,9 +287,10 @@ function SiteRow({ site, cueCount }: { site: Site; cueCount: number }) {
           </h3>
         </div>
         <span
-          className="text-[10px] uppercase tracking-[0.16em] px-2 py-1 rounded-sm"
-          style={{ fontFamily: '"JetBrains Mono", monospace', background: `${statusColor}22`, color: statusColor }}
+          className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-neutral-700"
+          style={{ fontFamily: '"JetBrains Mono", monospace' }}
         >
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: statusColor }} />
           {statusLabel}
         </span>
       </div>
