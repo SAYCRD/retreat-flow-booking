@@ -14,7 +14,12 @@ import {
   cancelService as storeCancelService,
   getLiveServices,
   consumeOpenReservation,
+  requestMoveService,
+  confirmPendingMove,
+  cancelPendingMove,
+  clearMoveToast,
 } from "@/lib/practitionerStore";
+
 import {
   DAY_START,
   DAY_END,
@@ -1067,7 +1072,11 @@ function TodayPage() {
               onMoveBlock={(b) => {
                 setBlocks((prev) => prev.map((x) => (x.id === b.id ? b : x)));
               }}
+              onRequestMoveService={(id, start, end) => {
+                requestMoveService(id, start, end);
+              }}
             />
+
           </div>
         </div>
       </section>
