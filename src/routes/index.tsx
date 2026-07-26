@@ -105,6 +105,29 @@ const SERVICES: Service[] = [
   { id: "s11", guest: "Lena Costa", service: "Grandmother Crystal Bowl", room: "The Temple", practitioner: "Uqualla", start: t(16, 30), end: t(17, 15), status: "confirmed" },
 ];
 
+// ------------------------------------------------------------------
+// Blocks — a room made unavailable for a stretch of time (group booking,
+// maintenance, deep clean, private event). Frontend-only for now; when the
+// booking engine + persistence land, this becomes a row on a sibling table.
+// ------------------------------------------------------------------
+
+type Block = {
+  id: string;
+  room: string;
+  start: number;   // minutes since DAY_START, same basis as Service.start
+  end: number;
+  reason: string;
+  note?: string;
+};
+
+const BLOCK_REASONS = [
+  "Group booking",
+  "Maintenance",
+  "Deep clean",
+  "Private event",
+  "Other",
+] as const;
+
 function firstName(guest: string) {
   return guest.split(" ")[0];
 }
@@ -675,6 +698,9 @@ function TodayPage() {
   const openService = openServiceId ? SERVICES.find((s) => s.id === openServiceId) ?? null : null;
   const [heroPast, setHeroPast] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  const [blocks, setBlocks] = useState<Block[]>([]);
+  const [openBlockId, setOpenBlockId] = useState<string | null>(null);
+  const openBlock = openBlockId ? blocks.find((b) => b.id === openBlockId) ?? null : null;
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const prevDateKeyRef = useRef<string>(new Date().toDateString());
 
@@ -1026,6 +1052,9 @@ function TodayPage() {
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
               allServices={isToday ? SERVICES : []}
+              blocks={blocks}
+              onCreateBlock={(b: Block) => setBlocks((prev) => [...prev, b])}
+              onOpenBlock={(id: string) => setOpenBlockId(id)}
             />
           </div>
         </div>
@@ -1041,6 +1070,14 @@ function TodayPage() {
       )}
 
       <ReservationPanel service={openService} onClose={() => setOpenServiceId(null)} />
+      <BlockPanel
+        block={openBlock}
+        onClose={() => setOpenBlockId(null)}
+        onRemove={(id: string) => {
+          setBlocks((prev) => prev.filter((b) => b.id !== id));
+          setOpenBlockId(null);
+        }}
+      />
     </div>
   );
 }
@@ -1360,6 +1397,9 @@ function Timeline({
   onOpenService,
   allServices = SERVICES,
   emptyLabel,
+  blocks = [],
+  onCreateBlock,
+  onOpenBlock,
 }: {
   nowMin: number;
   highlightServiceId?: string;
@@ -1373,6 +1413,9 @@ function Timeline({
   onOpenService?: (id: string) => void;
   allServices?: Service[];
   emptyLabel?: string;
+  blocks?: Block[];
+  onCreateBlock?: (b: Block) => void;
+  onOpenBlock?: (id: string) => void;
 }) {
   const PX_PER_MIN = 4; // 240px per hour vertical — gives 15/30-min slots room to breathe
   const TAIL_PX_PER_MIN = 1.2; // compress the quiet evening tail so midnight doesn't feel empty
@@ -1398,7 +1441,85 @@ function Timeline({
     };
   }, [compressAfter]);
 
+  // Inverse of minToPx — converts a Y offset inside the grid track (already
+  // minus TOP_PAD) back into minutes since DAY_START. Snap to 15-min slots.
+  const pxToMin = useMemo(() => {
+    const fullPx = compressAfter * PX_PER_MIN;
+    return (px: number) => {
+      const raw = px <= fullPx ? px / PX_PER_MIN : compressAfter + (px - fullPx) / TAIL_PX_PER_MIN;
+      const snapped = Math.round(raw / 15) * 15;
+      return Math.max(0, Math.min(DAY_SPAN, snapped));
+    };
+  }, [compressAfter]);
+
   const trackHeight = TOP_PAD + minToPx(DAY_SPAN);
+
+  // Drag-to-block state — while the operator drags over an empty stretch of
+  // a room column, we preview the range. On mouseup we open a confirm menu
+  // anchored at the top of the range with a reason picker.
+  const [drag, setDrag] = useState<{ room: string; anchorMin: number; startMin: number; endMin: number } | null>(null);
+  const [menu, setMenu] = useState<{ room: string; startMin: number; endMin: number } | null>(null);
+  const dragDidMove = useRef(false);
+
+  const blocksByRoom = useMemo(() => {
+    const map: Record<string, Block[]> = {};
+    for (const b of blocks) (map[b.room] ??= []).push(b);
+    return map;
+  }, [blocks]);
+
+  const rangeOverlaps = (room: string, startMin: number, endMin: number) => {
+    if (startMin >= endMin) return true;
+    const s = allServices.some((sv) => sv.room === room && sv.start < endMin && sv.end > startMin);
+    if (s) return true;
+    return (blocksByRoom[room] ?? []).some((b) => b.start < endMin && b.end > startMin);
+  };
+
+  const beginDrag = (room: string, e: React.MouseEvent<HTMLDivElement>) => {
+    if (!onCreateBlock) return;
+    // Ignore clicks that started on a service card or existing block chip.
+    const target = e.target as HTMLElement;
+    if (target.closest("[data-svc-card], [data-block-chip]")) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top - TOP_PAD;
+    const anchor = pxToMin(y);
+    dragDidMove.current = false;
+    setDrag({ room, anchorMin: anchor, startMin: anchor, endMin: anchor + 30 });
+    setMenu(null);
+  };
+
+  const moveDrag = (room: string, e: React.MouseEvent<HTMLDivElement>) => {
+    if (!drag || drag.room !== room) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top - TOP_PAD;
+    const m = pxToMin(y);
+    const startMin = Math.min(drag.anchorMin, m);
+    const endMin = Math.max(drag.anchorMin, m);
+    if (endMin - startMin >= 15) dragDidMove.current = true;
+    setDrag({ ...drag, startMin, endMin: Math.max(endMin, startMin + 15) });
+  };
+
+  const endDrag = (room: string) => {
+    if (!drag || drag.room !== room) return;
+    const startMin = drag.startMin;
+    const endMin = dragDidMove.current ? drag.endMin : drag.anchorMin + 30;
+    setDrag(null);
+    setMenu({ room, startMin, endMin });
+  };
+
+  const commitBlock = (reason: string, note?: string) => {
+    if (!menu || !onCreateBlock) return;
+    if (rangeOverlaps(menu.room, menu.startMin, menu.endMin)) return;
+    onCreateBlock({
+      id: `blk-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      room: menu.room,
+      start: menu.startMin,
+      end: menu.endMin,
+      reason,
+      note,
+    });
+    setMenu(null);
+  };
+
 
   // Group whispers by the service they touch, so the calendar can render
   // little living notes right above each card ("footprints", "broom", "tea").
@@ -1632,12 +1753,22 @@ function Timeline({
         {/* Room columns */}
         {ROOMS.map((room, idx) => {
           const services = allServices.filter((s) => s.room === room);
+          const roomBlocks = blocksByRoom[room] ?? [];
+          const rc = roomColor(room);
+          const activeDrag = drag && drag.room === room ? drag : null;
+          const activeMenu = menu && menu.room === room ? menu : null;
+          const dragBad = activeDrag ? rangeOverlaps(room, activeDrag.startMin, activeDrag.endMin) : false;
+          const menuBad = activeMenu ? rangeOverlaps(room, activeMenu.startMin, activeMenu.endMin) : false;
           return (
           <div
               key={room}
-              className={`relative min-w-0 flex-1 bg-white ${
+              className={`relative min-w-0 flex-1 select-none bg-white ${
                 idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
               }`}
+              onMouseDown={(e) => beginDrag(room, e)}
+              onMouseMove={(e) => moveDrag(room, e)}
+              onMouseUp={() => endDrag(room)}
+              onMouseLeave={() => { if (drag && drag.room === room) endDrag(room); }}
             >
               {/* Hour lines */}
               {hourTops.map((top, i) => (
@@ -1770,6 +1901,7 @@ function Timeline({
                   <div
                     key={s.id}
                     id={`svc-${s.id}`}
+                    data-svc-card
                     className="group absolute inset-x-0 flex flex-col rounded-none bg-white transition-[transform,box-shadow] duration-200 ease-out will-change-transform hover:z-20 hover:-translate-y-[1px] cursor-pointer"
                     style={{
                       top: top + 1,
@@ -1783,7 +1915,9 @@ function Timeline({
                     onMouseLeave={(e) => {
                       e.currentTarget.style.boxShadow = baseShadow;
                     }}
-                    onClick={() => onOpenService?.(s.id)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); onOpenService?.(s.id); }}
+                    
                     
                   >
                     {/* Top color rail — thinner, high-chroma, thickens subtly on hover */}
@@ -1975,6 +2109,143 @@ function Timeline({
                 );
 
               })}
+
+              {/* Existing blocks — soft diagonal hatch in the room's own hue.
+                  Flatter than reservation cards so eye separates the two. */}
+              {roomBlocks.map((b) => {
+                const bTop = TOP_PAD + minToPx(b.start);
+                const bH = Math.max(minToPx(b.end) - minToPx(b.start), 18);
+                const isPast = b.end <= nowMin;
+                const hatch = `repeating-linear-gradient(135deg, ${tint(rc, 0.18)} 0 6px, ${tint(rc, 0.06)} 6px 12px)`;
+                return (
+                  <div
+                    key={b.id}
+                    data-block-chip
+                    className="group absolute inset-x-1 z-[5] flex flex-col justify-between rounded-none px-2 py-1.5 cursor-pointer transition-opacity"
+                    style={{
+                      top: bTop,
+                      height: bH,
+                      background: hatch,
+                      borderLeft: `2px solid ${rc}`,
+                      opacity: isPast ? 0.55 : 0.95,
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); onOpenBlock?.(b.id); }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className="truncate text-[10.5px] font-bold uppercase tracking-[0.14em]"
+                        style={{ color: "#1a1a1a", fontFamily: MONO }}
+                      >
+                        Blocked
+                      </span>
+                      <span
+                        className="shrink-0 text-[10.5px] font-semibold tabular-nums"
+                        style={{ color: "#2a2a2a", fontFamily: MONO }}
+                      >
+                        {fmt(b.start)}–{fmt(b.end)}
+                      </span>
+                    </div>
+                    {bH > 34 && (
+                      <div
+                        className="truncate text-[12px] font-medium leading-tight"
+                        style={{ color: "#0a0a0a", fontFamily: DISPLAY }}
+                      >
+                        {b.reason}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Live drag preview */}
+              {activeDrag && activeDrag.endMin > activeDrag.startMin && (() => {
+                const pTop = TOP_PAD + minToPx(activeDrag.startMin);
+                const pH = Math.max(minToPx(activeDrag.endMin) - minToPx(activeDrag.startMin), 18);
+                const bg = dragBad
+                  ? "repeating-linear-gradient(135deg, rgba(220,38,38,0.22) 0 6px, rgba(220,38,38,0.08) 6px 12px)"
+                  : `repeating-linear-gradient(135deg, ${tint(rc, 0.28)} 0 6px, ${tint(rc, 0.10)} 6px 12px)`;
+                return (
+                  <div
+                    className="pointer-events-none absolute inset-x-1 z-[6] flex items-center justify-between px-2"
+                    style={{
+                      top: pTop,
+                      height: pH,
+                      background: bg,
+                      borderLeft: `2px solid ${dragBad ? "#dc2626" : rc}`,
+                    }}
+                  >
+                    <span
+                      className="text-[10.5px] font-bold uppercase tracking-[0.14em]"
+                      style={{ color: dragBad ? "#7f1d1d" : "#1a1a1a", fontFamily: MONO }}
+                    >
+                      {dragBad ? "Overlaps" : "Block"}
+                    </span>
+                    <span
+                      className="text-[10.5px] font-semibold tabular-nums"
+                      style={{ color: "#2a2a2a", fontFamily: MONO }}
+                    >
+                      {fmt(activeDrag.startMin)}–{fmt(activeDrag.endMin)}
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {/* Confirm menu — anchored below the range so it doesn't cover it */}
+              {activeMenu && (() => {
+                const mTop = TOP_PAD + minToPx(activeMenu.endMin) + 6;
+                return (
+                  <div
+                    className="absolute inset-x-1 z-40 border border-black/[0.08] bg-white p-3 shadow-[0_10px_30px_-8px_rgba(15,23,42,0.25)]"
+                    style={{ top: mTop, fontFamily: DISPLAY }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-black/55" style={{ fontFamily: MONO }}>
+                        Block {room}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMenu(null)}
+                        className="grid h-5 w-5 place-items-center text-black/40 hover:text-black"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className="mb-2 text-[13px] font-semibold tabular-nums text-black" style={{ fontFamily: MONO }}>
+                      {fmt(activeMenu.startMin)} – {fmt(activeMenu.endMin)}
+                    </div>
+                    {menuBad ? (
+                      <div className="mb-2 rounded-sm bg-red-50 px-2 py-1 text-[11.5px] font-medium text-red-700">
+                        Overlaps an existing session — shorten the range or cancel.
+                      </div>
+                    ) : null}
+                    <div className="mb-2 flex flex-wrap gap-1">
+                      {BLOCK_REASONS.map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          disabled={menuBad}
+                          onClick={() => commitBlock(r)}
+                          className="rounded-sm border border-black/10 bg-white px-2 py-1 text-[11.5px] font-medium text-black transition-colors hover:border-black/30 hover:bg-black/[0.03] disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setMenu(null)}
+                        className="px-2 py-1 text-[11.5px] font-medium text-black/55 hover:text-black"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           );
         })}
@@ -2622,5 +2893,96 @@ function PanelSection({
       </div>
       {children}
     </section>
+  );
+}
+
+// ------------------------------------------------------------------
+// Block panel — edit / remove a room block
+// ------------------------------------------------------------------
+
+function BlockPanel({
+  block,
+  onClose,
+  onRemove,
+}: {
+  block: Block | null;
+  onClose: () => void;
+  onRemove: (id: string) => void;
+}) {
+  const open = !!block;
+  if (!block) {
+    return (
+      <div
+        className={`fixed inset-0 z-50 pointer-events-none transition-opacity duration-200 ${
+          open ? "opacity-100" : "opacity-0"
+        }`}
+      />
+    );
+  }
+  const rc = roomColor(block.room);
+  return (
+    <div className="fixed inset-0 z-50">
+      <div
+        className="absolute inset-0 bg-black/25 transition-opacity"
+        onClick={onClose}
+      />
+      <aside
+        className="absolute right-0 top-0 h-full w-full max-w-[440px] overflow-y-auto bg-white shadow-[-20px_0_40px_-20px_rgba(15,23,42,0.35)]"
+        style={{ fontFamily: DISPLAY }}
+      >
+        <div className="h-1.5 w-full" style={{ background: rc }} />
+        <div className="flex items-start justify-between gap-3 px-6 pt-5">
+          <div>
+            <div
+              className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-black/55"
+              style={{ fontFamily: MONO }}
+            >
+              Room block
+            </div>
+            <h2 className="mt-1 text-[22px] font-semibold leading-tight text-black">
+              {block.room}
+            </h2>
+            <div
+              className="mt-1 text-[13px] font-semibold tabular-nums text-black/75"
+              style={{ fontFamily: MONO }}
+            >
+              {fmt(block.start)} – {fmt(block.end)}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-8 w-8 place-items-center text-black/45 hover:text-black"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="px-6 pb-8">
+          <section className="border-t border-black/[0.08] py-5">
+            <div
+              className="mb-2 text-[10.5px] uppercase tracking-[0.16em] text-black/45"
+              style={{ fontFamily: MONO }}
+            >
+              Reason
+            </div>
+            <div className="text-[15px] font-medium text-black">{block.reason}</div>
+            {block.note ? (
+              <div className="mt-2 text-[13px] text-black/70">{block.note}</div>
+            ) : null}
+          </section>
+
+          <section className="border-t border-black/[0.08] py-5">
+            <button
+              type="button"
+              onClick={() => onRemove(block.id)}
+              className="w-full border border-red-200 bg-red-50 px-3 py-2 text-[13px] font-semibold text-red-700 transition-colors hover:bg-red-100"
+            >
+              Remove block
+            </button>
+          </section>
+        </div>
+      </aside>
+    </div>
   );
 }
