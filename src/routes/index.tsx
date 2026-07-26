@@ -2255,7 +2255,8 @@ function Timeline({
                       clickable ? (
                         <button
                           type="button"
-                          onClick={onMarkerClick!}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => { e.stopPropagation(); onMarkerClick!(); }}
                           aria-label={`Confirm ${cueMarker.verb.toLowerCase()}`}
                           className="mx-3 flex w-fit items-center gap-1.5 text-left transition-opacity hover:opacity-80"
                         >
