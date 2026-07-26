@@ -1203,6 +1203,7 @@ function TodayPage() {
               onRequestMoveService={(id, start, end) => {
                 requestMoveService(id, start, end);
               }}
+              onResolveCue={confirmCue}
             />
 
           </div>
@@ -1671,6 +1672,7 @@ function Timeline({
   onMoveBlock,
   onRequestMoveService,
   dateKey,
+  onResolveCue,
 }: {
   nowMin: number;
   highlightServiceId?: string;
@@ -1690,6 +1692,7 @@ function Timeline({
   onMoveBlock?: (b: Block) => void;
   onRequestMoveService?: (id: string, start: number, end: number) => void;
   dateKey?: string;
+  onResolveCue?: () => void;
 }) {
 
   const PX_PER_MIN = 4; // 240px per hour vertical — gives 15/30-min slots room to breathe
