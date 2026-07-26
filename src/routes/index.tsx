@@ -3140,10 +3140,24 @@ function SlotPanel({
   const isEditingBlock = !!draft?.editingBlockId;
 
   const offerings = OFFERINGS_BY_ROOM[room] ?? [];
-  const eligiblePractitioners = useMemo(
-    () => PRACTITIONERS.filter((p) => p.offerings.includes(offering)),
-    [offering],
-  );
+  const eligiblePractitioners = useMemo(() => {
+    const list = PRACTITIONERS.filter((p) => p.offerings.includes(offering));
+    const today = dateKeyOf(new Date());
+    // Prefer practitioners with green availability covering the requested slot,
+    // then those already on today's calendar, then everyone else.
+    return list
+      .map((p) => {
+        const rec = findPractitionerByName(p.name);
+        const covered = rec ? hasAvailabilityCovering(rec.id, today, start, end) : false;
+        return { p, rec, covered };
+      })
+      .sort((a, b) => {
+        if (a.covered !== b.covered) return a.covered ? -1 : 1;
+        if (a.p.onCalendarToday !== b.p.onCalendarToday) return a.p.onCalendarToday ? -1 : 1;
+        return a.p.name.localeCompare(b.p.name);
+      });
+  }, [offering, start, end]);
+
 
   const conflicts = useMemo(() => {
     if (!room || start >= end) return { session: false, block: false };
