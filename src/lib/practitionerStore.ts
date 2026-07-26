@@ -308,13 +308,11 @@ export function clearMoveToast() {
 
 
 export function servicesForPractitioner(name: string, dateKey: string): Service[] {
-  // For v1 the timeline is always "today". When multi-day arrives, filter by
-  // dateKey here.
-  void dateKey;
-  return getLiveServices()
+  return getLiveServices(dateKey)
     .filter((s) => s.practitioner === name)
     .sort((a, b) => a.start - b.start);
 }
+
 
 // ---------- Practitioner panel ----------
 
