@@ -1901,6 +1901,7 @@ function Timeline({
                   <div
                     key={s.id}
                     id={`svc-${s.id}`}
+                    data-svc-card
                     className="group absolute inset-x-0 flex flex-col rounded-none bg-white transition-[transform,box-shadow] duration-200 ease-out will-change-transform hover:z-20 hover:-translate-y-[1px] cursor-pointer"
                     style={{
                       top: top + 1,
@@ -1914,7 +1915,9 @@ function Timeline({
                     onMouseLeave={(e) => {
                       e.currentTarget.style.boxShadow = baseShadow;
                     }}
-                    onClick={() => onOpenService?.(s.id)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); onOpenService?.(s.id); }}
+                    
                     
                   >
                     {/* Top color rail — thinner, high-chroma, thickens subtly on hover */}
