@@ -1098,6 +1098,9 @@ function TodayPage() {
                   setOpenSlot({ room, start, end, mode: "reservation" });
                 }
               }}
+              onMoveBlock={(b) => {
+                setBlocks((prev) => prev.map((x) => (x.id === b.id ? b : x)));
+              }}
             />
           </div>
         </div>
