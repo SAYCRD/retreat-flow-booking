@@ -1073,7 +1073,7 @@ function TodayPage() {
       <BlockPanel
         block={openBlock}
         onClose={() => setOpenBlockId(null)}
-        onRemove={(id) => {
+        onRemove={(id: string) => {
           setBlocks((prev) => prev.filter((b) => b.id !== id));
           setOpenBlockId(null);
         }}
