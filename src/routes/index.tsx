@@ -105,6 +105,29 @@ const SERVICES: Service[] = [
   { id: "s11", guest: "Lena Costa", service: "Grandmother Crystal Bowl", room: "The Temple", practitioner: "Uqualla", start: t(16, 30), end: t(17, 15), status: "confirmed" },
 ];
 
+// ------------------------------------------------------------------
+// Blocks — a room made unavailable for a stretch of time (group booking,
+// maintenance, deep clean, private event). Frontend-only for now; when the
+// booking engine + persistence land, this becomes a row on a sibling table.
+// ------------------------------------------------------------------
+
+type Block = {
+  id: string;
+  room: string;
+  start: number;   // minutes since DAY_START, same basis as Service.start
+  end: number;
+  reason: string;
+  note?: string;
+};
+
+const BLOCK_REASONS = [
+  "Group booking",
+  "Maintenance",
+  "Deep clean",
+  "Private event",
+  "Other",
+] as const;
+
 function firstName(guest: string) {
   return guest.split(" ")[0];
 }
