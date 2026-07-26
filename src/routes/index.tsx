@@ -678,14 +678,23 @@ function TodayPage() {
   const [heroPast, setHeroPast] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [blocks, setBlocks] = useState<Block[]>([]);
-  const [createdServices, setCreatedServices] = useState<Service[]>([]);
-  const [canceledIds, setCanceledIds] = useState<Set<string>>(() => new Set());
   const [openSlot, setOpenSlot] = useState<SlotDraft | null>(null);
-  const liveServices = useMemo(
-    () => [...SERVICES, ...createdServices].filter((s) => !canceledIds.has(s.id)),
-    [createdServices, canceledIds],
-  );
+
+  // Services flow through the shared store so the practitioner panel sees
+  // the same live list (seed + created − canceled).
+  const storeSnap = usePractitioners();
+  const liveServices = useMemo(() => getLiveServices(), [storeSnap]);
   const openService = openServiceId ? liveServices.find((s) => s.id === openServiceId) ?? null : null;
+
+  // Bus: practitioner panel can request that we open a reservation card.
+  useEffect(() => {
+    const id = storeSnap.openReservationId;
+    if (id) {
+      setOpenServiceId(id);
+      consumeOpenReservation();
+    }
+  }, [storeSnap.openReservationId]);
+
 
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const prevDateKeyRef = useRef<string>(new Date().toDateString());
