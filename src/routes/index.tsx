@@ -2541,10 +2541,14 @@ function FocusOverlay({ cue, onClose }: { cue: Prompt; onClose: () => void }) {
 function ReservationPanel({
   service,
   onClose,
+  onCancel,
 }: {
   service: Service | null;
   onClose: () => void;
+  onCancel?: (id: string) => void;
 }) {
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  useEffect(() => { if (!service) setConfirmingCancel(false); }, [service]);
   // Trap Esc to close
   useEffect(() => {
     if (!service) return;
