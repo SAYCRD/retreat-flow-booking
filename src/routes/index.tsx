@@ -128,6 +128,35 @@ const BLOCK_REASONS = [
   "Other",
 ] as const;
 
+// Which offerings each room can host. Sourced from the (backend) room config;
+// stubbed here so the create-reservation flow can filter offerings by room.
+const OFFERINGS_BY_ROOM: Record<string, string[]> = {
+  "Infrared Room": ["Infrared Sauna", "BEMER Session"],
+  "Buddha Massage": ["Deep Tissue Massage", "Swedish Massage", "Sound Healing"],
+  "Ayurveda Room": ["Couples Ayurvedic Massage", "Ayurvedic Consultation"],
+  "Om Space": ["Intuitive Reading", "Sound Healing", "Meditation"],
+  "The Temple": ["Ceremonial Tea & Integration", "Cupping", "Grandmother Crystal Bowl"],
+  "Land": ["Myers Cocktail IV", "Medicine Walk"],
+};
+
+type Practitioner = { name: string; offerings: string[]; onCalendarToday: boolean };
+const PRACTITIONERS: Practitioner[] = [
+  { name: "Maya Chen", offerings: ["Deep Tissue Massage", "Swedish Massage", "Cupping"], onCalendarToday: true },
+  { name: "Sofia Park", offerings: ["Sound Healing", "BEMER Session", "Infrared Sauna"], onCalendarToday: true },
+  { name: "Daniel Reyes", offerings: ["Couples Ayurvedic Massage", "Ayurvedic Consultation"], onCalendarToday: true },
+  { name: "Uqualla", offerings: ["Intuitive Reading", "Ceremonial Tea & Integration", "Medicine Walk", "Grandmother Crystal Bowl", "Meditation"], onCalendarToday: true },
+  { name: "Dr. Elise Warren", offerings: ["Myers Cocktail IV"], onCalendarToday: false },
+];
+
+type SlotDraft = {
+  room: string;
+  start: number;
+  end: number;
+  mode: "reservation" | "block";
+  editingBlockId?: string;
+};
+
+
 function firstName(guest: string) {
   return guest.split(" ")[0];
 }
@@ -699,8 +728,9 @@ function TodayPage() {
   const [heroPast, setHeroPast] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [blocks, setBlocks] = useState<Block[]>([]);
-  const [openBlockId, setOpenBlockId] = useState<string | null>(null);
-  const openBlock = openBlockId ? blocks.find((b) => b.id === openBlockId) ?? null : null;
+  const [createdServices, setCreatedServices] = useState<Service[]>([]);
+  const [openSlot, setOpenSlot] = useState<SlotDraft | null>(null);
+
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const prevDateKeyRef = useRef<string>(new Date().toDateString());
 
@@ -1051,10 +1081,18 @@ function TodayPage() {
               cueRoom={isToday ? cue?.room ?? null : null}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
-              allServices={isToday ? SERVICES : []}
+              allServices={isToday ? [...SERVICES, ...createdServices] : createdServices}
               blocks={blocks}
-              onCreateBlock={(b: Block) => setBlocks((prev) => [...prev, b])}
-              onOpenBlock={(id: string) => setOpenBlockId(id)}
+              draft={openSlot}
+              onOpenSlot={(room, start, end, editingBlockId) => {
+                if (editingBlockId) {
+                  const b = blocks.find((x) => x.id === editingBlockId);
+                  if (!b) return;
+                  setOpenSlot({ room: b.room, start: b.start, end: b.end, mode: "block", editingBlockId });
+                } else {
+                  setOpenSlot({ room, start, end, mode: "reservation" });
+                }
+              }}
             />
           </div>
         </div>
@@ -1070,14 +1108,28 @@ function TodayPage() {
       )}
 
       <ReservationPanel service={openService} onClose={() => setOpenServiceId(null)} />
-      <BlockPanel
-        block={openBlock}
-        onClose={() => setOpenBlockId(null)}
-        onRemove={(id: string) => {
-          setBlocks((prev) => prev.filter((b) => b.id !== id));
-          setOpenBlockId(null);
+      <SlotPanel
+        draft={openSlot}
+        allServices={[...SERVICES, ...createdServices]}
+        blocks={blocks}
+        onClose={() => setOpenSlot(null)}
+        onSaveReservation={(svc) => {
+          setCreatedServices((prev) => [...prev, svc]);
+          setOpenSlot(null);
+        }}
+        onSaveBlock={(b) => {
+          setBlocks((prev) => {
+            const others = prev.filter((x) => x.id !== b.id);
+            return [...others, b];
+          });
+          setOpenSlot(null);
+        }}
+        onRemoveBlock={(id) => {
+          setBlocks((prev) => prev.filter((x) => x.id !== id));
+          setOpenSlot(null);
         }}
       />
+
     </div>
   );
 }
@@ -1398,8 +1450,8 @@ function Timeline({
   allServices = SERVICES,
   emptyLabel,
   blocks = [],
-  onCreateBlock,
-  onOpenBlock,
+  draft,
+  onOpenSlot,
 }: {
   nowMin: number;
   highlightServiceId?: string;
@@ -1414,8 +1466,9 @@ function Timeline({
   allServices?: Service[];
   emptyLabel?: string;
   blocks?: Block[];
-  onCreateBlock?: (b: Block) => void;
-  onOpenBlock?: (id: string) => void;
+  draft?: SlotDraft | null;
+  onOpenSlot?: (room: string, start: number, end: number, editingBlockId?: string) => void;
+
 }) {
   const PX_PER_MIN = 4; // 240px per hour vertical — gives 15/30-min slots room to breathe
   const TAIL_PX_PER_MIN = 1.2; // compress the quiet evening tail so midnight doesn't feel empty
@@ -1454,11 +1507,11 @@ function Timeline({
 
   const trackHeight = TOP_PAD + minToPx(DAY_SPAN);
 
-  // Drag-to-block state — while the operator drags over an empty stretch of
-  // a room column, we preview the range. On mouseup we open a confirm menu
-  // anchored at the top of the range with a reason picker.
+  // Drag-to-open state — while the operator drags across an empty stretch of a
+  // room column we paint a live "draft" card in-place. On mouseup (or a plain
+  // click) we hand the range to the parent, which opens the side panel in
+  // Reservation mode by default.
   const [drag, setDrag] = useState<{ room: string; anchorMin: number; startMin: number; endMin: number } | null>(null);
-  const [menu, setMenu] = useState<{ room: string; startMin: number; endMin: number } | null>(null);
   const dragDidMove = useRef(false);
 
   const blocksByRoom = useMemo(() => {
@@ -1467,24 +1520,23 @@ function Timeline({
     return map;
   }, [blocks]);
 
-  const rangeOverlaps = (room: string, startMin: number, endMin: number) => {
+  const rangeOverlaps = (room: string, startMin: number, endMin: number, ignoreBlockId?: string) => {
     if (startMin >= endMin) return true;
     const s = allServices.some((sv) => sv.room === room && sv.start < endMin && sv.end > startMin);
     if (s) return true;
-    return (blocksByRoom[room] ?? []).some((b) => b.start < endMin && b.end > startMin);
+    return (blocksByRoom[room] ?? []).some((b) => b.id !== ignoreBlockId && b.start < endMin && b.end > startMin);
   };
 
   const beginDrag = (room: string, e: React.MouseEvent<HTMLDivElement>) => {
-    if (!onCreateBlock) return;
-    // Ignore clicks that started on a service card or existing block chip.
+    if (!onOpenSlot) return;
+    // Ignore clicks that started on a service card, existing block, or the draft.
     const target = e.target as HTMLElement;
-    if (target.closest("[data-svc-card], [data-block-chip]")) return;
+    if (target.closest("[data-svc-card], [data-block-chip], [data-slot-draft]")) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top - TOP_PAD;
     const anchor = pxToMin(y);
     dragDidMove.current = false;
-    setDrag({ room, anchorMin: anchor, startMin: anchor, endMin: anchor + 30 });
-    setMenu(null);
+    setDrag({ room, anchorMin: anchor, startMin: anchor, endMin: anchor + 60 });
   };
 
   const moveDrag = (room: string, e: React.MouseEvent<HTMLDivElement>) => {
@@ -1499,26 +1551,15 @@ function Timeline({
   };
 
   const endDrag = (room: string) => {
-    if (!drag || drag.room !== room) return;
+    if (!drag || drag.room !== room || !onOpenSlot) return;
     const startMin = drag.startMin;
-    const endMin = dragDidMove.current ? drag.endMin : drag.anchorMin + 30;
+    const endMin = dragDidMove.current ? drag.endMin : drag.anchorMin + 60;
     setDrag(null);
-    setMenu({ room, startMin, endMin });
+    if (rangeOverlaps(room, startMin, endMin)) return;
+    onOpenSlot(room, startMin, endMin);
   };
 
-  const commitBlock = (reason: string, note?: string) => {
-    if (!menu || !onCreateBlock) return;
-    if (rangeOverlaps(menu.room, menu.startMin, menu.endMin)) return;
-    onCreateBlock({
-      id: `blk-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      room: menu.room,
-      start: menu.startMin,
-      end: menu.endMin,
-      reason,
-      note,
-    });
-    setMenu(null);
-  };
+
 
 
   // Group whispers by the service they touch, so the calendar can render
@@ -1756,9 +1797,9 @@ function Timeline({
           const roomBlocks = blocksByRoom[room] ?? [];
           const rc = roomColor(room);
           const activeDrag = drag && drag.room === room ? drag : null;
-          const activeMenu = menu && menu.room === room ? menu : null;
+          const activeDraft = draft && !draft.editingBlockId && draft.room === room ? draft : null;
           const dragBad = activeDrag ? rangeOverlaps(room, activeDrag.startMin, activeDrag.endMin) : false;
-          const menuBad = activeMenu ? rangeOverlaps(room, activeMenu.startMin, activeMenu.endMin) : false;
+
           return (
           <div
               key={room}
@@ -2110,35 +2151,40 @@ function Timeline({
 
               })}
 
-              {/* Renders a block-style card (white, top color rail, ROOM BLOCK
-                  label). Used for committed blocks, live drag previews, and
-                  the pending range while the confirm menu is open — so the
-                  block always sits at exactly the time it was drawn. */}
+              {/* Unified slot card — used for committed room blocks, live drag
+                  previews, and the pinned draft while the side panel is open.
+                  Same typographic scale as reservation cards: large time top-
+                  left, big room name, third-line label (reason for a block, or
+                  "New reservation" for an in-flight draft). */}
               {(() => {
-                const renderBlockCard = (opts: {
+                const renderSlotCard = (opts: {
                   key: string;
                   startMin: number;
                   endMin: number;
-                  label: string;   // reason or "New block" / "Overlaps"
+                  headline: string;   // room name (kept prominent, matches reservation layout)
+                  subline: string;    // reason or "New reservation"
                   bad?: boolean;
                   past?: boolean;
-                  pending?: boolean; // preview / not yet committed
+                  pending?: boolean;  // preview / not yet committed
                   onClick?: (e: React.MouseEvent) => void;
                 }) => {
                   const bTop = TOP_PAD + minToPx(opts.startMin);
-                  const bH = Math.max(minToPx(opts.endMin) - minToPx(opts.startMin), 60);
+                  const bH = Math.max(minToPx(opts.endMin) - minToPx(opts.startMin), 96);
                   const rail = opts.bad ? "#dc2626" : rc;
+                  const duration = Math.round(opts.endMin - opts.startMin);
+                  const subColor = opts.bad ? "#7f1d1d" : rc;
                   return (
                     <div
                       key={opts.key}
-                      data-block-chip
-                      className={`absolute inset-x-0 z-[5] flex flex-col rounded-none bg-white px-2.5 py-2 ${opts.pending ? "pointer-events-none" : "cursor-pointer"}`}
+                      data-slot-draft={opts.pending ? "" : undefined}
+                      data-block-chip={opts.pending ? undefined : ""}
+                      className={`absolute inset-x-0 z-[6] flex flex-col rounded-none bg-white ${opts.pending ? "pointer-events-none" : "cursor-pointer"}`}
                       style={{
                         top: bTop + 1,
                         minHeight: bH - 2,
                         boxShadow: opts.pending
-                          ? `0 0 0 1px ${opts.bad ? "rgba(220,38,38,0.55)" : tint(rail, 0.55)}`
-                          : "0 1px 2px rgba(15,23,42,0.06), 0 6px 14px -8px rgba(15,23,42,0.12)",
+                          ? `0 0 0 1px ${opts.bad ? "rgba(220,38,38,0.55)" : tint(rail, 0.55)}, 0 8px 24px -12px ${tint(rail, 0.35)}`
+                          : "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)",
                         opacity: opts.past ? 0.6 : 1,
                       }}
                       onMouseDown={(e) => e.stopPropagation()}
@@ -2149,25 +2195,37 @@ function Timeline({
                         className="absolute inset-x-0 top-0 h-[2px]"
                         style={{ background: rail }}
                       />
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className="truncate text-[10.5px] font-bold uppercase tracking-[0.16em]"
-                          style={{ color: opts.bad ? "#7f1d1d" : "#0a0a0a", fontFamily: MONO }}
+                      <div className="relative z-10 flex flex-1 flex-col px-3 pt-3 pb-2.5">
+                        {/* Time — same scale as reservation card */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div
+                            className="whitespace-nowrap text-[17px] font-semibold tabular-nums leading-[1.15] tracking-tight"
+                            style={{ color: "#2a2a2a", fontFamily: MONO }}
+                          >
+                            <div>{fmt(opts.startMin)}</div>
+                            <div style={{ opacity: 0.55 }}>{fmt(opts.endMin)}</div>
+                          </div>
+                          <div
+                            className="shrink-0 whitespace-nowrap text-[12px] font-semibold tabular-nums tracking-[0.08em]"
+                            style={{ color: "#2a2a2a", fontFamily: MONO, opacity: 0.65 }}
+                          >
+                            {duration}m
+                          </div>
+                        </div>
+                        {/* Room name — same weight and size as reservation cards */}
+                        <div
+                          className="mt-2.5 text-[21px] font-semibold leading-[1.05] tracking-[-0.025em]"
+                          style={{ color: "#0a0a0a", fontFamily: DISPLAY }}
                         >
-                          Room block
-                        </span>
-                        <span
-                          className="shrink-0 text-[11px] font-semibold tabular-nums"
-                          style={{ color: "#2a2a2a", fontFamily: MONO }}
+                          {opts.headline}
+                        </div>
+                        {/* Third line — reason or draft label, in the room's chroma */}
+                        <div
+                          className="mt-1 text-[17px] font-semibold leading-[1.15] tracking-[-0.015em]"
+                          style={{ color: subColor, fontFamily: DISPLAY }}
                         >
-                          {fmt(opts.startMin)}–{fmt(opts.endMin)}
-                        </span>
-                      </div>
-                      <div
-                        className="mt-1 truncate text-[15px] font-semibold leading-tight"
-                        style={{ color: "#0a0a0a", fontFamily: DISPLAY }}
-                      >
-                        {opts.label}
+                          {opts.subline}
+                        </div>
                       </div>
                     </div>
                   );
@@ -2176,95 +2234,42 @@ function Timeline({
                 return (
                   <>
                     {roomBlocks.map((b) =>
-                      renderBlockCard({
+                      renderSlotCard({
                         key: b.id,
                         startMin: b.start,
                         endMin: b.end,
-                        label: b.reason,
+                        headline: b.room,
+                        subline: b.reason,
                         past: b.end <= nowMin,
-                        onClick: (e) => { e.stopPropagation(); onOpenBlock?.(b.id); },
+                        onClick: (e) => { e.stopPropagation(); onOpenSlot?.(b.room, b.start, b.end, b.id); },
                       }),
                     )}
 
                     {activeDrag && activeDrag.endMin > activeDrag.startMin &&
-                      renderBlockCard({
+                      renderSlotCard({
                         key: "drag-preview",
                         startMin: activeDrag.startMin,
                         endMin: activeDrag.endMin,
-                        label: dragBad ? "Overlaps a session" : "New block — release to choose reason",
+                        headline: room,
+                        subline: dragBad ? "Overlaps a session" : "New reservation",
                         bad: dragBad,
                         pending: true,
                       })}
 
-                    {activeMenu &&
-                      renderBlockCard({
-                        key: "menu-preview",
-                        startMin: activeMenu.startMin,
-                        endMin: activeMenu.endMin,
-                        label: menuBad ? "Overlaps a session" : "New block — pick a reason",
-                        bad: menuBad,
+                    {activeDraft &&
+                      renderSlotCard({
+                        key: "draft-preview",
+                        startMin: activeDraft.start,
+                        endMin: activeDraft.end,
+                        headline: room,
+                        subline: activeDraft.mode === "block" ? "New room block" : "New reservation",
                         pending: true,
                       })}
                   </>
                 );
               })()}
-
-              {/* Confirm menu — anchored below the range so it doesn't cover it */}
-              {activeMenu && (() => {
-                const mTop = TOP_PAD + minToPx(activeMenu.endMin) + 6;
-                return (
-                  <div
-                    className="absolute inset-x-1 z-40 border border-black/[0.08] bg-white p-3 shadow-[0_10px_30px_-8px_rgba(15,23,42,0.25)]"
-                    style={{ top: mTop, fontFamily: DISPLAY }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="mb-1 flex items-center justify-between gap-2">
-                      <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-black/55" style={{ fontFamily: MONO }}>
-                        Block {room}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setMenu(null)}
-                        className="grid h-5 w-5 place-items-center text-black/40 hover:text-black"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                    <div className="mb-2 text-[13px] font-semibold tabular-nums text-black" style={{ fontFamily: MONO }}>
-                      {fmt(activeMenu.startMin)} – {fmt(activeMenu.endMin)}
-                    </div>
-                    {menuBad ? (
-                      <div className="mb-2 rounded-sm bg-red-50 px-2 py-1 text-[11.5px] font-medium text-red-700">
-                        Overlaps an existing session — shorten the range or cancel.
-                      </div>
-                    ) : null}
-                    <div className="mb-2 flex flex-wrap gap-1">
-                      {BLOCK_REASONS.map((r) => (
-                        <button
-                          key={r}
-                          type="button"
-                          disabled={menuBad}
-                          onClick={() => commitBlock(r)}
-                          className="rounded-sm border border-black/10 bg-white px-2 py-1 text-[11.5px] font-medium text-black transition-colors hover:border-black/30 hover:bg-black/[0.03] disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {r}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setMenu(null)}
-                        className="px-2 py-1 text-[11.5px] font-medium text-black/55 hover:text-black"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                );
-              })()}
             </div>
+
           );
         })}
       </div>
@@ -2915,92 +2920,369 @@ function PanelSection({
 }
 
 // ------------------------------------------------------------------
-// Block panel — edit / remove a room block
+// Slot panel — one surface for creating a reservation or a block,
+// and for editing an existing block. Reservation is the default mode
+// because ~95% of clicks on empty space are bookings.
 // ------------------------------------------------------------------
 
-function BlockPanel({
-  block,
+function SlotPanel({
+  draft,
+  allServices,
+  blocks,
   onClose,
-  onRemove,
+  onSaveReservation,
+  onSaveBlock,
+  onRemoveBlock,
 }: {
-  block: Block | null;
+  draft: SlotDraft | null;
+  allServices: Service[];
+  blocks: Block[];
   onClose: () => void;
-  onRemove: (id: string) => void;
+  onSaveReservation: (svc: Service) => void;
+  onSaveBlock: (b: Block) => void;
+  onRemoveBlock: (id: string) => void;
 }) {
-  const open = !!block;
-  if (!block) {
-    return (
+  const open = !!draft;
+
+  // Local editable copy so field edits don't move the on-canvas draft card
+  // (per the design: what you drew stays anchored while you fill the form).
+  const [mode, setMode] = useState<"reservation" | "block">("reservation");
+  const [room, setRoom] = useState<string>("");
+  const [start, setStart] = useState<number>(0);
+  const [end, setEnd] = useState<number>(0);
+  const [offering, setOffering] = useState<string>("");
+  const [practitioner, setPractitioner] = useState<string>("");
+  const [guest, setGuest] = useState<string>("");
+  const [reason, setReason] = useState<string>(BLOCK_REASONS[0]);
+
+  useEffect(() => {
+    if (!draft) return;
+    setMode(draft.mode);
+    setRoom(draft.room);
+    setStart(draft.start);
+    setEnd(draft.end);
+    if (draft.editingBlockId) {
+      const b = blocks.find((x) => x.id === draft.editingBlockId);
+      setReason(b?.reason ?? BLOCK_REASONS[0]);
+    } else {
+      const offerings = OFFERINGS_BY_ROOM[draft.room] ?? [];
+      setOffering(offerings[0] ?? "");
+      setPractitioner("");
+      setGuest("");
+      setReason(BLOCK_REASONS[0]);
+    }
+  }, [draft, blocks]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  const rc = room ? roomColor(room) : ACCENT;
+  const isEditingBlock = !!draft?.editingBlockId;
+
+  const offerings = OFFERINGS_BY_ROOM[room] ?? [];
+  const eligiblePractitioners = useMemo(
+    () => PRACTITIONERS.filter((p) => p.offerings.includes(offering)),
+    [offering],
+  );
+
+  const conflicts = useMemo(() => {
+    if (!room || start >= end) return { session: false, block: false };
+    const session = allServices.some((s) => s.room === room && s.start < end && s.end > start);
+    const block = blocks.some((b) => b.id !== draft?.editingBlockId && b.room === room && b.start < end && b.end > start);
+    return { session, block };
+  }, [room, start, end, allServices, blocks, draft?.editingBlockId]);
+  const conflict = conflicts.session || conflicts.block;
+
+  const selectedPract = PRACTITIONERS.find((p) => p.name === practitioner);
+  const reservationValid = !!room && !!offering && !!practitioner && !!guest.trim() && start < end && !conflict;
+
+  const saveReservation = () => {
+    if (!reservationValid) return;
+    const pending = selectedPract && !selectedPract.onCalendarToday;
+    onSaveReservation({
+      id: `svc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      guest: guest.trim(),
+      service: offering,
+      room,
+      practitioner,
+      start,
+      end,
+      status: pending ? "requested" : "confirmed",
+      note: pending ? "Awaiting practitioner SMS confirmation" : undefined,
+    });
+  };
+
+  const saveBlock = () => {
+    if (conflict || start >= end) return;
+    onSaveBlock({
+      id: draft?.editingBlockId ?? `blk-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      room,
+      start,
+      end,
+      reason,
+    });
+  };
+
+  return (
+    <>
       <div
-        className={`fixed inset-0 z-50 pointer-events-none transition-opacity duration-200 ${
-          open ? "opacity-100" : "opacity-0"
+        aria-hidden
+        onClick={onClose}
+        className={`fixed inset-0 z-40 bg-black/25 backdrop-blur-[2px] transition-opacity duration-200 ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       />
-    );
-  }
-  const rc = roomColor(block.room);
-  return (
-    <div className="fixed inset-0 z-50">
-      <div
-        className="absolute inset-0 bg-black/25 transition-opacity"
-        onClick={onClose}
-      />
       <aside
-        className="absolute right-0 top-0 h-full w-full max-w-[440px] overflow-y-auto bg-white shadow-[-20px_0_40px_-20px_rgba(15,23,42,0.35)]"
-        style={{ fontFamily: DISPLAY }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={mode === "block" ? "Room block" : "New reservation"}
+        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-[520px] flex-col bg-white shadow-[-24px_0_60px_-24px_rgba(15,23,42,0.25)] transition-transform duration-300 ease-out ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+        style={{ fontFamily: DISPLAY, color: INK }}
       >
-        <div className="h-1.5 w-full" style={{ background: rc }} />
-        <div className="flex items-start justify-between gap-3 px-6 pt-5">
-          <div>
-            <div
-              className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-black/55"
-              style={{ fontFamily: MONO }}
-            >
-              Room block
-            </div>
-            <h2 className="mt-1 text-[22px] font-semibold leading-tight text-black">
-              {block.room}
-            </h2>
-            <div
-              className="mt-1 text-[13px] font-semibold tabular-nums text-black/75"
-              style={{ fontFamily: MONO }}
-            >
-              {fmt(block.start)} – {fmt(block.end)}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="grid h-8 w-8 place-items-center text-black/45 hover:text-black"
-          >
-            <X size={18} />
-          </button>
-        </div>
+        {!draft ? null : (
+          <>
+            <div className="h-[3px] w-full shrink-0" style={{ background: rc }} />
 
-        <div className="px-6 pb-8">
-          <section className="border-t border-black/[0.08] py-5">
-            <div
-              className="mb-2 text-[10.5px] uppercase tracking-[0.16em] text-black/45"
-              style={{ fontFamily: MONO }}
-            >
-              Reason
+            <div className="flex items-start justify-between gap-3 px-7 pt-6 pb-4">
+              <div className="min-w-0 flex-1">
+                <div className="text-[10.5px] uppercase tracking-[0.16em] text-black/45" style={{ fontFamily: MONO }}>
+                  {isEditingBlock ? "Edit room block" : mode === "block" ? "New room block" : "New reservation"}
+                </div>
+                <h2 className="mt-1 truncate text-[24px] font-semibold tracking-[-0.02em] text-black">
+                  {room || "Choose a room"}
+                </h2>
+                <div className="mt-1 text-[13px] font-semibold tabular-nums" style={{ color: rc, fontFamily: MONO }}>
+                  {fmt(start)} – {fmt(end)}
+                </div>
+              </div>
+              <button
+                aria-label="Close"
+                onClick={onClose}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-black/50 hover:bg-black/[0.05] hover:text-black"
+              >
+                <X size={16} />
+              </button>
             </div>
-            <div className="text-[15px] font-medium text-black">{block.reason}</div>
-            {block.note ? (
-              <div className="mt-2 text-[13px] text-black/70">{block.note}</div>
-            ) : null}
-          </section>
 
-          <section className="border-t border-black/[0.08] py-5">
-            <button
-              type="button"
-              onClick={() => onRemove(block.id)}
-              className="w-full border border-red-200 bg-red-50 px-3 py-2 text-[13px] font-semibold text-red-700 transition-colors hover:bg-red-100"
-            >
-              Remove block
-            </button>
-          </section>
-        </div>
+            {/* Mode toggle — only for new slots, not when editing an existing block */}
+            {!isEditingBlock && (
+              <div className="mx-7 mb-4 inline-flex shrink-0 self-start rounded-full border border-black/[0.1] bg-black/[0.03] p-0.5 text-[12px] font-semibold" style={{ fontFamily: MONO }}>
+                {(["reservation", "block"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setMode(m)}
+                    className={`rounded-full px-3 py-1 transition-colors ${
+                      mode === m ? "bg-white text-black shadow-sm" : "text-black/50 hover:text-black"
+                    }`}
+                  >
+                    {m === "reservation" ? "Reservation" : "Block"}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-6">
+              {conflict && (
+                <div className="mb-4 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-[12.5px] font-medium text-rose-800">
+                  Overlaps {conflicts.session ? "an existing session" : "another block"} in {room}. Adjust the time.
+                </div>
+              )}
+
+              <FieldGrid>
+                <Field label="Time">
+                  <div className="flex items-center gap-2 text-[13.5px]">
+                    <TimeInput value={start} onChange={setStart} />
+                    <span className="text-black/40">→</span>
+                    <TimeInput value={end} onChange={setEnd} />
+                  </div>
+                </Field>
+                <Field label="Room">
+                  <select
+                    value={room}
+                    onChange={(e) => setRoom(e.target.value)}
+                    className="w-full rounded-[8px] border border-black/10 bg-white px-2.5 py-1.5 text-[13.5px] font-medium text-black focus:border-black/40 focus:outline-none"
+                  >
+                    {ROOMS.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </Field>
+              </FieldGrid>
+
+              {mode === "reservation" ? (
+                <>
+                  <Field label="Offering" block>
+                    <select
+                      value={offering}
+                      onChange={(e) => { setOffering(e.target.value); setPractitioner(""); }}
+                      className="w-full rounded-[8px] border border-black/10 bg-white px-2.5 py-2 text-[14px] font-medium text-black focus:border-black/40 focus:outline-none"
+                    >
+                      <option value="" disabled>Select an offering…</option>
+                      {offerings.map((o) => (
+                        <option key={o} value={o}>{o}</option>
+                      ))}
+                    </select>
+                    {offerings.length === 0 && (
+                      <div className="mt-1 text-[11.5px] text-black/50">No offerings configured for {room}.</div>
+                    )}
+                  </Field>
+
+                  <Field label="Practitioner" block>
+                    {!offering ? (
+                      <div className="text-[12.5px] text-black/45">Choose an offering to see who can run it.</div>
+                    ) : eligiblePractitioners.length === 0 ? (
+                      <div className="text-[12.5px] text-black/50">No practitioners qualified for this offering.</div>
+                    ) : (
+                      <div className="flex flex-col gap-1.5">
+                        {eligiblePractitioners.map((p) => {
+                          const selected = practitioner === p.name;
+                          return (
+                            <button
+                              key={p.name}
+                              type="button"
+                              onClick={() => setPractitioner(p.name)}
+                              className={`flex items-center justify-between gap-3 rounded-[8px] border px-3 py-2 text-left transition-colors ${
+                                selected ? "border-black bg-black/[0.03]" : "border-black/10 bg-white hover:border-black/30"
+                              }`}
+                            >
+                              <div className="min-w-0">
+                                <div className="truncate text-[14px] font-semibold text-black">{p.name}</div>
+                                <div className="text-[11.5px]" style={{ fontFamily: MONO, color: p.onCalendarToday ? "#059669" : "#b45309" }}>
+                                  {p.onCalendarToday ? "Available today" : "Not on today's calendar — will request via SMS"}
+                                </div>
+                              </div>
+                              {selected && <Check size={14} strokeWidth={2.5} className="shrink-0 text-black" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </Field>
+
+                  <Field label="Guest" block>
+                    <input
+                      value={guest}
+                      onChange={(e) => setGuest(e.target.value)}
+                      placeholder="Guest name"
+                      className="w-full rounded-[8px] border border-black/10 bg-white px-2.5 py-2 text-[14px] font-medium text-black placeholder:text-black/35 focus:border-black/40 focus:outline-none"
+                    />
+                  </Field>
+                </>
+              ) : (
+                <Field label="Reason" block>
+                  <div className="flex flex-wrap gap-1.5">
+                    {BLOCK_REASONS.map((r) => {
+                      const selected = reason === r;
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setReason(r)}
+                          className={`rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${
+                            selected ? "border-black bg-black text-white" : "border-black/15 bg-white text-black/75 hover:border-black/40"
+                          }`}
+                        >
+                          {r}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Field>
+              )}
+            </div>
+
+            <div className="flex shrink-0 items-center justify-between gap-3 border-t border-black/[0.08] px-7 py-4">
+              {isEditingBlock ? (
+                <button
+                  type="button"
+                  onClick={() => onRemoveBlock(draft.editingBlockId!)}
+                  className="text-[13px] font-semibold text-rose-700 hover:text-rose-900"
+                >
+                  Remove block
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="text-[13px] font-medium text-black/55 hover:text-black"
+                >
+                  Cancel
+                </button>
+              )}
+              {mode === "reservation" ? (
+                <button
+                  type="button"
+                  disabled={!reservationValid}
+                  onClick={saveReservation}
+                  className="inline-flex items-center gap-2 rounded-[8px] px-4 py-2 text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ background: ACCENT }}
+                >
+                  {selectedPract && !selectedPract.onCalendarToday ? "Send request" : "Confirm reservation"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={conflict || start >= end}
+                  onClick={saveBlock}
+                  className="inline-flex items-center gap-2 rounded-[8px] px-4 py-2 text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ background: ACCENT }}
+                >
+                  {isEditingBlock ? "Save block" : "Confirm block"}
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </aside>
+    </>
+  );
+}
+
+function FieldGrid({ children }: { children: React.ReactNode }) {
+  return <div className="mb-4 grid grid-cols-2 gap-3">{children}</div>;
+}
+
+function Field({ label, children, block }: { label: string; children: React.ReactNode; block?: boolean }) {
+  return (
+    <div className={block ? "mb-4" : ""}>
+      <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-black/50" style={{ fontFamily: MONO }}>
+        {label}
+      </div>
+      {children}
     </div>
   );
 }
+
+function TimeInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  // value = minutes since DAY_START; render as HH:MM (24h) so it's compact and
+  // unambiguous inside the form. Snap to 5-min increments.
+  const abs = value + DAY_START;
+  const hh = Math.floor(abs / 60);
+  const mm = abs % 60;
+  const str = `${String(hh % 24).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  return (
+    <input
+      type="time"
+      step={300}
+      value={str}
+      onChange={(e) => {
+        const [h, m] = e.target.value.split(":").map(Number);
+        if (Number.isFinite(h) && Number.isFinite(m)) {
+          onChange(h * 60 + m - DAY_START);
+        }
+      }}
+      className="rounded-[8px] border border-black/10 bg-white px-2.5 py-1.5 text-[13.5px] font-semibold tabular-nums text-black focus:border-black/40 focus:outline-none"
+      style={{ fontFamily: MONO }}
+    />
+  );
+}
+
