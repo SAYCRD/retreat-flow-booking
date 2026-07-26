@@ -1086,7 +1086,7 @@ function TodayPage() {
               cueRoom={isToday ? cue?.room ?? null : null}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
-              allServices={isToday ? [...SERVICES, ...createdServices] : createdServices}
+              allServices={isToday ? liveServices : createdServices.filter((s) => !canceledIds.has(s.id))}
               blocks={blocks}
               draft={openSlot}
               onOpenSlot={(room, start, end, editingBlockId) => {
