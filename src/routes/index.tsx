@@ -1450,8 +1450,8 @@ function Timeline({
   allServices = SERVICES,
   emptyLabel,
   blocks = [],
-  onCreateBlock,
-  onOpenBlock,
+  draft,
+  onOpenSlot,
 }: {
   nowMin: number;
   highlightServiceId?: string;
@@ -1466,8 +1466,9 @@ function Timeline({
   allServices?: Service[];
   emptyLabel?: string;
   blocks?: Block[];
-  onCreateBlock?: (b: Block) => void;
-  onOpenBlock?: (id: string) => void;
+  draft?: SlotDraft | null;
+  onOpenSlot?: (room: string, start: number, end: number, editingBlockId?: string) => void;
+
 }) {
   const PX_PER_MIN = 4; // 240px per hour vertical — gives 15/30-min slots room to breathe
   const TAIL_PX_PER_MIN = 1.2; // compress the quiet evening tail so midnight doesn't feel empty
