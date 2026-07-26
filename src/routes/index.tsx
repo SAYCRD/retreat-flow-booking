@@ -1397,6 +1397,9 @@ function Timeline({
   onOpenService,
   allServices = SERVICES,
   emptyLabel,
+  blocks = [],
+  onCreateBlock,
+  onOpenBlock,
 }: {
   nowMin: number;
   highlightServiceId?: string;
@@ -1410,6 +1413,9 @@ function Timeline({
   onOpenService?: (id: string) => void;
   allServices?: Service[];
   emptyLabel?: string;
+  blocks?: Block[];
+  onCreateBlock?: (b: Block) => void;
+  onOpenBlock?: (id: string) => void;
 }) {
   const PX_PER_MIN = 4; // 240px per hour vertical — gives 15/30-min slots room to breathe
   const TAIL_PX_PER_MIN = 1.2; // compress the quiet evening tail so midnight doesn't feel empty
