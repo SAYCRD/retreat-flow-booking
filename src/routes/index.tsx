@@ -38,7 +38,7 @@ import {
   type Status,
 } from "@/lib/catalog";
 import { usePayments, isPaid } from "@/lib/paymentState";
-import { usePractitionerReplies, getReply, setReply, replyLine, REPLY_META, type ReplyStatus } from "@/lib/practitionerReplies";
+import { usePractitionerReplies, getReply, setReply, replyLine, REPLY_META, getTexted, textedLine, type ReplyStatus } from "@/lib/practitionerReplies";
 
 
 const WHISPER_ICON = {
@@ -980,6 +980,7 @@ function TodayPage() {
                   serviceLabel: cueSvc.service,
                   roomLabel: cueSvc.room,
                   startMin: cueSvc.start,
+                  serviceId: cueSvc.id,
                 },
               });
             };
@@ -1058,34 +1059,33 @@ function TodayPage() {
                 <div className="flex shrink-0 items-center gap-3">
                   {cue && (
                     <>
-                      {isNotify ? (
-                        <div className="flex items-center gap-2">
-                          {/* Primary: open the practitioner sidebar with a prefilled text */}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openPractitionerFromCue(); }}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-black px-3 py-1.5 text-[12.5px] font-semibold text-white transition-opacity hover:opacity-85"
-                          >
-                            <MessageSquare size={13} strokeWidth={2} />
-                            Text {cueSvc!.practitioner.split(" ")[0]}
-                          </button>
-                          {/* Secondary: record her reply once it comes back */}
-                          <div className="hidden items-center gap-1 sm:flex">
-                            {(["confirmed", "here", "on-way"] as ReplyStatus[]).map((status) => {
-                              const meta = REPLY_META[status];
-                              return (
-                                <button
-                                  key={status}
-                                  onClick={(e) => { e.stopPropagation(); setReply(cue.serviceId!, status); confirmCue(); }}
-                                  className="inline-flex items-center gap-1 rounded-full border border-black/10 bg-white px-2.5 py-1 text-[12px] font-semibold text-black/70 transition-colors hover:border-black/40 hover:text-black"
-                                >
-                                  <span aria-hidden>{meta.emoji}</span>
-                                  <span className="capitalize">{meta.label}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ) : (
+                      {isNotify ? (() => {
+                        // No action button — the "text" happens by clicking
+                        // the little notify marker on the timeline, which
+                        // opens the practitioner's sidebar with the prefill.
+                        // Here we just surface where we are in the loop.
+                        const reply = getReply(cue.serviceId!);
+                        const t = getTexted(cue.serviceId!);
+                        if (reply) {
+                          return (
+                            <span className="text-[13px] font-medium text-black/70">
+                              {replyLine(reply, cueSvc!.practitioner)}
+                            </span>
+                          );
+                        }
+                        if (t) {
+                          return (
+                            <span className="text-[13px] italic text-black/55">
+                              {textedLine(t, cueSvc!.practitioner)} · awaiting reply
+                            </span>
+                          );
+                        }
+                        return (
+                          <span className="hidden text-[12.5px] italic text-black/45 sm:inline">
+                            tap the {cueSvc!.practitioner.split(" ")[0].toLowerCase()} marker to send a text
+                          </span>
+                        );
+                      })() : (
                         <button
                           onClick={confirmCue}
                           className="text-[13.5px] font-medium text-black/85 underline decoration-black/25 underline-offset-4 transition-colors hover:decoration-black"
@@ -1185,6 +1185,7 @@ function TodayPage() {
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
               allServices={liveServices}
+              dateKey={selectedDateKey}
               blocks={blocks}
               draft={openSlot}
               onOpenSlot={(room, start, end, editingBlockId) => {
@@ -1669,6 +1670,7 @@ function Timeline({
   onOpenSlot,
   onMoveBlock,
   onRequestMoveService,
+  dateKey,
 }: {
   nowMin: number;
   highlightServiceId?: string;
@@ -1687,7 +1689,7 @@ function Timeline({
   onOpenSlot?: (room: string, start: number, end: number, editingBlockId?: string) => void;
   onMoveBlock?: (b: Block) => void;
   onRequestMoveService?: (id: string, start: number, end: number) => void;
-
+  dateKey?: string;
 }) {
 
   const PX_PER_MIN = 4; // 240px per hour vertical — gives 15/30-min slots room to breathe
@@ -2196,10 +2198,34 @@ function Timeline({
                   : TOP_PAD + minToPx(cueMarker.topMin);
                 const shift = cueMarker.overlapsNext && afterTopPx == null ? "translateY(-28px)" : undefined;
                 const isReset = cueMarker.kind === "reset";
+                const isNotifyMarker = cueMarker.kind === "notify";
+                const notifySvc = isNotifyMarker
+                  ? allServices.find((x) => x.id === cueMarker.serviceId)
+                  : null;
+                const openNotifyPanel = () => {
+                  if (!notifySvc) return;
+                  const first = notifySvc.guest.split(" ")[0] ?? notifySvc.guest;
+                  const message = `Hi ${notifySvc.practitioner.split(" ")[0]} — quick heads-up, ${first} is booked for ${notifySvc.service} at ${fmt(notifySvc.start)} in ${notifySvc.room}. Can you confirm you're on the way?`;
+                  openPractitionerPanelByName(notifySvc.practitioner, {
+                    service: notifySvc.service,
+                    room: notifySvc.room,
+                    start: notifySvc.start,
+                    end: notifySvc.end,
+                    date: dateKey,
+                    notifyDraft: {
+                      message,
+                      guestFirstName: first,
+                      serviceLabel: notifySvc.service,
+                      roomLabel: notifySvc.room,
+                      startMin: notifySvc.start,
+                      serviceId: notifySvc.id,
+                    },
+                  });
+                };
                 return (
                   <div
                     id="active-cue-marker"
-                    className="pointer-events-none absolute inset-x-0 z-30"
+                    className={`absolute inset-x-0 z-30 ${isNotifyMarker ? "" : "pointer-events-none"}`}
                     style={{ top: topPx, transform: shift }}
                   >
                     {isReset ? (
@@ -2217,6 +2243,28 @@ function Timeline({
                           {cueMarker.verb}
                         </span>
                       </div>
+                    ) : isNotifyMarker ? (
+                      <button
+                        type="button"
+                        onClick={openNotifyPanel}
+                        aria-label={notifySvc ? `Open ${notifySvc.practitioner} to send a text` : "Open practitioner"}
+                        className="mx-2 flex w-fit items-center gap-2 px-2 py-1 text-left transition-transform hover:-translate-y-px hover:brightness-[0.97]"
+                        style={{
+                          background: `linear-gradient(178deg, transparent 8%, ${wash} 14%, ${wash} 92%, transparent 98%)`,
+                          borderRadius: "3px 7px 4px 8px",
+                        }}
+                      >
+                        <span aria-hidden className="text-[17px] leading-none" style={{ flexShrink: 0 }}>{emoji}</span>
+                        <span className="text-[13px] font-semibold tracking-tight text-black">
+                          {cueMarker.verb}
+                          {cueMarker.label && (
+                            <>
+                              <span className="mx-1.5 text-black/40">·</span>
+                              {cueMarker.label}
+                            </>
+                          )}
+                        </span>
+                      </button>
                     ) : (
                       <div className="mx-2 flex w-fit items-center gap-2 px-2 py-1"
                         style={{

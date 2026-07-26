@@ -25,6 +25,7 @@ import {
   type Service,
 } from "@/lib/catalog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { markTexted } from "@/lib/practitionerReplies";
 
 // --- typography tokens matched to routes/index.tsx ------------------
 const DISPLAY = "'Inter Tight', Inter, system-ui, sans-serif";
@@ -457,9 +458,14 @@ function NotifyDraftBlock({
 
   const smsHref = `sms:${phone.replace(/\s+/g, "")}?&body=${encodeURIComponent(text)}`;
 
+  const handleSend = () => {
+    if (draft.serviceId) markTexted(draft.serviceId);
+  };
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(text);
+      if (draft.serviceId) markTexted(draft.serviceId);
       setSent(true);
       setTimeout(() => setSent(false), 1800);
     } catch {}
@@ -497,6 +503,7 @@ function NotifyDraftBlock({
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <a
           href={smsHref}
+          onClick={handleSend}
           className="inline-flex items-center gap-1.5 rounded-full bg-black px-3.5 py-1.5 text-[12.5px] font-semibold text-white transition-opacity hover:opacity-85"
         >
           <MessageSquare size={13} strokeWidth={2} />
