@@ -1651,7 +1651,7 @@ function Timeline({
 
         {/* Room columns */}
         {ROOMS.map((room, idx) => {
-          const services = SERVICES.filter((s) => s.room === room);
+          const services = allServices.filter((s) => s.room === room);
           return (
           <div
               key={room}
