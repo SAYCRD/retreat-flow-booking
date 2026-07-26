@@ -2196,10 +2196,34 @@ function Timeline({
                   : TOP_PAD + minToPx(cueMarker.topMin);
                 const shift = cueMarker.overlapsNext && afterTopPx == null ? "translateY(-28px)" : undefined;
                 const isReset = cueMarker.kind === "reset";
+                const isNotifyMarker = cueMarker.kind === "notify";
+                const notifySvc = isNotifyMarker
+                  ? allServices.find((x) => x.id === cueMarker.serviceId)
+                  : null;
+                const openNotifyPanel = () => {
+                  if (!notifySvc) return;
+                  const first = notifySvc.guest.split(" ")[0] ?? notifySvc.guest;
+                  const message = `Hi ${notifySvc.practitioner.split(" ")[0]} — quick heads-up, ${first} is booked for ${notifySvc.service} at ${fmt(notifySvc.start)} in ${notifySvc.room}. Can you confirm you're on the way?`;
+                  openPractitionerPanelByName(notifySvc.practitioner, {
+                    service: notifySvc.service,
+                    room: notifySvc.room,
+                    start: notifySvc.start,
+                    end: notifySvc.end,
+                    date: selectedDateKey,
+                    notifyDraft: {
+                      message,
+                      guestFirstName: first,
+                      serviceLabel: notifySvc.service,
+                      roomLabel: notifySvc.room,
+                      startMin: notifySvc.start,
+                      serviceId: notifySvc.id,
+                    },
+                  });
+                };
                 return (
                   <div
                     id="active-cue-marker"
-                    className="pointer-events-none absolute inset-x-0 z-30"
+                    className={`absolute inset-x-0 z-30 ${isNotifyMarker ? "" : "pointer-events-none"}`}
                     style={{ top: topPx, transform: shift }}
                   >
                     {isReset ? (
@@ -2217,6 +2241,28 @@ function Timeline({
                           {cueMarker.verb}
                         </span>
                       </div>
+                    ) : isNotifyMarker ? (
+                      <button
+                        type="button"
+                        onClick={openNotifyPanel}
+                        aria-label={notifySvc ? `Open ${notifySvc.practitioner} to send a text` : "Open practitioner"}
+                        className="mx-2 flex w-fit items-center gap-2 px-2 py-1 text-left transition-transform hover:-translate-y-px hover:brightness-[0.97]"
+                        style={{
+                          background: `linear-gradient(178deg, transparent 8%, ${wash} 14%, ${wash} 92%, transparent 98%)`,
+                          borderRadius: "3px 7px 4px 8px",
+                        }}
+                      >
+                        <span aria-hidden className="text-[17px] leading-none" style={{ flexShrink: 0 }}>{emoji}</span>
+                        <span className="text-[13px] font-semibold tracking-tight text-black">
+                          {cueMarker.verb}
+                          {cueMarker.label && (
+                            <>
+                              <span className="mx-1.5 text-black/40">·</span>
+                              {cueMarker.label}
+                            </>
+                          )}
+                        </span>
+                      </button>
                     ) : (
                       <div className="mx-2 flex w-fit items-center gap-2 px-2 py-1"
                         style={{
