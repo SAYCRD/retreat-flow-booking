@@ -1115,10 +1115,21 @@ function TodayPage() {
         <FocusOverlay cue={cue} onClose={() => setFocusOpen(false)} />
       )}
 
-      <ReservationPanel service={openService} onClose={() => setOpenServiceId(null)} />
+      <ReservationPanel
+        service={openService}
+        onClose={() => setOpenServiceId(null)}
+        onCancel={(id) => {
+          setCanceledIds((prev) => {
+            const next = new Set(prev);
+            next.add(id);
+            return next;
+          });
+          setOpenServiceId(null);
+        }}
+      />
       <SlotPanel
         draft={openSlot}
-        allServices={[...SERVICES, ...createdServices]}
+        allServices={liveServices}
         blocks={blocks}
         onClose={() => setOpenSlot(null)}
         onSaveReservation={(svc) => {
