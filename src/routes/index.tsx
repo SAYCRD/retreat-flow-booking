@@ -464,20 +464,21 @@ function getProtocols(serviceName: string): Protocol[] {
   return SESSION_PROTOCOLS[serviceName] ?? [];
 }
 
-// Payment state per service (in a real app this would come from the DB).
-// A guest's `paid` flag in FINANCES represents the whole visit;
-// here we mark individual services so the panel can show a payment link.
-const SERVICE_PAID: Record<string, boolean> = {
-  s1: true, s2: true, s3: true, s4: true,
-  s5: false, s6: false, s7: true, s8: false, s9: false,
-  s10: false, s11: false,
-};
+// Payment state now lives in @/lib/paymentState so cards and the panel
+// can share reads/writes. Retained here only as a legacy alias for
+// generatePrompts, which reads it synchronously outside a React render.
+const SERVICE_PAID = new Proxy({} as Record<string, boolean>, {
+  get: (_t, id: string) => isPaid(id),
+});
 
 const PRICES: Record<string, number> = {
   s1: 220, s2: 180, s3: 95, s4: 50,
   s5: 320, s6: 140, s7: 140, s8: 60, s9: 140,
   s10: 180, s11: 150,
+  t1: 140, t2: 180, t3: 95, t4: 60, t5: 140,
+  t6: 95, t7: 320, t8: 220, t9: 140, t10: 150,
 };
+
 
 
 // ------------------------------------------------------------------
