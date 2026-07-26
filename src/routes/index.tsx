@@ -2306,13 +2306,22 @@ function Timeline({
                           <div>{fmt(s.start + (isDragging ? svcDrag!.delta : 0))}</div>
                           <div style={{ opacity: 0.55 }}>{fmt(s.end + (isDragging ? svcDrag!.delta : 0))}</div>
                         </div>
-                        <div
-                          className="shrink-0 whitespace-nowrap text-[12px] font-semibold tabular-nums tracking-[0.08em]"
-                          style={{ color: metaColor, fontFamily: MONO, opacity: 0.65 }}
-                        >
-                          {duration}m
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          {isOrchestrationCard && (
+                            <span aria-label="Part of a multi-service journey" className="text-[15px] leading-none">🌀</span>
+                          )}
+                          {unpaid && (
+                            <span aria-label="Unpaid — outstanding" className="text-[14px] leading-none">💳</span>
+                          )}
+                          <div
+                            className="whitespace-nowrap text-[12px] font-semibold tabular-nums tracking-[0.08em]"
+                            style={{ color: metaColor, fontFamily: MONO, opacity: 0.65 }}
+                          >
+                            {duration}m
+                          </div>
                         </div>
                       </div>
+
 
                       {/* Room — the space this session happens in */}
                       <div
