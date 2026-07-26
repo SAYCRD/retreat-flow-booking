@@ -1797,9 +1797,9 @@ function Timeline({
           const roomBlocks = blocksByRoom[room] ?? [];
           const rc = roomColor(room);
           const activeDrag = drag && drag.room === room ? drag : null;
-          const activeMenu = menu && menu.room === room ? menu : null;
+          const activeDraft = draft && !draft.editingBlockId && draft.room === room ? draft : null;
           const dragBad = activeDrag ? rangeOverlaps(room, activeDrag.startMin, activeDrag.endMin) : false;
-          const menuBad = activeMenu ? rangeOverlaps(room, activeMenu.startMin, activeMenu.endMin) : false;
+
           return (
           <div
               key={room}
