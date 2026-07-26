@@ -107,7 +107,17 @@ export type PanelContext = {
   end?: number;
   date?: string;
   onAssign?: (practitionerId: string, practitionerName: string) => void;
+  notifyDraft?: {
+    // A prefilled SMS the front desk can send to the practitioner.
+    // The panel renders this at the top with a "Send text" button.
+    message: string;
+    guestFirstName?: string;
+    serviceLabel?: string;
+    roomLabel?: string;
+    startMin?: number;
+  };
 };
+
 
 export type PendingMove = {
   id: string;

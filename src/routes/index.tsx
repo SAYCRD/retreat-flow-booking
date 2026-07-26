@@ -909,99 +909,144 @@ function TodayPage() {
           <span className="h-10 w-px shrink-0 bg-black/10" />
 
           {/* cue body */}
-          <div
-            className={`flex min-w-0 flex-1 items-center gap-3.5 ${cue?.serviceId ? "cursor-pointer" : ""}`}
-            onClick={cue?.serviceId ? scrollToActiveCue : undefined}
-            role={cue?.serviceId ? "button" : undefined}
-            aria-label={cue?.serviceId ? "Scroll to this cue on the timeline" : undefined}
-          >
+          {(() => {
+            // Resolve the underlying service for practitioner-notify actions.
+            const cueSvc = cue?.serviceId ? liveServices.find((s) => s.id === cue.serviceId) : null;
+            const isNotify = cue?.kind === "notify" && !!cueSvc;
 
-            {cue ? (() => {
-              const emoji = CUE_EMOJI[cue.kind];
-              const tint = cue.room ? roomColor(cue.room) : "#0a0a0a";
-              return (
-                <>
-                  <span className="relative shrink-0">
-                    <span
-                      aria-hidden
-                      className="grid h-9 w-9 place-items-center rounded-full text-[19px] leading-none"
-                      style={{ background: `${tint}14` }}
-                    >
-                      {emoji}
-                    </span>
-                    {cue.urgent && (
-                      <span aria-hidden className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-70" />
-                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white" />
-                      </span>
-                    )}
-                  </span>
+            const openPractitionerFromCue = () => {
+              if (!cueSvc) return;
+              const first = cueSvc.guest.split(" ")[0] ?? cueSvc.guest;
+              const message = `Hi ${cueSvc.practitioner.split(" ")[0]} — quick heads-up, ${first} is booked for ${cueSvc.service} at ${fmt(cueSvc.start)} in ${cueSvc.room}. Can you confirm you're on the way?`;
+              openPractitionerPanelByName(cueSvc.practitioner, {
+                service: cueSvc.service,
+                room: cueSvc.room,
+                start: cueSvc.start,
+                end: cueSvc.end,
+                date: selectedDateKey,
+                notifyDraft: {
+                  message,
+                  guestFirstName: first,
+                  serviceLabel: cueSvc.service,
+                  roomLabel: cueSvc.room,
+                  startMin: cueSvc.start,
+                },
+              });
+            };
 
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline gap-2.5">
-                      <h3 className="truncate text-[17px] font-semibold tracking-tight text-black">
-                        {cue.headline}
-                      </h3>
-                      {cue.urgent && (
-                        <span className="shrink-0 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-px text-[10.5px] font-bold uppercase tracking-tight text-amber-700">
-                          Important
-                        </span>
-                      )}
-                      {cue.room && (
-                        <span
-                          className="hidden shrink-0 text-[18px] font-semibold md:inline"
-                          style={{ color: roomColor(cue.room), fontFamily: DISPLAY }}
-                        >
-                          · {cue.room}
-                        </span>
-                      )}
-                      <span className="hidden truncate text-[14.5px] font-medium text-black/75 lg:inline">
-                        · {cue.reason}
-                      </span>
-                    </div>
-                  </div>
-                </>
-              );
-            })() : (
-              <div className="flex items-center gap-2 text-[14px] text-black/50">
-                <Sparkles size={16} strokeWidth={1.75} />
-                <span>All caught up. The day is flowing.</span>
-              </div>
-            )}
-          </div>
-
-          {/* actions + arrows all inline, right-aligned */}
-          <div className="flex shrink-0 items-center gap-3">
-            {cue && (
+            return (
               <>
-                {cue.kind === "notify" && cue.serviceId ? (
-                  <div className="flex items-center gap-1">
-                    {(["confirmed", "here", "on-way"] as ReplyStatus[]).map((status) => {
-                      const meta = REPLY_META[status];
-                      return (
+                <div
+                  className={`flex min-w-0 flex-1 items-center gap-3.5 ${
+                    isNotify ? "cursor-pointer" : cue?.serviceId ? "cursor-pointer" : ""
+                  }`}
+                  onClick={isNotify ? openPractitionerFromCue : cue?.serviceId ? scrollToActiveCue : undefined}
+                  role={cue?.serviceId ? "button" : undefined}
+                  aria-label={
+                    isNotify
+                      ? `Open ${cueSvc!.practitioner} to send a text`
+                      : cue?.serviceId
+                      ? "Scroll to this cue on the timeline"
+                      : undefined
+                  }
+                >
+                  {cue ? (() => {
+                    const emoji = CUE_EMOJI[cue.kind];
+                    const tint = cue.room ? roomColor(cue.room) : "#0a0a0a";
+                    return (
+                      <>
+                        <span className="relative shrink-0">
+                          <span
+                            aria-hidden
+                            className="grid h-9 w-9 place-items-center rounded-full text-[19px] leading-none"
+                            style={{ background: `${tint}14` }}
+                          >
+                            {emoji}
+                          </span>
+                          {cue.urgent && (
+                            <span aria-hidden className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-70" />
+                              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white" />
+                            </span>
+                          )}
+                        </span>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline gap-2.5">
+                            <h3 className="truncate text-[17px] font-semibold tracking-tight text-black">
+                              {cue.headline}
+                            </h3>
+                            {cue.urgent && (
+                              <span className="shrink-0 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-px text-[10.5px] font-bold uppercase tracking-tight text-amber-700">
+                                Important
+                              </span>
+                            )}
+                            {cue.room && (
+                              <span
+                                className="hidden shrink-0 text-[18px] font-semibold md:inline"
+                                style={{ color: roomColor(cue.room), fontFamily: DISPLAY }}
+                              >
+                                · {cue.room}
+                              </span>
+                            )}
+                            <span className="hidden truncate text-[14.5px] font-medium text-black/75 lg:inline">
+                              · {cue.reason}
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })() : (
+                    <div className="flex items-center gap-2 text-[14px] text-black/50">
+                      <Sparkles size={16} strokeWidth={1.75} />
+                      <span>All caught up. The day is flowing.</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* actions + arrows all inline, right-aligned */}
+                <div className="flex shrink-0 items-center gap-3">
+                  {cue && (
+                    <>
+                      {isNotify ? (
+                        <div className="flex items-center gap-2">
+                          {/* Primary: open the practitioner sidebar with a prefilled text */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openPractitionerFromCue(); }}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-black px-3 py-1.5 text-[12.5px] font-semibold text-white transition-opacity hover:opacity-85"
+                          >
+                            <MessageSquare size={13} strokeWidth={2} />
+                            Text {cueSvc!.practitioner.split(" ")[0]}
+                          </button>
+                          {/* Secondary: record her reply once it comes back */}
+                          <div className="hidden items-center gap-1 sm:flex">
+                            {(["confirmed", "here", "on-way"] as ReplyStatus[]).map((status) => {
+                              const meta = REPLY_META[status];
+                              return (
+                                <button
+                                  key={status}
+                                  onClick={(e) => { e.stopPropagation(); setReply(cue.serviceId!, status); confirmCue(); }}
+                                  className="inline-flex items-center gap-1 rounded-full border border-black/10 bg-white px-2.5 py-1 text-[12px] font-semibold text-black/70 transition-colors hover:border-black/40 hover:text-black"
+                                >
+                                  <span aria-hidden>{meta.emoji}</span>
+                                  <span className="capitalize">{meta.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : (
                         <button
-                          key={status}
-                          onClick={() => { setReply(cue.serviceId!, status); confirmCue(); }}
-                          className="inline-flex items-center gap-1 rounded-full border border-black/10 bg-white px-2.5 py-1 text-[12px] font-semibold text-black/75 transition-colors hover:border-black/40 hover:text-black"
+                          onClick={confirmCue}
+                          className="text-[13.5px] font-medium text-black/85 underline decoration-black/25 underline-offset-4 transition-colors hover:decoration-black"
                         >
-                          <span aria-hidden>{meta.emoji}</span>
-                          <span className="capitalize">{meta.label}</span>
+                          {cue.primary}
                         </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <button
-                    onClick={confirmCue}
-                    className="text-[13.5px] font-medium text-black/85 underline decoration-black/25 underline-offset-4 transition-colors hover:decoration-black"
-                  >
-                    {cue.primary}
-                  </button>
-                )}
-                <span className="h-5 w-px bg-black/10" />
-              </>
-            )}
+                      )}
+                      <span className="h-5 w-px bg-black/10" />
+                    </>
+                  )}
+
 
             <div className="flex items-center gap-0.5">
               <button
@@ -1028,8 +1073,12 @@ function TodayPage() {
               <div className="text-[22px] font-semibold leading-none tracking-tight text-black">{clock}</div>
             </div>
           </div>
+                </>
+              );
+            })()}
         </div>
       </section>
+
 
 
 

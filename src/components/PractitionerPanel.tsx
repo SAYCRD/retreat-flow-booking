@@ -291,6 +291,15 @@ export function PractitionerPanel() {
 
             {/* Scrollable body */}
             <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-8">
+              {/* Notify draft — prefilled text the front desk can send now */}
+              {panelContext?.notifyDraft && practitioner.phone && (
+                <NotifyDraftBlock
+                  hue={practitioner.colorHue}
+                  phone={practitioner.phone}
+                  draft={panelContext.notifyDraft}
+                />
+              )}
+
               {/* Reservation-in-flight context (assignment picker) */}
               {panelContext?.service && panelContext.start != null && panelContext.end != null && (
                 <div className="mt-5 border-t border-b border-black/[0.08] py-4">
@@ -422,6 +431,91 @@ export function PractitionerPanel() {
     </>
   );
 }
+
+// -------------------------------------------------------------------
+// Notify draft — an editable prefilled SMS to the practitioner. This
+// is what shows when someone taps a "Notify {practitioner}" cue: the
+// front desk lands here with a message already composed.
+// -------------------------------------------------------------------
+function NotifyDraftBlock({
+  hue,
+  phone,
+  draft,
+}: {
+  hue: string;
+  phone: string;
+  draft: NonNullable<import("@/lib/practitionerStore").PanelContext["notifyDraft"]>;
+}) {
+  const [text, setText] = useState(draft.message);
+  const [sent, setSent] = useState(false);
+
+  // Reset when the source cue changes (different guest/service).
+  useEffect(() => {
+    setText(draft.message);
+    setSent(false);
+  }, [draft.message]);
+
+  const smsHref = `sms:${phone.replace(/\s+/g, "")}?&body=${encodeURIComponent(text)}`;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setSent(true);
+      setTimeout(() => setSent(false), 1800);
+    } catch {}
+  };
+
+  return (
+    <div
+      className="mt-5 border-t border-b py-4"
+      style={{ borderColor: `${hue}55`, background: `linear-gradient(180deg, ${hue}0d, transparent)` }}
+    >
+      <div className="flex items-baseline justify-between">
+        <div className="text-[11px] uppercase tracking-[0.16em] text-black/50" style={{ fontFamily: MONO }}>
+          Send a heads-up
+        </div>
+        {draft.startMin != null && (
+          <div className="text-[12px] tabular-nums" style={{ fontFamily: MONO, color: META }}>
+            starts {fmt(draft.startMin)}
+          </div>
+        )}
+      </div>
+      <div className="mt-1.5 text-[15px] leading-snug text-black/70" style={{ fontFamily: SERIF }}>
+        {draft.guestFirstName && draft.serviceLabel ? (
+          <>Confirm you're on the way for <span className="font-semibold not-italic">{draft.guestFirstName}</span> — {draft.serviceLabel}{draft.roomLabel ? ` · ${draft.roomLabel}` : ""}.</>
+        ) : (
+          "Confirm you're on the way."
+        )}
+      </div>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={4}
+        className="mt-3 w-full resize-none rounded-[6px] border border-black/10 bg-white px-3 py-2.5 text-[14px] leading-relaxed text-black placeholder:italic placeholder:text-black/35 focus:border-black focus:outline-none"
+        style={{ fontFamily: DISPLAY }}
+      />
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <a
+          href={smsHref}
+          className="inline-flex items-center gap-1.5 rounded-full bg-black px-3.5 py-1.5 text-[12.5px] font-semibold text-white transition-opacity hover:opacity-85"
+        >
+          <MessageSquare size={13} strokeWidth={2} />
+          Send text
+        </a>
+        <button
+          onClick={handleCopy}
+          className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-[12.5px] font-medium text-black/70 transition-colors hover:border-black/40 hover:text-black"
+        >
+          {sent ? "Copied ✓" : "Copy message"}
+        </button>
+        <span className="ml-auto text-[12px] italic text-black/45" style={{ fontFamily: SERIF }}>
+          sends to <span className="not-italic tabular-nums" style={{ fontFamily: MONO }}>{phone}</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 
 // -------------------------------------------------------------------
 // Elegant offering picker — searchable popover, not a wall of pills.
