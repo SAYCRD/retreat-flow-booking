@@ -919,17 +919,17 @@ function TodayPage() {
           {/* cue body */}
           <div className="flex min-w-0 flex-1 items-center gap-3.5">
             {cue ? (() => {
-              const Icon = WHISPER_ICON[cue.kind];
+              const emoji = CUE_EMOJI[cue.kind];
               const tint = cue.room ? roomColor(cue.room) : "#0a0a0a";
               return (
                 <>
                   <span className="relative shrink-0">
                     <span
                       aria-hidden
-                      className="grid h-9 w-9 place-items-center rounded-full"
-                      style={{ background: `${tint}14`, color: tint }}
+                      className="grid h-9 w-9 place-items-center rounded-full text-[19px] leading-none"
+                      style={{ background: `${tint}14` }}
                     >
-                      <Icon size={18} strokeWidth={2} />
+                      {emoji}
                     </span>
                     {cue.urgent && (
                       <span aria-hidden className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
@@ -938,6 +938,7 @@ function TodayPage() {
                       </span>
                     )}
                   </span>
+
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline gap-2.5">
