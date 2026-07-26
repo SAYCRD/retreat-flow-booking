@@ -1441,7 +1441,85 @@ function Timeline({
     };
   }, [compressAfter]);
 
+  // Inverse of minToPx — converts a Y offset inside the grid track (already
+  // minus TOP_PAD) back into minutes since DAY_START. Snap to 15-min slots.
+  const pxToMin = useMemo(() => {
+    const fullPx = compressAfter * PX_PER_MIN;
+    return (px: number) => {
+      const raw = px <= fullPx ? px / PX_PER_MIN : compressAfter + (px - fullPx) / TAIL_PX_PER_MIN;
+      const snapped = Math.round(raw / 15) * 15;
+      return Math.max(0, Math.min(DAY_SPAN, snapped));
+    };
+  }, [compressAfter]);
+
   const trackHeight = TOP_PAD + minToPx(DAY_SPAN);
+
+  // Drag-to-block state — while the operator drags over an empty stretch of
+  // a room column, we preview the range. On mouseup we open a confirm menu
+  // anchored at the top of the range with a reason picker.
+  const [drag, setDrag] = useState<{ room: string; anchorMin: number; startMin: number; endMin: number } | null>(null);
+  const [menu, setMenu] = useState<{ room: string; startMin: number; endMin: number } | null>(null);
+  const dragDidMove = useRef(false);
+
+  const blocksByRoom = useMemo(() => {
+    const map: Record<string, Block[]> = {};
+    for (const b of blocks) (map[b.room] ??= []).push(b);
+    return map;
+  }, [blocks]);
+
+  const rangeOverlaps = (room: string, startMin: number, endMin: number) => {
+    if (startMin >= endMin) return true;
+    const s = allServices.some((sv) => sv.room === room && sv.start < endMin && sv.end > startMin);
+    if (s) return true;
+    return (blocksByRoom[room] ?? []).some((b) => b.start < endMin && b.end > startMin);
+  };
+
+  const beginDrag = (room: string, e: React.MouseEvent<HTMLDivElement>) => {
+    if (!onCreateBlock) return;
+    // Ignore clicks that started on a service card or existing block chip.
+    const target = e.target as HTMLElement;
+    if (target.closest("[data-svc-card], [data-block-chip]")) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top - TOP_PAD;
+    const anchor = pxToMin(y);
+    dragDidMove.current = false;
+    setDrag({ room, anchorMin: anchor, startMin: anchor, endMin: anchor + 30 });
+    setMenu(null);
+  };
+
+  const moveDrag = (room: string, e: React.MouseEvent<HTMLDivElement>) => {
+    if (!drag || drag.room !== room) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top - TOP_PAD;
+    const m = pxToMin(y);
+    const startMin = Math.min(drag.anchorMin, m);
+    const endMin = Math.max(drag.anchorMin, m);
+    if (endMin - startMin >= 15) dragDidMove.current = true;
+    setDrag({ ...drag, startMin, endMin: Math.max(endMin, startMin + 15) });
+  };
+
+  const endDrag = (room: string) => {
+    if (!drag || drag.room !== room) return;
+    const startMin = drag.startMin;
+    const endMin = dragDidMove.current ? drag.endMin : drag.anchorMin + 30;
+    setDrag(null);
+    setMenu({ room, startMin, endMin });
+  };
+
+  const commitBlock = (reason: string, note?: string) => {
+    if (!menu || !onCreateBlock) return;
+    if (rangeOverlaps(menu.room, menu.startMin, menu.endMin)) return;
+    onCreateBlock({
+      id: `blk-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      room: menu.room,
+      start: menu.startMin,
+      end: menu.endMin,
+      reason,
+      note,
+    });
+    setMenu(null);
+  };
+
 
   // Group whispers by the service they touch, so the calendar can render
   // little living notes right above each card ("footprints", "broom", "tea").
