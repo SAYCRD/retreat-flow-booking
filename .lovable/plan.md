@@ -1,41 +1,62 @@
-## Inline room blocking on the timeline
+## The core insight
 
-Add the ability to block out a room directly on the Reservations view — no separate settings page, no permissions gating (yet). The operator interacts with the same timeline they're already reading.
+Clicking an empty slot has two intents — **book a session** (95% of the time) or **block the room** (rare). Instead of forcing the operator to pick a mode upfront, we let the *gesture itself* declare intent, and we make booking the obvious default.
 
-### The interaction
+## The interaction model
 
-1. **Click an empty slot** in any room column → a small floating menu appears at the cursor with two choices:
-   - **Block this time** (creates a block starting at the clicked 15-min slot, default 30 min)
-   - **New reservation** (placeholder for the future booking engine — disabled with a "coming soon" hint for now)
-2. **Drag across empty slots** in a room column → live preview of the range → release to open the same menu pre-filled with that range.
-3. **Blocks render as** a soft diagonal-hatched band in the room's color, with a small label ("Blocked · 2:00–4:00 PM") and an optional reason ("Group booking", "Maintenance", "Deep clean", "Private event", or custom).
-4. **Click an existing block** → side panel opens (same slide-in pattern as `ReservationPanel`) with: room, time range, reason, notes, and a **Remove block** button.
-5. Blocks respect the same non-linear time scale and the sticky "Now" line already on the timeline.
+**One gesture, one surface — no intermediate popups.**
 
-### Guardrails
+1. **Click** an empty cell → opens the side panel in "New reservation" mode, pre-filled with room + start time (60 min default). Same slide-in panel we use for viewing a reservation.
+2. **Drag** across empty cells → paints a live card in-place (styled exactly like a reservation card, with the room-colored top rail and large time). On release, the side panel opens in "New reservation" mode with that exact time range pre-filled.
+3. Inside the side panel, a small segmented toggle at the top: **Reservation · Block**. Switching to Block collapses the form to just "Reason" + time. No second modal, no menu-on-canvas.
 
-- Blocks cannot overlap an existing reservation on that room. If the drag range touches a booking, the menu shows a red note ("Overlaps Amara's session") and disables the confirm button.
-- Blocks CAN sit in the past — useful for logging retroactive closures — but past blocks render at 60% opacity to stay quiet.
-- Coming Up strip and living whispers ignore blocks entirely; a block is not a cue, it's absence of availability.
+The painted card on the canvas stays anchored at the exact drawn time the whole time the panel is open — no jump, no re-render to a different position. If the operator cancels, it disappears.
 
-### Visual language
+## The painted card (both modes)
 
-- Diagonal hatch pattern using the room's own hue at ~14% alpha over white (keeps the room identity, reads clearly as "not a booking").
-- No shadow, no card chrome — flatter than reservations so the eye separates the two.
-- Reason label in the same JetBrains Mono uppercase small-caps used elsewhere for meta.
+Matches the reservation card format exactly:
+- Room-colored top rail (red rail + "Overlaps a session" if invalid)
+- **Large time range** top-left (same size as offerings: 17px mono)
+- **Room name** in black, large (matches offering card room label)
+- Third line: offering name (reservation mode) *or* reason (block mode) *or* "New reservation" placeholder before the panel is filled
+- White background, subtle shadow — identical to existing cards
 
-### Data (frontend-only for now)
+No "ROOM BLOCK" all-caps label, no dashed borders, no hatch. A block is just a card whose third line is the reason.
 
-- New `Block` type: `{ id, room, start, end, reason, note? }` stored in local React state alongside `SERVICES`.
-- No backend wiring in this pass — this is a UX prototype layer. When the booking engine + persistence land, blocks become rows in the same table (or a sibling table) and this UI already speaks the right shape.
+## The side panel — new reservation flow
 
-### What this does NOT include
+Mirrors the existing `ReservationPanel` visual language. Fields in order:
 
-- No Rooms settings page.
-- No recurring blocks ("every Monday") — one-off only for now.
-- No role/permission gating.
-- No reservation creation flow (the menu shows the option but it's disabled — this plan is scoped to blocking).
+1. **Time** — editable start/end (defaults from the drag)
+2. **Room** — pre-selected from the column clicked, changeable
+3. **Offering** — dropdown filtered to offerings that room supports (we already have room→offering mapping in config)
+4. **Practitioner** — dropdown of practitioners qualified for that offering. Each row shows availability state:
+   - *Available* (from their availability calendar) → confirm instantly
+   - *Not on calendar* → shows "Request via SMS" — selecting sends a text, reservation is created in **Pending** state
+5. **Guest** — search / create
+6. Primary action: **Confirm reservation** (or **Send request** if practitioner needs confirmation)
 
-### Files touched
+Pending-practitioner reservations render on the timeline with a subtle dashed top rail until the practitioner confirms, then it snaps to solid.
 
-- `src/routes/index.tsx` — add `Block` type, state, click/drag handlers on each room column, hatched render layer, floating action menu, and a small `BlockPanel` (or extend `ReservationPanel` to handle both).
+**Block mode** (toggle at top of panel) collapses to just: time, room, reason, Confirm.
+
+## Why this is the most elegant answer
+
+- **One gesture, one surface.** No canvas menu + panel double-modal.
+- **Booking is the default**, matching real frequency. Blocking is one toggle away, not a separate motion.
+- **The painted card is truthful** — what you drew is what stays there, in the visual language you already know.
+- **Practitioner availability is surfaced at the moment of decision**, not after — the SMS request path is inline, not a separate flow.
+
+## Technical notes
+
+- Remove the on-canvas reason menu (`pendingBlock` reason popup) entirely.
+- Rename `BlockPanel` → `SlotPanel` with mode: `'reservation' | 'block'`.
+- Drag preview and click-to-open both funnel into the same `openSlot({ roomId, start, end, mode: 'reservation' })` state.
+- Preview card component is shared between reservations, blocks, and the in-flight drag preview — one `SlotCard` primitive, three data shapes.
+- Practitioner availability + SMS request are stubbed frontend-only for now (matches the rest of the prototype's state).
+
+## Out of scope for this pass
+
+- Actual SMS delivery, practitioner availability calendars (stub data only)
+- Guest search backend
+- Persistence — still in-memory
