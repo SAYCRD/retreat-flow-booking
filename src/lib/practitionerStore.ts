@@ -109,11 +109,20 @@ export type PanelContext = {
   onAssign?: (practitionerId: string, practitionerName: string) => void;
 };
 
+export type PendingMove = {
+  id: string;
+  from: { start: number; end: number };
+  to: { start: number; end: number };
+};
+
 type State = {
   practitioners: PractitionerRec[];
   availability: AvailabilityBlock[];
   createdServices: Service[];
   canceledIds: Set<string>;
+  serviceOverrides: Record<string, { start: number; end: number }>;
+  pendingMove: PendingMove | null;
+  moveToast: { text: string; at: number } | null;
   panelOpen: string | null;
   panelContext: PanelContext | null;
   openReservationId: string | null;
@@ -124,10 +133,14 @@ let state: State = {
   availability: seedAvailability,
   createdServices: [],
   canceledIds: new Set(),
+  serviceOverrides: {},
+  pendingMove: null,
+  moveToast: null,
   panelOpen: null,
   panelContext: null,
   openReservationId: null,
 };
+
 
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((fn) => fn());
@@ -231,9 +244,10 @@ export function hasAvailabilityCovering(
 // ---------- Services (live: seed + created − canceled) ----------
 
 export function getLiveServices(): Service[] {
-  return [...SEED_SERVICES, ...state.createdServices].filter(
-    (s) => !state.canceledIds.has(s.id),
-  );
+  const ov = state.serviceOverrides;
+  return [...SEED_SERVICES, ...state.createdServices]
+    .filter((s) => !state.canceledIds.has(s.id))
+    .map((s) => (ov[s.id] ? { ...s, start: ov[s.id].start, end: ov[s.id].end } : s));
 }
 
 export function addService(svc: Service) {
@@ -245,6 +259,46 @@ export function cancelService(id: string) {
   next.add(id);
   set({ canceledIds: next });
 }
+
+// ---------- Reschedule (drag reservations) ----------
+
+export function requestMoveService(id: string, start: number, end: number) {
+  const svc = getLiveServices().find((s) => s.id === id);
+  if (!svc) return;
+  if (svc.start === start && svc.end === end) return;
+  set({
+    pendingMove: {
+      id,
+      from: { start: svc.start, end: svc.end },
+      to: { start, end },
+    },
+  });
+}
+
+export function confirmPendingMove() {
+  const pm = state.pendingMove;
+  if (!pm) return;
+  const nextOv = { ...state.serviceOverrides, [pm.id]: pm.to };
+  const svc = getLiveServices().find((s) => s.id === pm.id);
+  const toastText = svc
+    ? `${svc.service} moved · notifications sent`
+    : `Reservation moved · notifications sent`;
+  set({
+    serviceOverrides: nextOv,
+    pendingMove: null,
+    moveToast: { text: toastText, at: Date.now() },
+  });
+}
+
+export function cancelPendingMove() {
+  set({ pendingMove: null });
+}
+
+export function clearMoveToast() {
+  set({ moveToast: null });
+}
+
+
 
 export function servicesForPractitioner(name: string, dateKey: string): Service[] {
   // For v1 the timeline is always "today". When multi-day arrives, filter by
