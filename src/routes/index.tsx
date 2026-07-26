@@ -1670,6 +1670,7 @@ function Timeline({
   onOpenSlot,
   onMoveBlock,
   onRequestMoveService,
+  dateKey,
 }: {
   nowMin: number;
   highlightServiceId?: string;
@@ -1688,7 +1689,7 @@ function Timeline({
   onOpenSlot?: (room: string, start: number, end: number, editingBlockId?: string) => void;
   onMoveBlock?: (b: Block) => void;
   onRequestMoveService?: (id: string, start: number, end: number) => void;
-
+  dateKey?: string;
 }) {
 
   const PX_PER_MIN = 4; // 240px per hour vertical — gives 15/30-min slots room to breathe
