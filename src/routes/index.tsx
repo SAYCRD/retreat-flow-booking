@@ -1632,9 +1632,7 @@ function Timeline({
     document.addEventListener("mouseup", onUp);
   };
 
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
-  };
+
 
 
 
