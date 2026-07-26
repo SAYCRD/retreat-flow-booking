@@ -1440,14 +1440,14 @@ function Timeline({
 
   const cueMarker = useMemo(() => {
     if (!activeCue?.serviceId) return null;
-    const s = SERVICES.find((x) => x.id === activeCue.serviceId);
+    const s = allServices.find((x) => x.id === activeCue.serviceId);
     if (!s || !markerKinds.includes(activeCue.kind)) return null;
 
-    const roomServices = SERVICES.filter((x) => x.room === s.room).sort((a, b) => a.start - b.start);
+    const roomServices = allServices.filter((x) => x.room === s.room).sort((a, b) => a.start - b.start);
     const prevInRoom = roomServices.find((s2, i, arr) => arr[i + 1]?.id === s.id);
     const idxInRoom = roomServices.findIndex((x) => x.id === s.id);
     const nextInRoom = idxInRoom >= 0 ? roomServices[idxInRoom + 1] ?? null : null;
-    const guestServices = SERVICES.filter((x) => x.guest === s.guest).sort((a, b) => a.start - b.start);
+    const guestServices = allServices.filter((x) => x.guest === s.guest).sort((a, b) => a.start - b.start);
     const guestIdx = guestServices.findIndex((x) => x.id === s.id);
     const prevGuest = guestIdx > 0 ? guestServices[guestIdx - 1] : null;
 
