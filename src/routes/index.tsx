@@ -75,7 +75,7 @@ export const Route = createFileRoute("/")({
 // Model
 // ------------------------------------------------------------------
 
-type WhisperKind = "message" | "notify" | "escort" | "checkin" | "turnover" | "reset" | "setup" | "pickup" | "handoff" | "elixir" | "payment" | "conflict";
+type WhisperKind = "message" | "notify" | "escort" | "checkin" | "turnover" | "reset" | "setup" | "pickup" | "handoff" | "elixir" | "journey" | "payment" | "conflict";
 type Prompt = {
   id: string;
   kind: WhisperKind;
