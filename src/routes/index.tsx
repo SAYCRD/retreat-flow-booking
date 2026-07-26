@@ -2895,3 +2895,94 @@ function PanelSection({
     </section>
   );
 }
+
+// ------------------------------------------------------------------
+// Block panel — edit / remove a room block
+// ------------------------------------------------------------------
+
+function BlockPanel({
+  block,
+  onClose,
+  onRemove,
+}: {
+  block: Block | null;
+  onClose: () => void;
+  onRemove: (id: string) => void;
+}) {
+  const open = !!block;
+  if (!block) {
+    return (
+      <div
+        className={`fixed inset-0 z-50 pointer-events-none transition-opacity duration-200 ${
+          open ? "opacity-100" : "opacity-0"
+        }`}
+      />
+    );
+  }
+  const rc = roomColor(block.room);
+  return (
+    <div className="fixed inset-0 z-50">
+      <div
+        className="absolute inset-0 bg-black/25 transition-opacity"
+        onClick={onClose}
+      />
+      <aside
+        className="absolute right-0 top-0 h-full w-full max-w-[440px] overflow-y-auto bg-white shadow-[-20px_0_40px_-20px_rgba(15,23,42,0.35)]"
+        style={{ fontFamily: DISPLAY }}
+      >
+        <div className="h-1.5 w-full" style={{ background: rc }} />
+        <div className="flex items-start justify-between gap-3 px-6 pt-5">
+          <div>
+            <div
+              className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-black/55"
+              style={{ fontFamily: MONO }}
+            >
+              Room block
+            </div>
+            <h2 className="mt-1 text-[22px] font-semibold leading-tight text-black">
+              {block.room}
+            </h2>
+            <div
+              className="mt-1 text-[13px] font-semibold tabular-nums text-black/75"
+              style={{ fontFamily: MONO }}
+            >
+              {fmt(block.start)} – {fmt(block.end)}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-8 w-8 place-items-center text-black/45 hover:text-black"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="px-6 pb-8">
+          <section className="border-t border-black/[0.08] py-5">
+            <div
+              className="mb-2 text-[10.5px] uppercase tracking-[0.16em] text-black/45"
+              style={{ fontFamily: MONO }}
+            >
+              Reason
+            </div>
+            <div className="text-[15px] font-medium text-black">{block.reason}</div>
+            {block.note ? (
+              <div className="mt-2 text-[13px] text-black/70">{block.note}</div>
+            ) : null}
+          </section>
+
+          <section className="border-t border-black/[0.08] py-5">
+            <button
+              type="button"
+              onClick={() => onRemove(block.id)}
+              className="w-full border border-red-200 bg-red-50 px-3 py-2 text-[13px] font-semibold text-red-700 transition-colors hover:bg-red-100"
+            >
+              Remove block
+            </button>
+          </section>
+        </div>
+      </aside>
+    </div>
+  );
+}
