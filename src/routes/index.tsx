@@ -1705,16 +1705,18 @@ function Timeline({
     if (!onRequestMoveService) return;
     e.stopPropagation();
     e.preventDefault();
-    const originY = e.clientY;
+    const originPageY = e.clientY + window.scrollY;
     const dur = svc.end - svc.start;
     let moved = false;
     let curDelta = 0;
     let curBad = false;
+    let lastClientY = e.clientY;
+    let rafId: number | null = null;
     const checkBad = (ns: number, ne: number) =>
       allServices.some((o) => o.id !== svc.id && o.room === svc.room && o.start < ne && o.end > ns) ||
       (blocksByRoom[svc.room] ?? []).some((b) => b.start < ne && b.end > ns);
-    const onMove = (ev: MouseEvent) => {
-      const dy = ev.clientY - originY;
+    const recompute = () => {
+      const dy = lastClientY + window.scrollY - originPageY;
       const deltaMin = Math.round(dy / PX_PER_MIN / 15) * 15;
       if (Math.abs(deltaMin) >= 15) moved = true;
       let ns = Math.max(0, svc.start + deltaMin);
@@ -1724,9 +1726,29 @@ function Timeline({
       curBad = checkBad(ns, ne);
       setSvcDrag({ id: svc.id, delta: curDelta, bad: curBad });
     };
+    const EDGE = 110;
+    const MAX_SPEED = 20;
+    const autoScroll = () => {
+      const h = window.innerHeight;
+      let dy = 0;
+      if (lastClientY < EDGE) dy = -Math.ceil(((EDGE - lastClientY) / EDGE) * MAX_SPEED);
+      else if (lastClientY > h - EDGE) dy = Math.ceil(((lastClientY - (h - EDGE)) / EDGE) * MAX_SPEED);
+      if (dy !== 0) {
+        const before = window.scrollY;
+        window.scrollBy(0, dy);
+        if (window.scrollY !== before) recompute();
+      }
+      rafId = requestAnimationFrame(autoScroll);
+    };
+    rafId = requestAnimationFrame(autoScroll);
+    const onMove = (ev: MouseEvent) => {
+      lastClientY = ev.clientY;
+      recompute();
+    };
     const onUp = () => {
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
+      if (rafId !== null) cancelAnimationFrame(rafId);
       setSvcDrag(null);
       if (moved) {
         swallowSvcClickRef.current = true;
@@ -2188,19 +2210,8 @@ function Timeline({
                       onOpenService?.(s.id);
                     }}
                   >
-                    {/* Live time pill while dragging */}
-                    {isDragging && (
-                      <div
-                        className="pointer-events-none absolute -top-3 left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-sm px-2 py-1 text-[11px] font-semibold tabular-nums shadow"
-                        style={{
-                          background: dragBadThis ? "#dc2626" : "#0a0a0a",
-                          color: "#fff",
-                          fontFamily: MONO,
-                        }}
-                      >
-                        {dragBadThis ? "Overlaps" : `→ ${fmt(s.start + svcDrag!.delta)} – ${fmt(s.end + svcDrag!.delta)}`}
-                      </div>
-                    )}
+                    {/* (Live times shown inside the card update while dragging — no floating overlay.) */}
+
 
                     {/* Top color rail — thinner, high-chroma, thickens subtly on hover */}
                     <span
@@ -2261,8 +2272,8 @@ function Timeline({
                           className="whitespace-nowrap text-[17px] font-semibold tabular-nums leading-[1.15] tracking-tight"
                           style={{ color: metaColor, fontFamily: MONO }}
                         >
-                          <div>{fmt(s.start)}</div>
-                          <div style={{ opacity: 0.55 }}>{fmt(s.end)}</div>
+                          <div>{fmt(s.start + (isDragging ? svcDrag!.delta : 0))}</div>
+                          <div style={{ opacity: 0.55 }}>{fmt(s.end + (isDragging ? svcDrag!.delta : 0))}</div>
                         </div>
                         <div
                           className="shrink-0 whitespace-nowrap text-[12px] font-semibold tabular-nums tracking-[0.08em]"
