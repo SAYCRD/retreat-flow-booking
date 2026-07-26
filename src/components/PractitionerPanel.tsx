@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { X, Phone, MessageSquare, Sparkles, Trash2, Plus, Check } from "lucide-react";
+import { X, Phone, MessageSquare, Sparkles, Plus, Check, Bell } from "lucide-react";
 import {
   usePractitioners,
   closePractitionerPanel,
@@ -7,19 +7,29 @@ import {
   addAvailability,
   removeAvailability,
   updatePractitioner,
+  addPractitionerOffering,
+  removePractitionerOffering,
+  servicesForPractitioner,
+  openReservation,
   dateKeyOf,
   type AvailabilityBlock,
   type AvailabilitySource,
 } from "@/lib/practitionerStore";
+import {
+  roomColor,
+  allOfferings,
+  setupMinutesFor,
+  type Service,
+} from "@/lib/catalog";
 
 const DISPLAY = "'Inter Tight', Inter, system-ui, sans-serif";
 const MONO = "'JetBrains Mono', ui-monospace, monospace";
 const INK = "#0a0a0a";
 const ACCENT = "#3730ff";
-const AVAILABLE = "#16a34a"; // green
+const AVAILABLE = "#16a34a";
 const AVAILABLE_TINT = "rgba(22,163,74,0.14)";
 
-// Same timeline coordinate system as routes/index.tsx
+// Same day coordinate system as routes/index.tsx.
 const DAY_START_MIN = 5 * 60;
 const DAY_END_MIN = 24 * 60;
 const DAY_SPAN = DAY_END_MIN - DAY_START_MIN;
@@ -44,10 +54,20 @@ const minToPx = (m: number) => TOP_PAD + m * PX_PER_MIN;
 const pxToMin = (px: number) => clampMin(snap15((px - TOP_PAD) / PX_PER_MIN));
 
 const SOURCE_LABEL: Record<AvailabilitySource, string> = {
-  self: "Self-marked",
+  self: "Front desk",
   phone: "Called in",
   text: "Text reply",
 };
+
+// Light tint helper — mix hex with white by factor 0..1.
+function tintColor(hex: string, ratio: number): string {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  const mix = (c: number) => Math.round(c + (255 - c) * ratio);
+  return `rgb(${mix(r)},${mix(g)},${mix(b)})`;
+}
 
 export function PractitionerPanel() {
   const { panelOpen, panelContext, practitioners } = usePractitioners();
@@ -74,6 +94,7 @@ export function PractitionerPanel() {
 
   const dateKey = dateKeyOf(date);
   const blocks = practitioner ? availabilityFor(practitioner.id, dateKey) : [];
+  const bookings = practitioner ? servicesForPractitioner(practitioner.name, dateKey) : [];
 
   const isToday = dateKey === dateKeyOf(new Date());
   const dateLabel = date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -91,7 +112,6 @@ export function PractitionerPanel() {
 
   const handleAdd = (start: number, end: number, source: AvailabilitySource) => {
     if (!practitioner || start >= end) return;
-    // Merge overlapping same-day blocks so the calendar stays clean.
     const same = availabilityFor(practitioner.id, dateKey);
     const overlapping = same.filter((b) => b.start < end && b.end > start);
     overlapping.forEach((b) => removeAvailability(b.id));
@@ -110,6 +130,19 @@ export function PractitionerPanel() {
     if (!practitioner || panelContext?.start == null || panelContext?.end == null) return;
     handleAdd(panelContext.start, panelContext.end, source);
   };
+
+  const openBooking = (id: string) => {
+    closePractitionerPanel();
+    // slight delay so panel exit animation begins before the other panel enters
+    setTimeout(() => openReservation(id), 60);
+  };
+
+  const availableOfferings = useMemo(() => {
+    if (!practitioner) return [];
+    const cat = allOfferings();
+    const have = new Set(practitioner.offerings);
+    return cat.filter((o) => !have.has(o));
+  }, [practitioner]);
 
   return (
     <>
@@ -147,19 +180,6 @@ export function PractitionerPanel() {
                 <h2 className="mt-1 truncate text-[24px] font-semibold tracking-[-0.02em] text-black">
                   {practitioner.name}
                 </h2>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {practitioner.offerings.slice(0, 4).map((o) => (
-                    <span
-                      key={o}
-                      className="rounded-full border border-black/10 bg-black/[0.03] px-2 py-0.5 text-[11px] font-medium text-black/70"
-                    >
-                      {o}
-                    </span>
-                  ))}
-                  {practitioner.offerings.length > 4 && (
-                    <span className="text-[11px] text-black/45">+{practitioner.offerings.length - 4}</span>
-                  )}
-                </div>
               </div>
               <button
                 aria-label="Close"
@@ -171,7 +191,7 @@ export function PractitionerPanel() {
             </div>
 
             {/* Contact actions */}
-            <div className="flex shrink-0 items-center gap-2 px-7 pb-4">
+            <div className="flex shrink-0 flex-wrap items-center gap-2 px-7 pb-4">
               {practitioner.phone && (
                 <>
                   <a
@@ -260,47 +280,89 @@ export function PractitionerPanel() {
               <div className="mb-3 flex items-center justify-between">
                 <div>
                   <div className="text-[10.5px] uppercase tracking-[0.14em] text-black/45" style={{ fontFamily: MONO }}>
-                    Availability
+                    Day
                   </div>
                   <div className="mt-0.5 text-[15px] font-semibold text-black">
                     {isToday ? "Today · " : ""}{dateLabel}
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => shiftDate(-1)}
-                    className="rounded-[6px] border border-black/10 bg-white px-2 py-1 text-[12px] font-semibold text-black/70 hover:border-black/30"
-                  >
-                    ‹
-                  </button>
-                  <button
-                    onClick={() => setDate(new Date())}
-                    className="rounded-[6px] border border-black/10 bg-white px-2 py-1 text-[11.5px] font-semibold text-black/70 hover:border-black/30"
-                  >
-                    Today
-                  </button>
-                  <button
-                    onClick={() => shiftDate(1)}
-                    className="rounded-[6px] border border-black/10 bg-white px-2 py-1 text-[12px] font-semibold text-black/70 hover:border-black/30"
-                  >
-                    ›
-                  </button>
+                  <button onClick={() => shiftDate(-1)} className="rounded-[6px] border border-black/10 bg-white px-2 py-1 text-[12px] font-semibold text-black/70 hover:border-black/30">‹</button>
+                  <button onClick={() => setDate(new Date())} className="rounded-[6px] border border-black/10 bg-white px-2 py-1 text-[11.5px] font-semibold text-black/70 hover:border-black/30">Today</button>
+                  <button onClick={() => shiftDate(1)} className="rounded-[6px] border border-black/10 bg-white px-2 py-1 text-[12px] font-semibold text-black/70 hover:border-black/30">›</button>
                 </div>
               </div>
 
-              <div className="mb-2 flex items-center gap-3 text-[11.5px] text-black/50">
+              <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-black/50">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full" style={{ background: AVAILABLE }} />
                   Available
                 </span>
-                <span className="text-black/40">Drag on the timeline to add · click a block to remove</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-[2px] bg-black/60" />
+                  Reservation
+                </span>
+                <span className="text-black/40">Drag empty space to mark available · click a block to remove</span>
               </div>
 
               <AvailabilityCanvas
                 blocks={blocks}
+                bookings={bookings}
                 onAdd={(s, e) => handleAdd(s, e, "self")}
                 onRemove={(id) => removeAvailability(id)}
+                onOpenBooking={openBooking}
               />
+
+              {/* Offerings editor */}
+              <div className="mt-6">
+                <div className="mb-1.5 flex items-center justify-between">
+                  <div className="text-[10.5px] uppercase tracking-[0.14em] text-black/45" style={{ fontFamily: MONO }}>
+                    Offerings
+                  </div>
+                  <span className="text-[11px] text-black/40">Shown to the picker when this offering is chosen</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {practitioner.offerings.map((o) => (
+                    <span
+                      key={o}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-black/[0.03] py-0.5 pl-2.5 pr-1 text-[12px] font-medium text-black/80"
+                    >
+                      {o}
+                      <button
+                        type="button"
+                        aria-label={`Remove ${o}`}
+                        onClick={() => removePractitionerOffering(practitioner.id, o)}
+                        className="grid h-4 w-4 place-items-center rounded-full text-black/45 hover:bg-black/10 hover:text-black"
+                      >
+                        <X size={10} strokeWidth={2.5} />
+                      </button>
+                    </span>
+                  ))}
+                  {practitioner.offerings.length === 0 && (
+                    <span className="text-[12px] text-black/45">No offerings yet — add some below.</span>
+                  )}
+                </div>
+                {availableOfferings.length > 0 && (
+                  <div className="mt-3">
+                    <div className="mb-1 text-[10.5px] uppercase tracking-[0.14em] text-black/40" style={{ fontFamily: MONO }}>
+                      Add offering
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {availableOfferings.map((o) => (
+                        <button
+                          key={o}
+                          type="button"
+                          onClick={() => addPractitionerOffering(practitioner.id, o)}
+                          className="inline-flex items-center gap-1 rounded-full border border-dashed border-black/20 bg-white px-2.5 py-0.5 text-[12px] font-medium text-black/60 hover:border-black/40 hover:text-black"
+                        >
+                          <Plus size={11} strokeWidth={2.5} />
+                          {o}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Notes */}
               <div className="mt-6">
@@ -324,24 +386,27 @@ export function PractitionerPanel() {
 }
 
 // ------------------------------------------------------------------
-// Availability canvas — vertical timeline scoped to one practitioner /
-// one day. Click-drag empty space to create a green availability block;
-// click an existing block to remove it.
+// Availability + bookings canvas — one shared vertical timeline showing
+// green availability blocks, reservation cards (with prep strip), and
+// a click-drag surface for adding new availability.
 // ------------------------------------------------------------------
 
 function AvailabilityCanvas({
   blocks,
+  bookings,
   onAdd,
   onRemove,
+  onOpenBooking,
 }: {
   blocks: AvailabilityBlock[];
+  bookings: Service[];
   onAdd: (start: number, end: number) => void;
   onRemove: (id: string) => void;
+  onOpenBooking: (id: string) => void;
 }) {
   const surfaceRef = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState<{ anchor: number; cursor: number } | null>(null);
-
-  const hours = useMemo(() => Array.from({ length: 20 }, (_, i) => 5 + i), []); // 5am..12am
+  const hours = useMemo(() => Array.from({ length: 20 }, (_, i) => 5 + i), []);
 
   const yToMin = (clientY: number) => {
     const el = surfaceRef.current;
@@ -351,7 +416,7 @@ function AvailabilityCanvas({
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest("[data-av-block]")) return;
+    if ((e.target as HTMLElement).closest("[data-blocker]")) return;
     e.preventDefault();
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     const m = yToMin(e.clientY);
@@ -371,9 +436,15 @@ function AvailabilityCanvas({
     setDraft(null);
   };
 
+  const nowMin = (() => {
+    const now = new Date();
+    const wall = now.getHours() * 60 + now.getMinutes() - DAY_START_MIN;
+    return wall >= 0 && wall <= DAY_SPAN ? wall : null;
+  })();
+
   return (
     <div className="overflow-hidden rounded-[10px] border border-black/[0.08] bg-white">
-      <div className="max-h-[440px] overflow-y-auto">
+      <div className="max-h-[480px] overflow-y-auto">
         <div className="flex" style={{ position: "relative" }}>
           {/* Time gutter */}
           <div className="shrink-0 select-none" style={{ width: TIME_COL, height: TRACK_HEIGHT, position: "relative" }}>
@@ -400,27 +471,35 @@ function AvailabilityCanvas({
             onPointerUp={commit}
             onPointerCancel={() => setDraft(null)}
             className="relative flex-1 cursor-crosshair"
-            style={{ height: TRACK_HEIGHT, background: "repeating-linear-gradient(to bottom, transparent 0, transparent 59px, rgba(0,0,0,0.05) 59px, rgba(0,0,0,0.05) 60px)" }}
+            style={{ height: TRACK_HEIGHT }}
           >
-            {/* hour ticks */}
+            {/* hour lines */}
             {hours.map((h) => {
               const top = minToPx(h * 60 - DAY_START_MIN);
               return <div key={h} className="pointer-events-none absolute left-0 right-0" style={{ top, height: 1, background: "rgba(0,0,0,0.05)" }} />;
             })}
 
-            {/* existing blocks */}
+            {/* now line */}
+            {nowMin != null && (
+              <div
+                className="pointer-events-none absolute left-0 right-0 z-20"
+                style={{ top: minToPx(nowMin), height: 1, background: ACCENT, opacity: 0.35 }}
+              />
+            )}
+
+            {/* Availability blocks (z-index low) */}
             {blocks.map((b) => {
               const top = minToPx(b.start);
               const h = Math.max(14, (b.end - b.start) * PX_PER_MIN);
               return (
                 <div
                   key={b.id}
-                  data-av-block
+                  data-blocker
                   onClick={(e) => {
                     e.stopPropagation();
                     if (confirm(`Remove availability ${fmtTime(b.start)} – ${fmtTime(b.end)}?`)) onRemove(b.id);
                   }}
-                  className="group absolute left-1 right-2 cursor-pointer rounded-[6px] px-2 py-1 text-[11.5px] font-semibold transition hover:brightness-95"
+                  className="group absolute left-1 right-2 z-[1] cursor-pointer rounded-[6px] px-2 py-1 text-[11.5px] font-semibold transition hover:brightness-95"
                   style={{
                     top,
                     height: h,
@@ -442,6 +521,114 @@ function AvailabilityCanvas({
               );
             })}
 
+            {/* Reservation prep strips (before card) */}
+            {bookings.map((s) => {
+              const prep = setupMinutesFor(s.service);
+              if (prep <= 0) return null;
+              const start = Math.max(0, s.start - prep);
+              const top = minToPx(start);
+              const height = Math.max(8, (s.start - start) * PX_PER_MIN);
+              const rc = roomColor(s.room);
+              return (
+                <div
+                  key={`prep-${s.id}`}
+                  data-blocker
+                  className="pointer-events-none absolute left-8 right-2 z-[2] rounded-[6px] border-l-2 border-dashed"
+                  style={{
+                    top,
+                    height,
+                    borderColor: tintColor(rc, 0.35),
+                    background: `repeating-linear-gradient(135deg, ${tintColor(rc, 0.85)} 0 6px, transparent 6px 12px)`,
+                  }}
+                >
+                  <div
+                    className="px-1.5 pt-0.5 text-[9.5px] font-semibold uppercase tracking-[0.14em]"
+                    style={{ color: tintColor(rc, 0.35), fontFamily: MONO }}
+                  >
+                    Prep · {prep}m
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Reservation cards (z-index high) */}
+            {bookings.map((s) => {
+              const top = minToPx(s.start);
+              const h = Math.max(24, (s.end - s.start) * PX_PER_MIN);
+              const rc = roomColor(s.room);
+              const now = new Date();
+              const wallMin = now.getHours() * 60 + now.getMinutes() - DAY_START_MIN;
+              const isLive = s.start <= wallMin && s.end > wallMin;
+              const isCompleted = s.end <= wallMin;
+              const isRequest = s.status === "requested";
+              const statusLabel = isRequest
+                ? "Requested"
+                : isCompleted
+                  ? "Completed"
+                  : isLive
+                    ? "In session"
+                    : "Confirmed";
+              const statusColor = isRequest
+                ? "#b45309"
+                : isCompleted
+                  ? "#475569"
+                  : isLive
+                    ? rc
+                    : "#0f766e";
+              const remindMin = s.start - wallMin;
+              const remindLabel =
+                isRequest
+                  ? null
+                  : isCompleted
+                    ? null
+                    : remindMin > 120
+                      ? "Reminder scheduled 2h before"
+                      : remindMin > 0
+                        ? "Reminder sent"
+                        : null;
+              return (
+                <button
+                  key={s.id}
+                  data-blocker
+                  onClick={(e) => { e.stopPropagation(); onOpenBooking(s.id); }}
+                  className="absolute left-8 right-2 z-[3] overflow-hidden rounded-[8px] bg-white px-2.5 py-1.5 text-left transition hover:shadow-[0_10px_28px_-16px_rgba(15,23,42,0.35)]"
+                  style={{
+                    top,
+                    height: h,
+                    boxShadow: `0 1px 0 rgba(15,23,42,0.05), 0 4px 14px -10px rgba(15,23,42,0.25)`,
+                    borderLeft: `3px solid ${rc}`,
+                    opacity: isCompleted ? 0.72 : 1,
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-[12.5px] font-semibold text-black">
+                      {s.guest}
+                    </span>
+                    <span
+                      className="shrink-0 rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide"
+                      style={{ background: tintColor(statusColor, 0.85), color: statusColor }}
+                    >
+                      {statusLabel}
+                    </span>
+                  </div>
+                  <div className="truncate text-[11.5px]" style={{ color: rc }}>
+                    {s.service}
+                  </div>
+                  <div className="mt-0.5 flex items-center justify-between gap-2 text-[10.5px] tabular-nums text-black/55" style={{ fontFamily: MONO }}>
+                    <span>
+                      {fmtTime(s.start)} – {fmtTime(s.end)} · {s.room}
+                    </span>
+                    {remindLabel && (
+                      <span className="inline-flex items-center gap-0.5 text-black/50">
+                        <Bell size={9} strokeWidth={2.25} />
+                        {remindLabel}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+
             {/* drag draft */}
             {draft && (() => {
               const s = Math.min(draft.anchor, draft.cursor);
@@ -450,7 +637,7 @@ function AvailabilityCanvas({
               const h = Math.max(4, (e - s) * PX_PER_MIN);
               return (
                 <div
-                  className="pointer-events-none absolute left-1 right-2 rounded-[6px] px-2 py-1 text-[11.5px] font-semibold"
+                  className="pointer-events-none absolute left-1 right-2 z-[4] rounded-[6px] px-2 py-1 text-[11.5px] font-semibold"
                   style={{
                     top,
                     height: h,

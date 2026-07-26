@@ -4,7 +4,33 @@ import { MessageSquare, Footprints, RefreshCcw, Sparkles, Sparkle, Radio, Calend
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as MiniCalendar } from "@/components/ui/calendar";
 import { PractitionerPanel } from "@/components/PractitionerPanel";
-import { openPractitionerPanelByName, hasAvailabilityCovering, findPractitionerByName, dateKeyOf } from "@/lib/practitionerStore";
+import {
+  openPractitionerPanelByName,
+  hasAvailabilityCovering,
+  findPractitionerByName,
+  dateKeyOf,
+  usePractitioners,
+  addService as storeAddService,
+  cancelService as storeCancelService,
+  getLiveServices,
+  consumeOpenReservation,
+} from "@/lib/practitionerStore";
+import {
+  DAY_START,
+  DAY_END,
+  DAY_SPAN,
+  t,
+  fmt,
+  ROOMS,
+  ROOM_COLORS,
+  NEUTRAL,
+  roomColor,
+  OFFERINGS_BY_ROOM,
+  SEED_SERVICES as SERVICES,
+  setupMinutesFor,
+  type Service,
+  type Status,
+} from "@/lib/catalog";
 
 const WHISPER_ICON = {
   message: MessageSquare,
@@ -40,21 +66,6 @@ export const Route = createFileRoute("/")({
 // Model
 // ------------------------------------------------------------------
 
-type Status = "in-session" | "confirmed" | "requested" | "hold";
-
-type Service = {
-  id: string;
-  guest: string;
-  partySize?: number;
-  service: string;
-  room: string;
-  practitioner: string;
-  start: number;
-  end: number;
-  status: Status;
-  note?: string;
-};
-
 type WhisperKind = "message" | "notify" | "escort" | "checkin" | "turnover" | "reset" | "setup" | "pickup" | "handoff" | "elixir" | "payment" | "conflict";
 type Prompt = {
   id: string;
@@ -67,45 +78,6 @@ type Prompt = {
   serviceId?: string;    // links prompt to a booking card on the timeline
 };
 
-
-
-const ROOMS = [
-  "Infrared Room",
-  "Buddha Massage",
-  "Ayurveda Room",
-  "Om Space",
-  "The Temple",
-  "Land",
-];
-
-const DAY_START = 5 * 60;
-const DAY_END = 24 * 60;
-const DAY_SPAN = DAY_END - DAY_START;
-
-const t = (h: number, m = 0) => h * 60 + m - DAY_START;
-const fmt = (mins: number) => {
-  const abs = mins + DAY_START;
-  const h = Math.floor(abs / 60);
-  const m = abs % 60;
-  if (h === 24) return `12:${String(m).padStart(2, "0")} AM`;
-  const suffix = h >= 12 ? "PM" : "AM";
-  const hh = ((h + 11) % 12) + 1;
-  return `${hh}:${String(m).padStart(2, "0")} ${suffix}`;
-};
-
-const SERVICES: Service[] = [
-  { id: "s1", guest: "Elena Vives", service: "Myers Cocktail IV", room: "Land", practitioner: "Dr. Elise Warren", start: t(9, 30), end: t(10, 30), status: "confirmed" },
-  { id: "s2", guest: "Nadia Farrow", service: "Deep Tissue Massage", room: "Buddha Massage", practitioner: "Maya Chen", start: t(10), end: t(11), status: "confirmed" },
-  { id: "s3", guest: "Thomas Wren", service: "BEMER Session", room: "Infrared Room", practitioner: "Sofia Park", start: t(11), end: t(12), status: "confirmed" },
-  { id: "s4", guest: "Nadia Farrow", service: "Cupping", room: "The Temple", practitioner: "Maya Chen", start: t(11, 15), end: t(11, 45), status: "confirmed" },
-  { id: "s5", guest: "Gerald & June Pierce", partySize: 2, service: "Couples Ayurvedic Massage", room: "Ayurveda Room", practitioner: "Daniel Reyes", start: t(13, 30), end: t(15), status: "in-session", note: "25th anniversary · June has a hip injury" },
-  { id: "s6", guest: "Amara Okonkwo", service: "Intuitive Reading", room: "Om Space", practitioner: "Uqualla", start: t(14), end: t(14, 50), status: "in-session", note: "Return guest · prefers low light and quiet arrival" },
-  { id: "s7", guest: "Marcus Hale", service: "Sound Healing", room: "Buddha Massage", practitioner: "Sofia Park", start: t(14, 40), end: t(15, 30), status: "confirmed", note: "First visit · greet at door" },
-  { id: "s8", guest: "Amara Okonkwo", service: "Ceremonial Tea & Integration", room: "The Temple", practitioner: "Uqualla", start: t(14, 50), end: t(15, 20), status: "confirmed", note: "Part 2 of 3 · Amara's afternoon journey" },
-  { id: "s9", guest: "Amara Okonkwo", service: "Infrared Sauna", room: "Infrared Room", practitioner: "Sofia Park", start: t(15, 20), end: t(16, 5), status: "confirmed", note: "Part 3 of 3 · closes Amara's journey" },
-  { id: "s10", guest: "Priya Anand", service: "Medicine Walk", room: "Land", practitioner: "Uqualla", start: t(16), end: t(17, 30), status: "requested", note: "Awaiting confirmation" },
-  { id: "s11", guest: "Lena Costa", service: "Grandmother Crystal Bowl", room: "The Temple", practitioner: "Uqualla", start: t(16, 30), end: t(17, 15), status: "confirmed" },
-];
 
 // ------------------------------------------------------------------
 // Blocks — a room made unavailable for a stretch of time (group booking,
@@ -130,16 +102,9 @@ const BLOCK_REASONS = [
   "Other",
 ] as const;
 
-// Which offerings each room can host. Sourced from the (backend) room config;
-// stubbed here so the create-reservation flow can filter offerings by room.
-const OFFERINGS_BY_ROOM: Record<string, string[]> = {
-  "Infrared Room": ["Infrared Sauna", "BEMER Session"],
-  "Buddha Massage": ["Deep Tissue Massage", "Swedish Massage", "Sound Healing"],
-  "Ayurveda Room": ["Couples Ayurvedic Massage", "Ayurvedic Consultation"],
-  "Om Space": ["Intuitive Reading", "Sound Healing", "Meditation"],
-  "The Temple": ["Ceremonial Tea & Integration", "Cupping", "Grandmother Crystal Bowl"],
-  "Land": ["Myers Cocktail IV", "Medicine Walk"],
-};
+// Which offerings each room can host. Sourced from the (backend) room config,
+// exported from `@/lib/catalog` and imported at the top of this file.
+
 
 type Practitioner = { name: string; offerings: string[]; onCalendarToday: boolean };
 const PRACTITIONERS: Practitioner[] = [
@@ -541,24 +506,8 @@ const ACCENT = "#3730ff"; // electric indigo (system accent, not a guest)
 const SURFACE = "#ffffff";
 const INK = "#0a0a0a";
 
-// Each room has its own color — the color follows the space, not the guest.
-// It carries through the timeline card top-bar, the ledger stripe, and the avatar tint.
-// High-chroma pastels — saturated but light. Text on white reads them as
-// distinct hues while still feeling soft and modern.
-const ROOM_COLORS: Record<string, string> = {
-  "Infrared Room": "#ff7aa2",   // pastel watermelon
-  "Buddha Massage": "#3fd6b0",  // pastel jade
-  "Ayurveda Room": "#f5b544",   // pastel marigold
-  "Om Space": "#9d8bff",        // pastel iris
-  "The Temple": "#e57ac8",      // pastel orchid
-  "Land": "#8fd14f",            // pastel lime
-};
+// Room colors, NEUTRAL, and roomColor are imported from @/lib/catalog.
 
-const NEUTRAL = "#475569"; // slate for anything without a room
-
-function roomColor(room: string): string {
-  return ROOM_COLORS[room] ?? NEUTRAL;
-}
 
 // For finances (guest-level, no room): use the guest's first room of the day.
 function guestRoomColor(guest: string): string {
@@ -729,14 +678,23 @@ function TodayPage() {
   const [heroPast, setHeroPast] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [blocks, setBlocks] = useState<Block[]>([]);
-  const [createdServices, setCreatedServices] = useState<Service[]>([]);
-  const [canceledIds, setCanceledIds] = useState<Set<string>>(() => new Set());
   const [openSlot, setOpenSlot] = useState<SlotDraft | null>(null);
-  const liveServices = useMemo(
-    () => [...SERVICES, ...createdServices].filter((s) => !canceledIds.has(s.id)),
-    [createdServices, canceledIds],
-  );
+
+  // Services flow through the shared store so the practitioner panel sees
+  // the same live list (seed + created − canceled).
+  const storeSnap = usePractitioners();
+  const liveServices = useMemo(() => getLiveServices(), [storeSnap]);
   const openService = openServiceId ? liveServices.find((s) => s.id === openServiceId) ?? null : null;
+
+  // Bus: practitioner panel can request that we open a reservation card.
+  useEffect(() => {
+    const id = storeSnap.openReservationId;
+    if (id) {
+      setOpenServiceId(id);
+      consumeOpenReservation();
+    }
+  }, [storeSnap.openReservationId]);
+
 
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const prevDateKeyRef = useRef<string>(new Date().toDateString());
@@ -1094,7 +1052,7 @@ function TodayPage() {
               cueRoom={isToday ? cue?.room ?? null : null}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
-              allServices={isToday ? liveServices : createdServices.filter((s) => !canceledIds.has(s.id))}
+              allServices={isToday ? liveServices : liveServices.filter((s) => !SERVICES.some((seed) => seed.id === s.id))}
               blocks={blocks}
               draft={openSlot}
               onOpenSlot={(room, start, end, editingBlockId) => {
@@ -1127,11 +1085,7 @@ function TodayPage() {
         service={openService}
         onClose={() => setOpenServiceId(null)}
         onCancel={(id) => {
-          setCanceledIds((prev) => {
-            const next = new Set(prev);
-            next.add(id);
-            return next;
-          });
+          storeCancelService(id);
           setOpenServiceId(null);
         }}
       />
@@ -1141,7 +1095,7 @@ function TodayPage() {
         blocks={blocks}
         onClose={() => setOpenSlot(null)}
         onSaveReservation={(svc) => {
-          setCreatedServices((prev) => [...prev, svc]);
+          storeAddService(svc);
           setOpenSlot(null);
         }}
         onSaveBlock={(b) => {
@@ -2012,6 +1966,37 @@ function Timeline({
                   (w) => w.id === activeCueId,
                 );
                 const badgeWhisper = activeWhisper && !markerKinds.includes(activeWhisper.kind) ? activeWhisper : null;
+              {/* Prep strips — a soft "room open for setup" cushion before
+                  every reservation, so it's clear the room isn't free right
+                  up to the session start. Non-interactive. */}
+              {services.map((s) => {
+                const prepMin = setupMinutesFor(s.service);
+                if (prepMin <= 0) return null;
+                const prepStart = Math.max(0, s.start - prepMin);
+                const top = TOP_PAD + minToPx(prepStart);
+                const height = minToPx(s.start) - minToPx(prepStart);
+                return (
+                  <div
+                    key={`prep-${s.id}`}
+                    className="pointer-events-none absolute inset-x-2 z-[5] rounded-[6px] border-l-2 border-dashed"
+                    style={{
+                      top,
+                      height,
+                      borderColor: tint(rc, 0.35),
+                      background: `repeating-linear-gradient(135deg, ${tint(rc, 0.10)} 0 6px, transparent 6px 12px)`,
+                    }}
+                  >
+                    <div
+                      className="px-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.14em]"
+                      style={{ color: tint(rc, 0.55), fontFamily: MONO }}
+                    >
+                      Prep · {prepMin}m
+                    </div>
+                  </div>
+                );
+              })}
+
+
 
 
                 return (

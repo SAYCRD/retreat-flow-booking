@@ -1,10 +1,12 @@
 // ------------------------------------------------------------------
-// Practitioner store — extended practitioner records, per-day availability
-// blocks, and a tiny event-emitter so any component in the app can read/
-// mutate. Client-only for now; swap for real persistence later.
+// Practitioner + reservation store — extended practitioner records,
+// per-day availability blocks, the live reservation list (seed +
+// created − canceled), and a small pub/sub so any component can open
+// the practitioner or reservation side panels.
 // ------------------------------------------------------------------
 
 import { useEffect, useState } from "react";
+import { SEED_SERVICES, type Service } from "./catalog";
 
 export type AvailabilitySource = "phone" | "self" | "text";
 
@@ -12,7 +14,7 @@ export type AvailabilityBlock = {
   id: string;
   practitionerId: string;
   date: string;            // "YYYY-MM-DD" in local time
-  start: number;           // minutes since day start (matches Timeline's DAY_START = 5am)
+  start: number;           // minutes since DAY_START (5am)
   end: number;
   source: AvailabilitySource;
   note?: string;
@@ -25,76 +27,54 @@ export type PractitionerRec = {
   email?: string;
   offerings: string[];
   notes?: string;
-  colorHue: string;        // used as the panel/roster accent
-  photoInitials?: string;  // future avatar; using initials for now
+  colorHue: string;
+  photoInitials?: string;
 };
 
-// Seed roster — mirrors + extends the mock PRACTITIONERS in routes/index.tsx.
-// Keep names in sync with SERVICES.practitioner values so the reservation
-// flow can match on name.
+// Seed roster — names match SERVICES.practitioner values.
 const seedPractitioners: PractitionerRec[] = [
   {
-    id: "p-maya",
-    name: "Maya Chen",
-    phone: "+1 415 555 0142",
-    email: "maya@seondya.co",
+    id: "p-maya", name: "Maya Chen",
+    phone: "+1 415 555 0142", email: "maya@seondya.co",
     offerings: ["Deep Tissue Massage", "Swedish Massage", "Cupping"],
     notes: "Prefers morning shifts. Send text confirmations by 9am for same-day requests.",
     colorHue: "#3fd6b0",
   },
   {
-    id: "p-sofia",
-    name: "Sofia Park",
-    phone: "+1 415 555 0193",
-    email: "sofia@seondya.co",
+    id: "p-sofia", name: "Sofia Park",
+    phone: "+1 415 555 0193", email: "sofia@seondya.co",
     offerings: ["Sound Healing", "BEMER Session", "Infrared Sauna"],
     notes: "Always confirms by text. Fast turnaround.",
     colorHue: "#ff7aa2",
   },
   {
-    id: "p-daniel",
-    name: "Daniel Reyes",
-    phone: "+1 415 555 0217",
-    email: "daniel@seondya.co",
+    id: "p-daniel", name: "Daniel Reyes",
+    phone: "+1 415 555 0217", email: "daniel@seondya.co",
     offerings: ["Couples Ayurvedic Massage", "Ayurvedic Consultation"],
     notes: "Best reached by phone. Marks own calendar on Sundays.",
     colorHue: "#f5b544",
   },
   {
-    id: "p-uqualla",
-    name: "Uqualla",
-    phone: "+1 928 555 0111",
-    email: "uqualla@seondya.co",
+    id: "p-uqualla", name: "Uqualla",
+    phone: "+1 928 555 0111", email: "uqualla@seondya.co",
     offerings: [
-      "Intuitive Reading",
-      "Ceremonial Tea & Integration",
-      "Medicine Walk",
-      "Grandmother Crystal Bowl",
-      "Meditation",
+      "Intuitive Reading", "Ceremonial Tea & Integration", "Medicine Walk",
+      "Grandmother Crystal Bowl", "Meditation",
     ],
     notes: "On the land most days. Text first, call only if urgent.",
     colorHue: "#e57ac8",
   },
   {
-    id: "p-elise",
-    name: "Dr. Elise Warren",
-    phone: "+1 415 555 0288",
-    email: "elise@seondya.co",
+    id: "p-elise", name: "Dr. Elise Warren",
+    phone: "+1 415 555 0288", email: "elise@seondya.co",
     offerings: ["Myers Cocktail IV"],
     notes: "Medical director. Only available Wed / Fri unless specifically requested.",
     colorHue: "#9d8bff",
   },
 ];
 
-const todayKey = () => {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-};
+const todayKey = () => dateKeyOf(new Date());
 
-// Seed a handful of green blocks so the calendar isn't empty on first look.
 const seedAvailability: AvailabilityBlock[] = [
   { id: "av-1", practitionerId: "p-maya", date: todayKey(), start: 9 * 60 - 5 * 60, end: 13 * 60 - 5 * 60, source: "self" },
   { id: "av-2", practitionerId: "p-sofia", date: todayKey(), start: 10 * 60 - 5 * 60, end: 17 * 60 - 5 * 60, source: "self" },
@@ -102,31 +82,37 @@ const seedAvailability: AvailabilityBlock[] = [
   { id: "av-4", practitionerId: "p-daniel", date: todayKey(), start: 13 * 60 - 5 * 60, end: 16 * 60 - 5 * 60, source: "phone", note: "Confirmed by phone 8:14am" },
 ];
 
-// ---------------------------------------------------------------
-// Store
-// ---------------------------------------------------------------
+// ------------------------------------------------------------------
+// Store shape
+// ------------------------------------------------------------------
+
+export type PanelContext = {
+  service?: string;
+  room?: string;
+  start?: number;
+  end?: number;
+  date?: string;
+  onAssign?: (practitionerId: string, practitionerName: string) => void;
+};
 
 type State = {
   practitioners: PractitionerRec[];
   availability: AvailabilityBlock[];
-  panelOpen: string | null;                        // practitioner id
-  panelContext: PanelContext | null;               // reservation-in-flight context
-};
-
-export type PanelContext = {
-  service?: string;       // requested offering name
-  room?: string;
-  start?: number;         // minutes since day start
-  end?: number;
-  date?: string;          // "YYYY-MM-DD"
-  onAssign?: (practitionerId: string, practitionerName: string) => void;
+  createdServices: Service[];
+  canceledIds: Set<string>;
+  panelOpen: string | null;
+  panelContext: PanelContext | null;
+  openReservationId: string | null;
 };
 
 let state: State = {
   practitioners: seedPractitioners,
   availability: seedAvailability,
+  createdServices: [],
+  canceledIds: new Set(),
   panelOpen: null,
   panelContext: null,
+  openReservationId: null,
 };
 
 const listeners = new Set<() => void>();
@@ -139,17 +125,18 @@ const set = (next: Partial<State>) => {
 const uid = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
-// ---------------------------------------------------------------
+// ------------------------------------------------------------------
 // Public API
-// ---------------------------------------------------------------
+// ------------------------------------------------------------------
 
-export const dateKeyOf = (d: Date) => {
+export function dateKeyOf(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-};
+}
 
+// Subscribe-once hook returning the current snapshot.
 export function usePractitioners() {
   const [snap, setSnap] = useState(state);
   useEffect(() => {
@@ -159,6 +146,8 @@ export function usePractitioners() {
   }, []);
   return snap;
 }
+
+// ---------- Practitioners ----------
 
 export function findPractitionerByName(name: string): PractitionerRec | undefined {
   return state.practitioners.find((p) => p.name === name);
@@ -180,6 +169,20 @@ export function updatePractitioner(id: string, patch: Partial<PractitionerRec>) 
   });
 }
 
+export function addPractitionerOffering(id: string, offering: string) {
+  const p = findPractitioner(id);
+  if (!p || p.offerings.includes(offering)) return;
+  updatePractitioner(id, { offerings: [...p.offerings, offering] });
+}
+
+export function removePractitionerOffering(id: string, offering: string) {
+  const p = findPractitioner(id);
+  if (!p) return;
+  updatePractitioner(id, { offerings: p.offerings.filter((o) => o !== offering) });
+}
+
+// ---------- Availability ----------
+
 export function availabilityFor(practitionerId: string, dateKey: string): AvailabilityBlock[] {
   return state.availability
     .filter((a) => a.practitionerId === practitionerId && a.date === dateKey)
@@ -192,17 +195,54 @@ export function addAvailability(input: Omit<AvailabilityBlock, "id">): Availabil
   return block;
 }
 
-export function updateAvailability(id: string, patch: Partial<AvailabilityBlock>) {
-  set({
-    availability: state.availability.map((a) => (a.id === id ? { ...a, ...patch } : a)),
-  });
-}
-
 export function removeAvailability(id: string) {
   set({ availability: state.availability.filter((a) => a.id !== id) });
 }
 
-// Panel controls — any component can open the shared practitioner side panel.
+export function hasAvailabilityCovering(
+  practitionerId: string,
+  dateKey: string,
+  start: number,
+  end: number,
+): boolean {
+  return state.availability.some(
+    (a) =>
+      a.practitionerId === practitionerId &&
+      a.date === dateKey &&
+      a.start <= start &&
+      a.end >= end,
+  );
+}
+
+// ---------- Services (live: seed + created − canceled) ----------
+
+export function getLiveServices(): Service[] {
+  return [...SEED_SERVICES, ...state.createdServices].filter(
+    (s) => !state.canceledIds.has(s.id),
+  );
+}
+
+export function addService(svc: Service) {
+  set({ createdServices: [...state.createdServices, svc] });
+}
+
+export function cancelService(id: string) {
+  const next = new Set(state.canceledIds);
+  next.add(id);
+  set({ canceledIds: next });
+}
+
+export function servicesForPractitioner(name: string, dateKey: string): Service[] {
+  // For v1 the timeline is always "today". When multi-day arrives, filter by
+  // dateKey here.
+  void dateKey;
+  return getLiveServices()
+    .filter((s) => s.practitioner === name)
+    .sort((a, b) => a.start - b.start);
+}
+
+// ---------- Practitioner panel ----------
+
 export function openPractitionerPanel(id: string, context: PanelContext | null = null) {
   set({ panelOpen: id, panelContext: context });
 }
@@ -217,18 +257,16 @@ export function closePractitionerPanel() {
   set({ panelOpen: null, panelContext: null });
 }
 
-// Helper: does this practitioner have green availability covering [start, end)?
-export function hasAvailabilityCovering(
-  practitionerId: string,
-  dateKey: string,
-  start: number,
-  end: number,
-): boolean {
-  return state.availability.some(
-    (a) =>
-      a.practitionerId === practitionerId &&
-      a.date === dateKey &&
-      a.start <= start &&
-      a.end >= end,
-  );
+// ---------- Reservation panel bus ----------
+// Lets the practitioner panel (or any component) request that the top-level
+// TodayPage open its ReservationPanel for a given service id.
+
+export function openReservation(id: string | null) {
+  set({ openReservationId: id });
+}
+
+export function consumeOpenReservation(): string | null {
+  const id = state.openReservationId;
+  if (id) set({ openReservationId: null });
+  return id;
 }
