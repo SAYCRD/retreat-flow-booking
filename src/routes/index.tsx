@@ -675,6 +675,18 @@ function TodayPage() {
   const openService = openServiceId ? SERVICES.find((s) => s.id === openServiceId) ?? null : null;
   const [heroPast, setHeroPast] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  const timelineRef = useRef<HTMLDivElement | null>(null);
+  const prevDateKeyRef = useRef<string>(new Date().toDateString());
+
+  useEffect(() => {
+    const key = selectedDate.toDateString();
+    if (key === prevDateKeyRef.current) return;
+    prevDateKeyRef.current = key;
+    const el = timelineRef.current;
+    if (!el) return;
+    const y = el.getBoundingClientRect().top + window.scrollY - 180;
+    window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+  }, [selectedDate]);
 
   const clock = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const isToday = selectedDate.toDateString() === now.toDateString();
