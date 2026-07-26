@@ -724,12 +724,12 @@ function TodayPage() {
   const [focusOpen, setFocusOpen] = useState(false);
   const [conflictDismissed, setConflictDismissed] = useState(false);
   const [openServiceId, setOpenServiceId] = useState<string | null>(null);
-  const openService = openServiceId ? SERVICES.find((s) => s.id === openServiceId) ?? null : null;
   const [heroPast, setHeroPast] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [createdServices, setCreatedServices] = useState<Service[]>([]);
   const [openSlot, setOpenSlot] = useState<SlotDraft | null>(null);
+  const openService = openServiceId ? [...SERVICES, ...createdServices].find((s) => s.id === openServiceId) ?? null : null;
 
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const prevDateKeyRef = useRef<string>(new Date().toDateString());
