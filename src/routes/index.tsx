@@ -1585,7 +1585,53 @@ function Timeline({
           onMoveBlock({ ...b, start: curStart, end: curEnd });
         }
       }
+  };
+
+  // Drag reservation cards vertically within their own room column to
+  // reschedule. Same gesture semantics as block moves: >=15-min threshold
+  // distinguishes a reschedule from a plain click. On drop we don't commit —
+  // we hand the new time up so the parent can render a confirm bar.
+  const [svcDrag, setSvcDrag] = useState<{ id: string; delta: number; bad: boolean } | null>(null);
+  const swallowSvcClickRef = useRef(false);
+  const beginServiceMove = (svc: Service, e: React.MouseEvent) => {
+    if (!onRequestMoveService) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const originY = e.clientY;
+    const dur = svc.end - svc.start;
+    let moved = false;
+    let curDelta = 0;
+    let curBad = false;
+    const checkBad = (ns: number, ne: number) =>
+      allServices.some((o) => o.id !== svc.id && o.room === svc.room && o.start < ne && o.end > ns) ||
+      (blocksByRoom[svc.room] ?? []).some((b) => b.start < ne && b.end > ns);
+    const onMove = (ev: MouseEvent) => {
+      const dy = ev.clientY - originY;
+      const deltaMin = Math.round(dy / PX_PER_MIN / 15) * 15;
+      if (Math.abs(deltaMin) >= 15) moved = true;
+      let ns = Math.max(0, svc.start + deltaMin);
+      let ne = ns + dur;
+      if (ne > DAY_SPAN) { ne = DAY_SPAN; ns = ne - dur; }
+      curDelta = ns - svc.start;
+      curBad = checkBad(ns, ne);
+      setSvcDrag({ id: svc.id, delta: curDelta, bad: curBad });
     };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      setSvcDrag(null);
+      if (moved) {
+        swallowSvcClickRef.current = true;
+        setTimeout(() => { swallowSvcClickRef.current = false; }, 0);
+        const ns = svc.start + curDelta;
+        const ne = svc.end + curDelta;
+        if (curDelta !== 0 && !curBad) onRequestMoveService!(svc.id, ns, ne);
+      }
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
+
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
   };
