@@ -155,7 +155,9 @@ function smoothScrollTo(targetY: number, duration = 900) {
 }
 
 
-function generatePrompts(nowMin: number): Prompt[] {
+function generatePrompts(nowMin: number, services: Service[] = SERVICES): Prompt[] {
+  const SERVICES = services;
+
   const out: Prompt[] = [];
 
   // 1a. Check-ins — services starting in 10–30 minutes; guest expected at the desk.
@@ -737,7 +739,7 @@ function TodayPage() {
   const stillToCome = SERVICES.filter((s) => s.start > nowMin).length;
   const overlaps = conflicts.length;
 
-  const allPrompts = useMemo(() => isToday ? generatePrompts(nowMin) : [], [nowMin, isToday]);
+  const allPrompts = useMemo(() => isToday ? generatePrompts(nowMin, liveServices) : [], [nowMin, isToday, liveServices]);
   const prompts = useMemo(
     () => allPrompts.filter((p) => !resolvedIds.has(p.id)),
     [allPrompts, resolvedIds],
