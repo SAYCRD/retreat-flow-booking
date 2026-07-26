@@ -2091,7 +2091,7 @@ function Timeline({
                       // Elegant, minimal — a thin marker-pen underline behind
                       // just the verb, no room name, no card chrome.
                       <div className="mx-3 flex w-fit items-center gap-1.5">
-                        <Icon size={13} strokeWidth={1.75} style={{ color: cueMarker.gc, flexShrink: 0 }} />
+                        <span aria-hidden className="text-[15px] leading-none" style={{ flexShrink: 0 }}>{emoji}</span>
                         <span
                           className="text-[12px] font-medium tracking-tight text-black/85"
                           style={{
