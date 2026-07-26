@@ -506,24 +506,8 @@ const ACCENT = "#3730ff"; // electric indigo (system accent, not a guest)
 const SURFACE = "#ffffff";
 const INK = "#0a0a0a";
 
-// Each room has its own color — the color follows the space, not the guest.
-// It carries through the timeline card top-bar, the ledger stripe, and the avatar tint.
-// High-chroma pastels — saturated but light. Text on white reads them as
-// distinct hues while still feeling soft and modern.
-const ROOM_COLORS: Record<string, string> = {
-  "Infrared Room": "#ff7aa2",   // pastel watermelon
-  "Buddha Massage": "#3fd6b0",  // pastel jade
-  "Ayurveda Room": "#f5b544",   // pastel marigold
-  "Om Space": "#9d8bff",        // pastel iris
-  "The Temple": "#e57ac8",      // pastel orchid
-  "Land": "#8fd14f",            // pastel lime
-};
+// Room colors, NEUTRAL, and roomColor are imported from @/lib/catalog.
 
-const NEUTRAL = "#475569"; // slate for anything without a room
-
-function roomColor(room: string): string {
-  return ROOM_COLORS[room] ?? NEUTRAL;
-}
 
 // For finances (guest-level, no room): use the guest's first room of the day.
 function guestRoomColor(guest: string): string {
