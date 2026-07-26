@@ -223,7 +223,7 @@ function FieldHome() {
       </section>
 
       {/* What this is */}
-      <section id="what" className="px-8 py-16 border-t border-neutral-200 bg-neutral-50">
+      <section id="what" className="px-8 py-16 border-t border-neutral-200">
         <h3
           className="text-[28px] font-semibold text-neutral-900"
           style={{ fontFamily: '"Inter Tight", sans-serif', letterSpacing: "-0.03em" }}
