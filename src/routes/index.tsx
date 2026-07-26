@@ -746,8 +746,28 @@ function TodayPage() {
     [allPrompts, resolvedIds],
   );
   const cue = prompts.length ? prompts[cueIdx % prompts.length] ?? null : null;
-  const prevCue = () => setCueIdx((i) => (prompts.length ? (i - 1 + prompts.length) % prompts.length : 0));
-  const nextCue = () => setCueIdx((i) => (prompts.length ? (i + 1) % prompts.length : 0));
+  // Scroll to the active cue's marker/card. Only called from explicit user
+  // intent — arrow clicks or clicking the cue text — never automatically on
+  // cue change, so the page doesn't jump around on its own.
+  const scrollToActiveCue = () => {
+    // Wait two frames so the timeline can render the marker for the newly
+    // active cue before we measure.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const target = cue?.serviceId;
+        if (!target) return;
+        const marker = document.getElementById("active-cue-marker");
+        const el = marker ?? document.getElementById(`svc-${target}`);
+        if (!el) return;
+        const stickyOffset = 44 + 88 + 64 + 144;
+        const rect = el.getBoundingClientRect();
+        const y = window.scrollY + rect.top - stickyOffset;
+        smoothScrollTo(Math.max(0, y), 1300);
+      });
+    });
+  };
+  const prevCue = () => { setCueIdx((i) => (prompts.length ? (i - 1 + prompts.length) % prompts.length : 0)); requestAnimationFrame(scrollToActiveCue); };
+  const nextCue = () => { setCueIdx((i) => (prompts.length ? (i + 1) % prompts.length : 0)); requestAnimationFrame(scrollToActiveCue); };
   const confirmCue = () => {
     if (!cue) return;
     setResolvedIds((prev) => {
@@ -757,37 +777,6 @@ function TodayPage() {
     });
   };
 
-  // When the active cue changes, scroll to its action marker (or the linked
-  // reservation card as a fallback) so the operator's eyes travel to the exact
-  // spot the notification is about. We stop a little higher up, leaving calm
-  // space between the sticky header and the actual action item.
-  useEffect(() => {
-    if (!cue?.serviceId) return;
-    // Wait two frames so the timeline can (a) re-render the marker for the
-    // new cue and (b) measure the target card's DOM bottom for "after"
-    // markers (checkout, room reset). Without this we sometimes scroll to a
-    // stale marker position from the previous cue — which for late-day
-    // reset cues lands near the bottom of the page.
-    let cancelled = false;
-    const run = () => {
-      if (cancelled) return;
-      const marker = document.getElementById("active-cue-marker");
-      const el = marker ?? document.getElementById(`svc-${cue.serviceId}`);
-      if (!el) return;
-      const stickyOffset = 44 + 88 + 64 + 144;
-      const rect = el.getBoundingClientRect();
-      const target = window.scrollY + rect.top - stickyOffset;
-      smoothScrollTo(Math.max(0, target), 1300);
-    };
-    const r1 = requestAnimationFrame(() => {
-      const r2 = requestAnimationFrame(run);
-      (run as any)._r2 = r2;
-    });
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(r1);
-    };
-  }, [cue?.id, cue?.serviceId]);
 
 
 
