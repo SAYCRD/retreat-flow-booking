@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { X, Phone, MessageSquare, Sparkles, Plus, Check, Bell } from "lucide-react";
+import { X, Phone, MessageSquare, Mail, Plus, Search } from "lucide-react";
 import {
   usePractitioners,
   closePractitionerPanel,
@@ -19,39 +19,26 @@ import {
   roomColor,
   allOfferings,
   setupMinutesFor,
+  fmt,
   type Service,
 } from "@/lib/catalog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
+// --- typography tokens matched to routes/index.tsx ------------------
 const DISPLAY = "'Inter Tight', Inter, system-ui, sans-serif";
 const MONO = "'JetBrains Mono', ui-monospace, monospace";
+const SERIF = "'Instrument Serif', 'Cormorant Garamond', Georgia, serif";
 const INK = "#0a0a0a";
-const ACCENT = "#3730ff";
-const AVAILABLE = "#16a34a";
-const AVAILABLE_TINT = "rgba(22,163,74,0.14)";
+const META = "#475569";
 
-// Same day coordinate system as routes/index.tsx.
+// --- day coordinates (identical to the room timeline) --------------
 const DAY_START_MIN = 5 * 60;
 const DAY_END_MIN = 24 * 60;
 const DAY_SPAN = DAY_END_MIN - DAY_START_MIN;
 const PX_PER_MIN = 2.4;
-const TOP_PAD = 12;
+const TOP_PAD = 16;
 const TRACK_HEIGHT = DAY_SPAN * PX_PER_MIN + TOP_PAD * 2;
-const TIME_COL = 60;
-
-const fmtTime = (mins: number) => {
-  const abs = mins + DAY_START_MIN;
-  const h = Math.floor(abs / 60);
-  const m = abs % 60;
-  if (h === 24) return `12:${String(m).padStart(2, "0")} AM`;
-  const suffix = h >= 12 ? "PM" : "AM";
-  const hh = ((h + 11) % 12) + 1;
-  return `${hh}:${String(m).padStart(2, "0")} ${suffix}`;
-};
-
-const clampMin = (m: number) => Math.max(0, Math.min(DAY_SPAN, m));
-const snap15 = (m: number) => Math.round(m / 15) * 15;
-const minToPx = (m: number) => TOP_PAD + m * PX_PER_MIN;
-const pxToMin = (px: number) => clampMin(snap15((px - TOP_PAD) / PX_PER_MIN));
+const TIME_COL = 58;
 
 const SOURCE_LABEL: Record<AvailabilitySource, string> = {
   self: "Front desk",
@@ -59,14 +46,60 @@ const SOURCE_LABEL: Record<AvailabilitySource, string> = {
   text: "Text reply",
 };
 
-// Light tint helper — mix hex with white by factor 0..1.
-function tintColor(hex: string, ratio: number): string {
+const clampMin = (m: number) => Math.max(0, Math.min(DAY_SPAN, m));
+const snap15 = (m: number) => Math.round(m / 15) * 15;
+const minToPx = (m: number) => TOP_PAD + m * PX_PER_MIN;
+const pxToMin = (px: number) => clampMin(snap15((px - TOP_PAD) / PX_PER_MIN));
+
+// Hex → soft tint (mix toward white by ratio).
+function tint(hex: string, ratio: number): string {
   const h = hex.replace("#", "");
   const r = parseInt(h.slice(0, 2), 16);
   const g = parseInt(h.slice(2, 4), 16);
   const b = parseInt(h.slice(4, 6), 16);
   const mix = (c: number) => Math.round(c + (255 - c) * ratio);
   return `rgb(${mix(r)},${mix(g)},${mix(b)})`;
+}
+
+// Marker-pen highlight — identical to the home-page <Highlight/> band.
+function Highlight({
+  children,
+  color,
+  className = "",
+}: {
+  children: React.ReactNode;
+  color: string;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`relative inline px-1.5 -mx-1 ${className}`}
+      style={{
+        background: `linear-gradient(178deg, transparent 8%, ${color} 12%, ${color} 94%, transparent 98%)`,
+        WebkitBoxDecorationBreak: "clone",
+        boxDecorationBreak: "clone",
+        borderRadius: "2px 5px 3px 6px",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+// Subtract booked spans from an availability block; return the remaining
+// pieces so a reservation *replaces* availability visually.
+function subtract(block: AvailabilityBlock, spans: Array<{ start: number; end: number }>) {
+  let pieces: Array<{ start: number; end: number }> = [{ start: block.start, end: block.end }];
+  for (const cut of spans) {
+    const next: typeof pieces = [];
+    for (const p of pieces) {
+      if (cut.end <= p.start || cut.start >= p.end) { next.push(p); continue; }
+      if (cut.start > p.start) next.push({ start: p.start, end: Math.min(p.end, cut.start) });
+      if (cut.end < p.end) next.push({ start: Math.max(p.start, cut.end), end: p.end });
+    }
+    pieces = next;
+  }
+  return pieces.filter((p) => p.end - p.start >= 10);
 }
 
 export function PractitionerPanel() {
@@ -93,16 +126,23 @@ export function PractitionerPanel() {
   }, [open]);
 
   const dateKey = dateKeyOf(date);
-  const blocks = practitioner ? availabilityFor(practitioner.id, dateKey) : [];
+  const rawBlocks = practitioner ? availabilityFor(practitioner.id, dateKey) : [];
   const bookings = practitioner ? servicesForPractitioner(practitioner.name, dateKey) : [];
+  const bookingSpans = bookings.map((b) => ({ start: b.start, end: b.end }));
+
+  // Availability actually shown = raw blocks minus booked time.
+  const shownAvailability = useMemo(
+    () => rawBlocks.flatMap((b) => subtract(b, bookingSpans).map((seg) => ({ ...b, ...seg }))),
+    [rawBlocks, bookings],
+  );
 
   const isToday = dateKey === dateKeyOf(new Date());
   const dateLabel = date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   const contextCovered = useMemo(() => {
     if (!practitioner || !panelContext?.start || !panelContext?.end) return false;
-    return blocks.some((b) => b.start <= panelContext.start! && b.end >= panelContext.end!);
-  }, [blocks, panelContext, practitioner]);
+    return shownAvailability.some((b) => b.start <= panelContext.start! && b.end >= panelContext.end!);
+  }, [shownAvailability, panelContext, practitioner]);
 
   const shiftDate = (days: number) => {
     const d = new Date(date);
@@ -133,7 +173,6 @@ export function PractitionerPanel() {
 
   const openBooking = (id: string) => {
     closePractitionerPanel();
-    // slight delay so panel exit animation begins before the other panel enters
     setTimeout(() => openReservation(id), 60);
   };
 
@@ -149,7 +188,7 @@ export function PractitionerPanel() {
       <div
         aria-hidden
         onClick={closePractitionerPanel}
-        className={`fixed inset-0 z-40 bg-black/25 backdrop-blur-[2px] transition-opacity duration-200 ${
+        className={`fixed inset-0 z-40 bg-black/25 transition-opacity duration-200 ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       />
@@ -157,216 +196,212 @@ export function PractitionerPanel() {
         role="dialog"
         aria-modal="true"
         aria-label={practitioner ? practitioner.name : "Practitioner"}
-        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-[560px] flex-col bg-white shadow-[-24px_0_60px_-24px_rgba(15,23,42,0.25)] transition-transform duration-300 ease-out ${
+        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-[600px] flex-col bg-white shadow-[-24px_0_60px_-24px_rgba(15,23,42,0.20)] transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
         style={{ fontFamily: DISPLAY, color: INK }}
       >
         {!practitioner ? null : (
           <>
-            <div className="h-[3px] w-full shrink-0" style={{ background: practitioner.colorHue }} />
+            {/* Match main-page interface line: thin colored rail across the top */}
+            <span
+              aria-hidden
+              className="h-[2px] w-full shrink-0"
+              style={{ background: practitioner.colorHue }}
+            />
 
-            <div className="flex items-start gap-4 px-7 pt-6 pb-5">
-              <div
-                className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-[15px] font-semibold text-white"
-                style={{ background: practitioner.colorHue }}
-              >
-                {practitioner.name.split(" ").map((s) => s[0]).slice(0, 2).join("")}
-              </div>
+            {/* Header row — matches ReservationPanel */}
+            <div className="flex items-start gap-4 px-7 pt-6 pb-2">
               <div className="min-w-0 flex-1">
-                <div className="text-[10.5px] uppercase tracking-[0.16em] text-black/45" style={{ fontFamily: MONO }}>
+                <div className="text-[11px] uppercase tracking-[0.18em] text-black/45" style={{ fontFamily: MONO }}>
                   Practitioner
                 </div>
-                <h2 className="mt-1 truncate text-[24px] font-semibold tracking-[-0.02em] text-black">
+                <h2
+                  className="mt-2 text-[30px] font-semibold leading-[1.05] tracking-[-0.025em]"
+                  style={{ fontFamily: DISPLAY, color: INK }}
+                >
                   {practitioner.name}
                 </h2>
               </div>
               <button
                 aria-label="Close"
                 onClick={closePractitionerPanel}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-black/50 hover:bg-black/[0.05] hover:text-black"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-none text-black/50 hover:bg-black/[0.04] hover:text-black"
               >
-                <X size={16} />
+                <X size={16} strokeWidth={1.75} />
               </button>
             </div>
 
-            {/* Contact actions */}
-            <div className="flex shrink-0 flex-wrap items-center gap-2 px-7 pb-4">
+            {/* Contact row — mono numbers, italic serif labels, matches card language */}
+            <div className="flex shrink-0 flex-col gap-1.5 border-b border-black/[0.06] px-7 pb-5 pt-3">
               {practitioner.phone && (
-                <>
+                <div className="flex items-center gap-3">
+                  <span
+                    className="w-14 shrink-0 text-[13px] italic leading-none"
+                    style={{ fontFamily: SERIF, color: META, opacity: 0.75 }}
+                  >
+                    phone
+                  </span>
+                  <span
+                    className="text-[17px] font-semibold tabular-nums leading-none tracking-tight"
+                    style={{ fontFamily: MONO, color: INK }}
+                  >
+                    {practitioner.phone}
+                  </span>
                   <a
                     href={`tel:${practitioner.phone.replace(/\s+/g, "")}`}
-                    className="inline-flex items-center gap-1.5 rounded-[8px] border border-black/10 bg-white px-3 py-1.5 text-[12.5px] font-semibold text-black hover:border-black/30"
+                    className="ml-auto inline-flex items-center gap-1 text-[12.5px] font-medium text-black/70 underline decoration-black/25 underline-offset-4 hover:decoration-black"
                   >
-                    <Phone size={13} />
-                    Call
+                    <Phone size={12} strokeWidth={2} /> Call
                   </a>
                   <a
                     href={`sms:${practitioner.phone.replace(/\s+/g, "")}`}
-                    className="inline-flex items-center gap-1.5 rounded-[8px] border border-black/10 bg-white px-3 py-1.5 text-[12.5px] font-semibold text-black hover:border-black/30"
+                    className="inline-flex items-center gap-1 text-[12.5px] font-medium text-black/70 underline decoration-black/25 underline-offset-4 hover:decoration-black"
                   >
-                    <MessageSquare size={13} />
-                    Text
+                    <MessageSquare size={12} strokeWidth={2} /> Text
                   </a>
-                  <span className="text-[12px] tabular-nums text-black/50" style={{ fontFamily: MONO }}>
-                    {practitioner.phone}
+                </div>
+              )}
+              {practitioner.email && (
+                <div className="flex items-center gap-3">
+                  <span
+                    className="w-14 shrink-0 text-[13px] italic leading-none"
+                    style={{ fontFamily: SERIF, color: META, opacity: 0.75 }}
+                  >
+                    email
                   </span>
-                </>
+                  <a
+                    href={`mailto:${practitioner.email}`}
+                    className="truncate text-[15px] font-medium leading-none text-black hover:underline"
+                    style={{ fontFamily: MONO }}
+                  >
+                    {practitioner.email}
+                  </a>
+                  <a
+                    href={`mailto:${practitioner.email}`}
+                    className="ml-auto inline-flex items-center gap-1 text-[12.5px] font-medium text-black/70 underline decoration-black/25 underline-offset-4 hover:decoration-black"
+                  >
+                    <Mail size={12} strokeWidth={2} /> Send
+                  </a>
+                </div>
               )}
             </div>
 
             {/* Scrollable body */}
-            <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-6">
-              {/* Reservation-in-flight context */}
+            <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-8">
+              {/* Reservation-in-flight context (assignment picker) */}
               {panelContext?.service && panelContext.start != null && panelContext.end != null && (
-                <div
-                  className="mb-5 rounded-[10px] border p-3.5"
-                  style={{
-                    borderColor: contextCovered ? "rgba(22,163,74,0.28)" : "rgba(55,48,255,0.20)",
-                    background: contextCovered ? "rgba(22,163,74,0.06)" : "rgba(55,48,255,0.04)",
-                  }}
-                >
-                  <div className="text-[10.5px] uppercase tracking-[0.14em] text-black/50" style={{ fontFamily: MONO }}>
+                <div className="mt-5 border-t border-b border-black/[0.08] py-4">
+                  <div className="text-[11px] uppercase tracking-[0.16em] text-black/45" style={{ fontFamily: MONO }}>
                     For this reservation
                   </div>
-                  <div className="mt-1 text-[14px] font-semibold text-black">
+                  <div className="mt-1.5 text-[17px] font-semibold text-black" style={{ fontFamily: DISPLAY }}>
                     {panelContext.service}
-                    {panelContext.room ? <span className="text-black/50"> · {panelContext.room}</span> : null}
+                    {panelContext.room && <span className="text-black/45"> · {panelContext.room}</span>}
                   </div>
-                  <div className="mt-0.5 text-[12.5px] tabular-nums text-black/60" style={{ fontFamily: MONO }}>
-                    {fmtTime(panelContext.start)} – {fmtTime(panelContext.end)}
+                  <div className="mt-0.5 text-[13px] tabular-nums" style={{ fontFamily: MONO, color: META }}>
+                    {fmt(panelContext.start)} – {fmt(panelContext.end)}
                   </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[13px]">
                     {panelContext.onAssign && (
                       <button
                         onClick={assignForContext}
-                        className="inline-flex items-center gap-1.5 rounded-[8px] px-3 py-1.5 text-[12.5px] font-semibold text-white hover:opacity-90"
-                        style={{ background: ACCENT }}
+                        className="font-semibold text-black underline decoration-black/40 decoration-2 underline-offset-4 hover:decoration-black"
                       >
-                        <Check size={13} strokeWidth={2.5} />
-                        Assign to this reservation
+                        Assign to this reservation →
                       </button>
                     )}
                     {!contextCovered && (
                       <>
                         <button
                           onClick={() => markContextAvailable("phone")}
-                          className="inline-flex items-center gap-1.5 rounded-[8px] border border-black/10 bg-white px-3 py-1.5 text-[12.5px] font-semibold text-black hover:border-black/30"
+                          className="text-black/70 underline decoration-black/25 underline-offset-4 hover:text-black hover:decoration-black"
                         >
-                          <Phone size={13} />
                           Called — mark available
                         </button>
                         <button
                           onClick={() => markContextAvailable("text")}
-                          className="inline-flex items-center gap-1.5 rounded-[8px] border border-black/10 bg-white px-3 py-1.5 text-[12.5px] font-semibold text-black hover:border-black/30"
+                          className="text-black/70 underline decoration-black/25 underline-offset-4 hover:text-black hover:decoration-black"
                         >
-                          <MessageSquare size={13} />
                           Texted — mark available
                         </button>
                       </>
                     )}
                     {contextCovered && (
-                      <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold" style={{ color: AVAILABLE }}>
-                        <Sparkles size={13} />
-                        Available for this slot
+                      <span className="text-black/60">
+                        <Highlight color={tint(practitioner.colorHue, 0.7)}>Available for this slot</Highlight>
                       </span>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* Date navigator */}
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <div className="text-[10.5px] uppercase tracking-[0.14em] text-black/45" style={{ fontFamily: MONO }}>
-                    Day
+              {/* Offerings — marker-pen highlighter chips + elegant popover */}
+              <div className="mt-6">
+                <div className="flex items-baseline justify-between">
+                  <div className="text-[11px] uppercase tracking-[0.16em] text-black/45" style={{ fontFamily: MONO }}>
+                    Offerings
                   </div>
-                  <div className="mt-0.5 text-[15px] font-semibold text-black">
+                  <AddOfferingPopover
+                    options={availableOfferings}
+                    onAdd={(o) => addPractitionerOffering(practitioner.id, o)}
+                  />
+                </div>
+                <div className="mt-3 flex flex-wrap gap-x-2 gap-y-3 text-[16px] leading-[1.9]" style={{ fontFamily: DISPLAY }}>
+                  {practitioner.offerings.length === 0 && (
+                    <span className="text-[13.5px] italic text-black/45" style={{ fontFamily: SERIF }}>
+                      no offerings yet — add one →
+                    </span>
+                  )}
+                  {practitioner.offerings.map((o) => (
+                    <span key={o} className="group inline-flex items-center gap-1">
+                      <Highlight color={tint(practitioner.colorHue, 0.72)}>{o}</Highlight>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${o}`}
+                        onClick={() => removePractitionerOffering(practitioner.id, o)}
+                        className="ml-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        <X size={11} strokeWidth={2} className="text-black/40 hover:text-black" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Day header */}
+              <div className="mt-8 flex items-baseline justify-between">
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.16em] text-black/45" style={{ fontFamily: MONO }}>
+                    Schedule
+                  </div>
+                  <div className="mt-1.5 text-[20px] font-semibold tracking-[-0.02em]" style={{ fontFamily: DISPLAY }}>
                     {isToday ? "Today · " : ""}{dateLabel}
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => shiftDate(-1)} className="rounded-[6px] border border-black/10 bg-white px-2 py-1 text-[12px] font-semibold text-black/70 hover:border-black/30">‹</button>
-                  <button onClick={() => setDate(new Date())} className="rounded-[6px] border border-black/10 bg-white px-2 py-1 text-[11.5px] font-semibold text-black/70 hover:border-black/30">Today</button>
-                  <button onClick={() => shiftDate(1)} className="rounded-[6px] border border-black/10 bg-white px-2 py-1 text-[12px] font-semibold text-black/70 hover:border-black/30">›</button>
+                <div className="flex items-center gap-4 text-[12.5px] font-medium text-black/60" style={{ fontFamily: MONO }}>
+                  <button onClick={() => shiftDate(-1)} className="hover:text-black">‹ Prev</button>
+                  <button onClick={() => setDate(new Date())} className="hover:text-black">Today</button>
+                  <button onClick={() => shiftDate(1)} className="hover:text-black">Next ›</button>
                 </div>
               </div>
 
-              <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-black/50">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full" style={{ background: AVAILABLE }} />
-                  Available
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-[2px] bg-black/60" />
-                  Reservation
-                </span>
-                <span className="text-black/40">Drag empty space to mark available · click a block to remove</span>
+              <div className="mt-2 text-[12px] italic text-black/50" style={{ fontFamily: SERIF }}>
+                drag empty space to mark available · click a block to remove
               </div>
 
-              <AvailabilityCanvas
-                blocks={blocks}
+              <ScheduleCanvas
+                practitionerHue={practitioner.colorHue}
+                availability={shownAvailability}
                 bookings={bookings}
                 onAdd={(s, e) => handleAdd(s, e, "self")}
                 onRemove={(id) => removeAvailability(id)}
                 onOpenBooking={openBooking}
               />
 
-              {/* Offerings editor */}
-              <div className="mt-6">
-                <div className="mb-1.5 flex items-center justify-between">
-                  <div className="text-[10.5px] uppercase tracking-[0.14em] text-black/45" style={{ fontFamily: MONO }}>
-                    Offerings
-                  </div>
-                  <span className="text-[11px] text-black/40">Shown to the picker when this offering is chosen</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {practitioner.offerings.map((o) => (
-                    <span
-                      key={o}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-black/[0.03] py-0.5 pl-2.5 pr-1 text-[12px] font-medium text-black/80"
-                    >
-                      {o}
-                      <button
-                        type="button"
-                        aria-label={`Remove ${o}`}
-                        onClick={() => removePractitionerOffering(practitioner.id, o)}
-                        className="grid h-4 w-4 place-items-center rounded-full text-black/45 hover:bg-black/10 hover:text-black"
-                      >
-                        <X size={10} strokeWidth={2.5} />
-                      </button>
-                    </span>
-                  ))}
-                  {practitioner.offerings.length === 0 && (
-                    <span className="text-[12px] text-black/45">No offerings yet — add some below.</span>
-                  )}
-                </div>
-                {availableOfferings.length > 0 && (
-                  <div className="mt-3">
-                    <div className="mb-1 text-[10.5px] uppercase tracking-[0.14em] text-black/40" style={{ fontFamily: MONO }}>
-                      Add offering
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {availableOfferings.map((o) => (
-                        <button
-                          key={o}
-                          type="button"
-                          onClick={() => addPractitionerOffering(practitioner.id, o)}
-                          className="inline-flex items-center gap-1 rounded-full border border-dashed border-black/20 bg-white px-2.5 py-0.5 text-[12px] font-medium text-black/60 hover:border-black/40 hover:text-black"
-                        >
-                          <Plus size={11} strokeWidth={2.5} />
-                          {o}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
               {/* Notes */}
-              <div className="mt-6">
-                <div className="mb-1.5 text-[10.5px] uppercase tracking-[0.14em] text-black/45" style={{ fontFamily: MONO }}>
+              <div className="mt-8">
+                <div className="text-[11px] uppercase tracking-[0.16em] text-black/45" style={{ fontFamily: MONO }}>
                   Notes
                 </div>
                 <textarea
@@ -374,7 +409,8 @@ export function PractitionerPanel() {
                   onChange={(e) => updatePractitioner(practitioner.id, { notes: e.target.value })}
                   rows={3}
                   placeholder="Preferences, contact quirks, anything the front desk should know…"
-                  className="w-full resize-none rounded-[8px] border border-black/10 bg-white px-3 py-2 text-[13px] text-black placeholder:text-black/35 focus:border-black/40 focus:outline-none"
+                  className="mt-2 w-full resize-none border-b border-black/15 bg-transparent px-0 py-1.5 text-[14px] leading-relaxed text-black placeholder:italic placeholder:text-black/35 focus:border-black focus:outline-none"
+                  style={{ fontFamily: DISPLAY }}
                 />
               </div>
             </div>
@@ -385,20 +421,88 @@ export function PractitionerPanel() {
   );
 }
 
-// ------------------------------------------------------------------
-// Availability + bookings canvas — one shared vertical timeline showing
-// green availability blocks, reservation cards (with prep strip), and
-// a click-drag surface for adding new availability.
-// ------------------------------------------------------------------
+// -------------------------------------------------------------------
+// Elegant offering picker — searchable popover, not a wall of pills.
+// -------------------------------------------------------------------
+function AddOfferingPopover({
+  options,
+  onAdd,
+}: {
+  options: string[];
+  onAdd: (o: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const filtered = useMemo(
+    () => options.filter((o) => o.toLowerCase().includes(q.toLowerCase())),
+    [options, q],
+  );
+  if (options.length === 0) return null;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className="inline-flex items-center gap-1 text-[12.5px] font-medium text-black/70 underline decoration-black/25 underline-offset-4 hover:text-black hover:decoration-black"
+          style={{ fontFamily: DISPLAY }}
+        >
+          <Plus size={12} strokeWidth={2.25} />
+          Add offering
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        sideOffset={6}
+        className="w-72 rounded-none border border-black/10 bg-white p-0 shadow-[0_20px_50px_-20px_rgba(15,23,42,0.25)]"
+      >
+        <div className="flex items-center gap-2 border-b border-black/[0.08] px-3 py-2.5">
+          <Search size={13} strokeWidth={2} className="text-black/40" />
+          <input
+            autoFocus
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search offerings…"
+            className="flex-1 border-0 bg-transparent p-0 text-[13.5px] outline-none placeholder:italic placeholder:text-black/35"
+            style={{ fontFamily: DISPLAY }}
+          />
+        </div>
+        <div className="max-h-64 overflow-y-auto py-1">
+          {filtered.length === 0 && (
+            <div className="px-3 py-2 text-[13px] italic text-black/45" style={{ fontFamily: SERIF }}>
+              no matches
+            </div>
+          )}
+          {filtered.map((o) => (
+            <button
+              key={o}
+              onClick={() => { onAdd(o); setQ(""); setOpen(false); }}
+              className="block w-full px-3 py-1.5 text-left text-[14px] text-black hover:bg-black/[0.04]"
+              style={{ fontFamily: DISPLAY }}
+            >
+              {o}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
-function AvailabilityCanvas({
-  blocks,
+// -------------------------------------------------------------------
+// Schedule canvas — white surface, mono hour gutter, availability as
+// bordered white blocks labeled "Available" (no green fill), and
+// reservations rendered as small versions of the main timeline card.
+// Booked spans are already subtracted from availability upstream.
+// -------------------------------------------------------------------
+function ScheduleCanvas({
+  practitionerHue,
+  availability,
   bookings,
   onAdd,
   onRemove,
   onOpenBooking,
 }: {
-  blocks: AvailabilityBlock[];
+  practitionerHue: string;
+  availability: Array<AvailabilityBlock & { start: number; end: number }>;
   bookings: Service[];
   onAdd: (start: number, end: number) => void;
   onRemove: (id: string) => void;
@@ -443,18 +547,21 @@ function AvailabilityCanvas({
   })();
 
   return (
-    <div className="overflow-hidden rounded-[10px] border border-black/[0.08] bg-white">
-      <div className="max-h-[480px] overflow-y-auto">
+    <div className="mt-4 overflow-hidden border-t border-b border-black/[0.08] bg-white">
+      <div className="max-h-[520px] overflow-y-auto">
         <div className="flex" style={{ position: "relative" }}>
-          {/* Time gutter */}
-          <div className="shrink-0 select-none" style={{ width: TIME_COL, height: TRACK_HEIGHT, position: "relative" }}>
+          {/* time gutter */}
+          <div
+            className="shrink-0 select-none border-r border-black/[0.06]"
+            style={{ width: TIME_COL, height: TRACK_HEIGHT, position: "relative" }}
+          >
             {hours.map((h) => {
               const top = minToPx(h * 60 - DAY_START_MIN);
               const label = h === 24 ? "12 AM" : h === 12 ? "12 PM" : h > 12 ? `${h - 12} PM` : `${h} AM`;
               return (
                 <div
                   key={h}
-                  className="absolute text-[10.5px] text-black/45"
+                  className="absolute text-[10.5px] tabular-nums text-black/45"
                   style={{ top: top - 6, right: 8, fontFamily: MONO }}
                 >
                   {label}
@@ -463,65 +570,93 @@ function AvailabilityCanvas({
             })}
           </div>
 
-          {/* Interactive surface */}
+          {/* interactive surface */}
           <div
             ref={surfaceRef}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={commit}
             onPointerCancel={() => setDraft(null)}
-            className="relative flex-1 cursor-crosshair"
+            className="relative flex-1 cursor-crosshair bg-white"
             style={{ height: TRACK_HEIGHT }}
           >
-            {/* hour lines */}
+            {/* hour rules */}
             {hours.map((h) => {
               const top = minToPx(h * 60 - DAY_START_MIN);
-              return <div key={h} className="pointer-events-none absolute left-0 right-0" style={{ top, height: 1, background: "rgba(0,0,0,0.05)" }} />;
+              return (
+                <div
+                  key={h}
+                  className="pointer-events-none absolute left-0 right-0"
+                  style={{ top, height: 1, background: "rgba(0,0,0,0.05)" }}
+                />
+              );
             })}
 
             {/* now line */}
             {nowMin != null && (
               <div
                 className="pointer-events-none absolute left-0 right-0 z-20"
-                style={{ top: minToPx(nowMin), height: 1, background: ACCENT, opacity: 0.35 }}
+                style={{ top: minToPx(nowMin), height: 1, background: INK, opacity: 0.35 }}
               />
             )}
 
-            {/* Availability blocks (z-index low) */}
-            {blocks.map((b) => {
+            {/* Availability — white card, thin practitioner-hued rail, label */}
+            {availability.map((b, i) => {
               const top = minToPx(b.start);
-              const h = Math.max(14, (b.end - b.start) * PX_PER_MIN);
+              const h = Math.max(20, (b.end - b.start) * PX_PER_MIN);
               return (
                 <div
-                  key={b.id}
+                  key={`av-${b.id}-${i}`}
                   data-blocker
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm(`Remove availability ${fmtTime(b.start)} – ${fmtTime(b.end)}?`)) onRemove(b.id);
+                    if (confirm(`Remove availability ${fmt(b.start)} – ${fmt(b.end)}?`)) onRemove(b.id);
                   }}
-                  className="group absolute left-1 right-2 z-[1] cursor-pointer rounded-[6px] px-2 py-1 text-[11.5px] font-semibold transition hover:brightness-95"
+                  className="group absolute inset-x-2 z-[1] cursor-pointer bg-white transition-shadow"
                   style={{
                     top,
                     height: h,
-                    background: AVAILABLE_TINT,
-                    borderLeft: `3px solid ${AVAILABLE}`,
-                    color: "#065f46",
+                    boxShadow: `inset 0 0 0 1px rgba(0,0,0,0.06)`,
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.boxShadow = `inset 0 0 0 1px rgba(0,0,0,0.18)`;
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.boxShadow = `inset 0 0 0 1px rgba(0,0,0,0.06)`;
                   }}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="tabular-nums" style={{ fontFamily: MONO }}>
-                      {fmtTime(b.start)} – {fmtTime(b.end)}
-                    </span>
-                    <span className="text-[10px] font-medium uppercase tracking-wide opacity-70">
-                      {SOURCE_LABEL[b.source]}
-                    </span>
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-0 left-0"
+                    style={{ width: 2, background: practitionerHue }}
+                  />
+                  <div className="flex h-full flex-col justify-between px-3 py-2">
+                    <div
+                      className="text-[11px] uppercase tracking-[0.16em]"
+                      style={{ color: INK, fontFamily: MONO }}
+                    >
+                      Available
+                    </div>
+                    <div className="flex items-end justify-between gap-2">
+                      <span
+                        className="text-[12px] tabular-nums"
+                        style={{ color: META, fontFamily: MONO }}
+                      >
+                        {fmt(b.start)} – {fmt(b.end)}
+                      </span>
+                      <span
+                        className="text-[11px] italic"
+                        style={{ color: META, opacity: 0.7, fontFamily: SERIF }}
+                      >
+                        {SOURCE_LABEL[b.source]}
+                      </span>
+                    </div>
                   </div>
-                  {b.note && <div className="mt-0.5 text-[10.5px] font-normal text-emerald-900/70">{b.note}</div>}
                 </div>
               );
             })}
 
-            {/* Reservation prep strips (before card) */}
+            {/* Prep strips (dashed room-colored cushion before session) */}
             {bookings.map((s) => {
               const prep = setupMinutesFor(s.service);
               if (prep <= 0) return null;
@@ -532,18 +667,17 @@ function AvailabilityCanvas({
               return (
                 <div
                   key={`prep-${s.id}`}
-                  data-blocker
-                  className="pointer-events-none absolute left-8 right-2 z-[2] rounded-[6px] border-l-2 border-dashed"
+                  className="pointer-events-none absolute inset-x-2 z-[2] border-l-2 border-dashed"
                   style={{
                     top,
                     height,
-                    borderColor: tintColor(rc, 0.35),
-                    background: `repeating-linear-gradient(135deg, ${tintColor(rc, 0.85)} 0 6px, transparent 6px 12px)`,
+                    borderColor: tint(rc, 0.35),
+                    background: `repeating-linear-gradient(135deg, ${tint(rc, 0.90)} 0 6px, transparent 6px 12px)`,
                   }}
                 >
                   <div
-                    className="px-1.5 pt-0.5 text-[9.5px] font-semibold uppercase tracking-[0.14em]"
-                    style={{ color: tintColor(rc, 0.35), fontFamily: MONO }}
+                    className="px-2 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]"
+                    style={{ color: tint(rc, 0.35), fontFamily: MONO }}
                   >
                     Prep · {prep}m
                   </div>
@@ -551,81 +685,108 @@ function AvailabilityCanvas({
               );
             })}
 
-            {/* Reservation cards (z-index high) */}
+            {/* Reservation cards — mirror the main timeline card */}
             {bookings.map((s) => {
               const top = minToPx(s.start);
-              const h = Math.max(24, (s.end - s.start) * PX_PER_MIN);
+              const h = Math.max(64, (s.end - s.start) * PX_PER_MIN);
               const rc = roomColor(s.room);
               const now = new Date();
               const wallMin = now.getHours() * 60 + now.getMinutes() - DAY_START_MIN;
               const isLive = s.start <= wallMin && s.end > wallMin;
-              const isCompleted = s.end <= wallMin;
+              const isPast = s.end <= wallMin;
               const isRequest = s.status === "requested";
-              const statusLabel = isRequest
-                ? "Requested"
-                : isCompleted
-                  ? "Completed"
-                  : isLive
-                    ? "In session"
-                    : "Confirmed";
-              const statusColor = isRequest
-                ? "#b45309"
-                : isCompleted
-                  ? "#475569"
-                  : isLive
-                    ? rc
-                    : "#0f766e";
-              const remindMin = s.start - wallMin;
-              const remindLabel =
-                isRequest
-                  ? null
-                  : isCompleted
-                    ? null
-                    : remindMin > 120
-                      ? "Reminder scheduled 2h before"
-                      : remindMin > 0
-                        ? "Reminder sent"
-                        : null;
+              const duration = s.end - s.start;
               return (
-                <button
+                <div
                   key={s.id}
                   data-blocker
                   onClick={(e) => { e.stopPropagation(); onOpenBooking(s.id); }}
-                  className="absolute left-8 right-2 z-[3] overflow-hidden rounded-[8px] bg-white px-2.5 py-1.5 text-left transition hover:shadow-[0_10px_28px_-16px_rgba(15,23,42,0.35)]"
+                  className="group absolute inset-x-2 z-[3] flex flex-col cursor-pointer bg-white transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-[1px]"
                   style={{
-                    top,
-                    height: h,
-                    boxShadow: `0 1px 0 rgba(15,23,42,0.05), 0 4px 14px -10px rgba(15,23,42,0.25)`,
-                    borderLeft: `3px solid ${rc}`,
-                    opacity: isCompleted ? 0.72 : 1,
+                    top: top + 1,
+                    minHeight: h - 2,
+                    boxShadow: `0 1px 0 rgba(15,23,42,0.05), 0 6px 18px -12px rgba(15,23,42,0.25)`,
+                    opacity: isPast ? 0.9 : 1,
                   }}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-[12.5px] font-semibold text-black">
-                      {s.guest}
-                    </span>
-                    <span
-                      className="shrink-0 rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide"
-                      style={{ background: tintColor(statusColor, 0.85), color: statusColor }}
+                  {/* top rail — dashed for request, solid room color otherwise */}
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-0 top-0 h-[2px]"
+                    style={{
+                      background: isRequest
+                        ? "repeating-linear-gradient(to right, #d97706 0 6px, transparent 6px 10px)"
+                        : rc,
+                    }}
+                  />
+                  <div className="relative z-10 flex flex-1 flex-col px-3 pt-3 pb-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div
+                        className="whitespace-nowrap text-[15px] font-semibold tabular-nums leading-[1.15] tracking-tight"
+                        style={{ color: META, fontFamily: MONO }}
+                      >
+                        <div>{fmt(s.start)}</div>
+                        <div style={{ opacity: 0.55 }}>{fmt(s.end)}</div>
+                      </div>
+                      <div
+                        className="shrink-0 whitespace-nowrap text-[11px] font-semibold tabular-nums tracking-[0.08em]"
+                        style={{ color: META, fontFamily: MONO, opacity: 0.65 }}
+                      >
+                        {duration}m
+                      </div>
+                    </div>
+
+                    <div
+                      className="mt-2 text-[18px] font-semibold leading-[1.05] tracking-[-0.025em]"
+                      style={{ color: INK, fontFamily: DISPLAY }}
                     >
-                      {statusLabel}
-                    </span>
-                  </div>
-                  <div className="truncate text-[11.5px]" style={{ color: rc }}>
-                    {s.service}
-                  </div>
-                  <div className="mt-0.5 flex items-center justify-between gap-2 text-[10.5px] tabular-nums text-black/55" style={{ fontFamily: MONO }}>
-                    <span>
-                      {fmtTime(s.start)} – {fmtTime(s.end)} · {s.room}
-                    </span>
-                    {remindLabel && (
-                      <span className="inline-flex items-center gap-0.5 text-black/50">
-                        <Bell size={9} strokeWidth={2.25} />
-                        {remindLabel}
+                      {s.room}
+                    </div>
+
+                    <div
+                      className="mt-1 text-[15px] font-semibold leading-[1.15] tracking-[-0.015em]"
+                      style={{ color: rc, fontFamily: DISPLAY }}
+                    >
+                      {s.service}
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-1.5">
+                      {isLive && (
+                        <span className="relative inline-flex h-2 w-2 shrink-0">
+                          <span
+                            className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
+                            style={{ background: rc }}
+                          />
+                          <span
+                            className="relative inline-flex h-2 w-2 rounded-full"
+                            style={{ background: rc }}
+                          />
+                        </span>
+                      )}
+                      <span
+                        className="text-[13px] italic leading-tight"
+                        style={{ color: META, fontFamily: SERIF, opacity: 0.7 }}
+                      >
+                        for
                       </span>
-                    )}
+                      <div
+                        className="truncate text-[14.5px] font-semibold leading-tight"
+                        style={{ color: INK, fontFamily: DISPLAY }}
+                      >
+                        {s.guest}
+                        {s.partySize ? ` +${s.partySize - 1}` : ""}
+                      </div>
+                      {isRequest && (
+                        <span
+                          className="ml-auto rounded-sm px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.14em]"
+                          style={{ color: "#b45309", background: "rgba(217,119,6,0.10)", fontFamily: MONO }}
+                        >
+                          Request
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </button>
+                </div>
               );
             })}
 
@@ -634,21 +795,25 @@ function AvailabilityCanvas({
               const s = Math.min(draft.anchor, draft.cursor);
               const e = Math.max(draft.anchor, draft.cursor);
               const top = minToPx(s);
-              const h = Math.max(4, (e - s) * PX_PER_MIN);
+              const h = Math.max(6, (e - s) * PX_PER_MIN);
               return (
                 <div
-                  className="pointer-events-none absolute left-1 right-2 z-[4] rounded-[6px] px-2 py-1 text-[11.5px] font-semibold"
+                  className="pointer-events-none absolute inset-x-2 z-[4] bg-white"
                   style={{
                     top,
                     height: h,
-                    background: AVAILABLE_TINT,
-                    borderLeft: `3px solid ${AVAILABLE}`,
-                    color: "#065f46",
+                    boxShadow: `inset 0 0 0 1px ${practitionerHue}`,
                   }}
                 >
-                  <span className="tabular-nums" style={{ fontFamily: MONO }}>
-                    {fmtTime(s)} – {fmtTime(e)}
-                  </span>
+                  <span aria-hidden className="absolute inset-y-0 left-0" style={{ width: 2, background: practitionerHue }} />
+                  <div className="flex items-center justify-between px-3 pt-1.5">
+                    <span className="text-[10.5px] uppercase tracking-[0.16em]" style={{ color: INK, fontFamily: MONO }}>
+                      Available
+                    </span>
+                    <span className="text-[11px] tabular-nums" style={{ color: META, fontFamily: MONO }}>
+                      {fmt(s)} – {fmt(e)}
+                    </span>
+                  </div>
                 </div>
               );
             })()}
