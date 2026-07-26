@@ -1404,7 +1404,7 @@ function Timeline({
 
   // Keep the busy part of the day at full scale; compress the empty evening
   // tail so the calendar reaches midnight without a huge white void.
-  const lastEnd = useMemo(() => Math.max(...SERVICES.map((s) => s.end)), []);
+  const lastEnd = useMemo(() => (allServices.length ? Math.max(...allServices.map((s) => s.end)) : 0), [allServices]);
   const compressAfter = useMemo(() => {
     const buffer = Math.max(nowMin + 60, lastEnd + 30);
     return Math.min(Math.max(buffer, DAY_SPAN * 0.5), DAY_SPAN);
