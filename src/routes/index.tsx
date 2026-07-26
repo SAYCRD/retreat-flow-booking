@@ -1052,7 +1052,7 @@ function TodayPage() {
               cueRoom={isToday ? cue?.room ?? null : null}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
-              allServices={isToday ? liveServices : createdServices.filter((s) => !canceledIds.has(s.id))}
+              allServices={isToday ? liveServices : liveServices.filter((s) => !SERVICES.some((seed) => seed.id === s.id))}
               blocks={blocks}
               draft={openSlot}
               onOpenSlot={(room, start, end, editingBlockId) => {
@@ -1085,11 +1085,7 @@ function TodayPage() {
         service={openService}
         onClose={() => setOpenServiceId(null)}
         onCancel={(id) => {
-          setCanceledIds((prev) => {
-            const next = new Set(prev);
-            next.add(id);
-            return next;
-          });
+          storeCancelService(id);
           setOpenServiceId(null);
         }}
       />
@@ -1099,7 +1095,7 @@ function TodayPage() {
         blocks={blocks}
         onClose={() => setOpenSlot(null)}
         onSaveReservation={(svc) => {
-          setCreatedServices((prev) => [...prev, svc]);
+          storeAddService(svc);
           setOpenSlot(null);
         }}
         onSaveBlock={(b) => {
