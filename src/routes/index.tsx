@@ -2303,17 +2303,37 @@ function Timeline({
 
                 return (
                   <>
-                    {roomBlocks.map((b) =>
-                      renderSlotCard({
+                    {roomBlocks.map((b) => {
+                      const beingMoved = blockGhost?.id === b.id;
+                      return renderSlotCard({
                         key: b.id,
                         startMin: b.start,
                         endMin: b.end,
                         headline: b.room,
                         subline: b.reason,
                         past: b.end <= nowMin,
-                        onClick: (e) => { e.stopPropagation(); onOpenSlot?.(b.room, b.start, b.end, b.id); },
-                      }),
-                    )}
+                        draggable: !!onMoveBlock,
+                        hidden: beingMoved,
+                        onMouseDown: (e) => beginBlockMove(b, e),
+                        onClick: (e) => {
+                          e.stopPropagation();
+                          if (swallowBlockClickRef.current) return;
+                          onOpenSlot?.(b.room, b.start, b.end, b.id);
+                        },
+                      });
+                    })}
+
+                    {blockGhost && blockGhost.room === room &&
+                      renderSlotCard({
+                        key: "block-ghost",
+                        startMin: blockGhost.start,
+                        endMin: blockGhost.end,
+                        headline: room,
+                        subline: blockGhost.bad ? "Overlaps a session" : "Reschedule block",
+                        bad: blockGhost.bad,
+                        pending: true,
+                      })}
+
 
                     {activeDrag && activeDrag.endMin > activeDrag.startMin &&
                       renderSlotCard({
