@@ -1588,7 +1588,7 @@ function Timeline({
           Time
         </div>
         {ROOMS.map((room, idx) => {
-          const count = SERVICES.filter((s) => s.room === room).length;
+          const count = allServices.filter((s) => s.room === room).length;
           const rc = roomColor(room);
           const isPinned = activeRoom === room;
           const isCueRoom = cueRoom === room;
