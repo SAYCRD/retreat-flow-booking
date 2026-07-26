@@ -1124,6 +1124,7 @@ function TodayPage() {
       />
       <SlotPanel
         draft={openSlot}
+        dateKey={selectedDateKey}
         allServices={liveServices}
         blocks={blocks}
         onClose={() => setOpenSlot(null)}
@@ -3300,6 +3301,7 @@ function PanelSection({
 
 function SlotPanel({
   draft,
+  dateKey,
   allServices,
   blocks,
   onClose,
@@ -3308,6 +3310,7 @@ function SlotPanel({
   onRemoveBlock,
 }: {
   draft: SlotDraft | null;
+  dateKey: string;
   allServices: Service[];
   blocks: Block[];
   onClose: () => void;
@@ -3394,7 +3397,7 @@ function SlotPanel({
     const pending = selectedPract && !selectedPract.onCalendarToday;
     onSaveReservation({
       id: `svc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      date: dateKeyOf(selectedDate),
+      date: dateKey,
       guest: guest.trim(),
       service: offering,
       room,
