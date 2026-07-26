@@ -2173,6 +2173,11 @@ function Timeline({
                   (w) => w.id === activeCueId,
                 );
                 const badgeWhisper = activeWhisper && !markerKinds.includes(activeWhisper.kind) ? activeWhisper : null;
+                const unpaid = !isPaid(s.id);
+                const legsForGuest = allServices.filter((x) => x.guest === s.guest).length;
+                const isOrchestrationCard = legsForGuest > 1;
+                const reply = getReply(s.id);
+
               {/* Prep strips — a soft "room open for setup" cushion before
                   every reservation, so it's clear the room isn't free right
                   up to the session start. Non-interactive. */}
