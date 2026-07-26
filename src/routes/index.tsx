@@ -3311,25 +3311,49 @@ function SlotPanel({
                       <div className="text-[12.5px] text-black/50">No practitioners qualified for this offering.</div>
                     ) : (
                       <div className="flex flex-col gap-1.5">
-                        {eligiblePractitioners.map((p) => {
+                        {eligiblePractitioners.map(({ p, rec, covered }) => {
                           const selected = practitioner === p.name;
+                          const status = covered
+                            ? { label: "Available for this slot", color: "#059669" }
+                            : p.onCalendarToday
+                              ? { label: "On today's calendar", color: "#0f766e" }
+                              : { label: "Not marked available — call or text to request", color: "#b45309" };
                           return (
-                            <button
+                            <div
                               key={p.name}
-                              type="button"
-                              onClick={() => setPractitioner(p.name)}
                               className={`flex items-center justify-between gap-3 rounded-[8px] border px-3 py-2 text-left transition-colors ${
                                 selected ? "border-black bg-black/[0.03]" : "border-black/10 bg-white hover:border-black/30"
                               }`}
                             >
-                              <div className="min-w-0">
+                              <button
+                                type="button"
+                                onClick={() => setPractitioner(p.name)}
+                                className="min-w-0 flex-1 text-left"
+                              >
                                 <div className="truncate text-[14px] font-semibold text-black">{p.name}</div>
-                                <div className="text-[11.5px]" style={{ fontFamily: MONO, color: p.onCalendarToday ? "#059669" : "#b45309" }}>
-                                  {p.onCalendarToday ? "Available today" : "Not on today's calendar — will request via SMS"}
+                                <div className="text-[11.5px]" style={{ fontFamily: MONO, color: status.color }}>
+                                  {status.label}
                                 </div>
-                              </div>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!rec) return;
+                                  openPractitionerPanelByName(p.name, {
+                                    service: offering,
+                                    room,
+                                    start,
+                                    end,
+                                    date: dateKeyOf(new Date()),
+                                    onAssign: (_id, name) => setPractitioner(name),
+                                  });
+                                }}
+                                className="shrink-0 rounded-[6px] border border-black/10 bg-white px-2 py-1 text-[11px] font-semibold text-black/70 hover:border-black/30 hover:text-black"
+                              >
+                                Open
+                              </button>
                               {selected && <Check size={14} strokeWidth={2.5} className="shrink-0 text-black" />}
-                            </button>
+                            </div>
                           );
                         })}
                       </div>
