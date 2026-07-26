@@ -2287,7 +2287,8 @@ function Timeline({
                     ) : clickable ? (
                       <button
                         type="button"
-                        onClick={onMarkerClick!}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.stopPropagation(); onMarkerClick!(); }}
                         aria-label={cueMarker.verb + (cueMarker.label ? ` · ${cueMarker.label}` : "")}
                         className="mx-2 flex w-fit items-center gap-2 px-2 py-1 text-left transition-transform hover:-translate-y-px hover:brightness-[0.97]"
                         style={{
