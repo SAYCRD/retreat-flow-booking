@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageSquare, Footprints, RefreshCcw, Sparkles, Sparkle, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush, ClipboardCheck, Bell, ArrowRight, HandHeart, Wand2, Flower2, Wind, PartyPopper, Hand, Feather } from "lucide-react";
+import { MessageSquare, Footprints, RefreshCcw, Sparkles, Sparkle, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush, ClipboardCheck, Bell, ArrowRight, HandHeart, Wand2, Flower2, Wind, PartyPopper, Hand, Feather, ChevronLeft, ChevronRight } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as MiniCalendar } from "@/components/ui/calendar";
 
 const WHISPER_ICON = {
   message: MessageSquare,
@@ -537,6 +539,130 @@ function detectConflicts(services: Service[]) {
   return out;
 }
 
+function DateNavigator({
+  value,
+  onChange,
+  today,
+}: {
+  value: Date;
+  onChange: (d: Date) => void;
+  today: Date;
+}) {
+  const [open, setOpen] = useState(false);
+  const isToday = value.toDateString() === today.toDateString();
+
+  const shift = (days: number) => {
+    const d = new Date(value);
+    d.setDate(d.getDate() + days);
+    onChange(d);
+  };
+
+  const label = value.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => shift(-1)}
+        aria-label="Previous day"
+        className="grid h-6 w-6 place-items-center rounded-[5px] text-black/45 transition hover:bg-black/[0.04] hover:text-black/75"
+      >
+        <ChevronLeft size={14} strokeWidth={2} />
+      </button>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-[6px] px-1.5 py-1 text-[11.5px] font-medium text-black/70 transition hover:bg-black/[0.04] hover:text-black"
+          >
+            <CalendarRange size={12} strokeWidth={2} className="text-black/45" />
+            <span>{label}</span>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          sideOffset={10}
+          className="w-auto rounded-[12px] border border-black/[0.08] bg-white p-0 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.25)]"
+        >
+          <div className="flex items-center justify-between border-b border-black/[0.06] px-3 py-2">
+            <span className="text-[11px] uppercase tracking-[0.14em] text-black/45" style={{ fontFamily: MONO }}>
+              Jump to
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                onChange(new Date());
+                setOpen(false);
+              }}
+              disabled={isToday}
+              className="rounded-[5px] px-1.5 py-0.5 text-[11px] font-medium text-black/70 transition hover:bg-black/[0.04] hover:text-black disabled:cursor-not-allowed disabled:text-black/25 disabled:hover:bg-transparent"
+            >
+              Today
+            </button>
+          </div>
+          <MiniCalendar
+            mode="single"
+            selected={value}
+            onSelect={(d) => {
+              if (d) {
+                onChange(d);
+                setOpen(false);
+              }
+            }}
+            defaultMonth={value}
+            showOutsideDays
+            className="p-3 pointer-events-auto"
+          />
+          <div className="flex items-center justify-between gap-2 border-t border-black/[0.06] px-3 py-2">
+            <button
+              type="button"
+              onClick={() => onChange(new Date(value.getFullYear(), value.getMonth(), value.getDate() - 7))}
+              className="rounded-[5px] px-2 py-1 text-[11px] font-medium text-black/60 transition hover:bg-black/[0.04] hover:text-black"
+            >
+              − Week
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange(new Date(value.getFullYear(), value.getMonth() - 1, value.getDate()))}
+              className="rounded-[5px] px-2 py-1 text-[11px] font-medium text-black/60 transition hover:bg-black/[0.04] hover:text-black"
+            >
+              − Month
+            </button>
+            <span className="flex-1" />
+            <button
+              type="button"
+              onClick={() => onChange(new Date(value.getFullYear(), value.getMonth() + 1, value.getDate()))}
+              className="rounded-[5px] px-2 py-1 text-[11px] font-medium text-black/60 transition hover:bg-black/[0.04] hover:text-black"
+            >
+              + Month
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange(new Date(value.getFullYear(), value.getMonth(), value.getDate() + 7))}
+              className="rounded-[5px] px-2 py-1 text-[11px] font-medium text-black/60 transition hover:bg-black/[0.04] hover:text-black"
+            >
+              + Week
+            </button>
+          </div>
+        </PopoverContent>
+      </Popover>
+      <button
+        type="button"
+        onClick={() => shift(1)}
+        aria-label="Next day"
+        className="grid h-6 w-6 place-items-center rounded-[5px] text-black/45 transition hover:bg-black/[0.04] hover:text-black/75"
+      >
+        <ChevronRight size={14} strokeWidth={2} />
+      </button>
+    </span>
+  );
+}
+
+
 function TodayPage() {
   const now = useNow();
   const nowMin = useNowMin();
@@ -548,9 +674,11 @@ function TodayPage() {
   const [openServiceId, setOpenServiceId] = useState<string | null>(null);
   const openService = openServiceId ? SERVICES.find((s) => s.id === openServiceId) ?? null : null;
   const [heroPast, setHeroPast] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
 
   const clock = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  const date = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const isToday = selectedDate.toDateString() === now.toDateString();
+  const date = selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   useEffect(() => {
     const onScroll = () => setHeroPast(window.scrollY > 180);
@@ -664,12 +792,12 @@ function TodayPage() {
             <div>
               <div className="flex items-center gap-2 text-[11.5px] text-black/45">
                 <LiveDot />
-                <span className="font-medium text-black/65">Live</span>
+                <span className="font-medium text-black/65">{isToday ? "Live" : "Viewing"}</span>
                 <span className="text-black/25">·</span>
-                <span>{date}</span>
+                <DateNavigator value={selectedDate} onChange={setSelectedDate} today={now} />
               </div>
               <h1 className="mt-2 text-[44px] font-semibold leading-[1] tracking-[-0.03em] md:text-[56px]">
-                Today
+                {isToday ? "Today" : selectedDate.toLocaleDateString("en-US", { weekday: "long" })}
               </h1>
             </div>
 
