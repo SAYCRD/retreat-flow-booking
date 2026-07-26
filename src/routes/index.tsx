@@ -2259,28 +2259,24 @@ function Timeline({
 
                     {/* Badge whisper — for non-gap kinds (payment, message, handoff, conflict)
                         floats a small dot in the top-right of the card. */}
-                    {badgeWhisper && (() => {
-                      const WIcon = WHISPER_ICON[badgeWhisper.kind];
-                      return (
-                        <span
-                          aria-hidden
-                          
-                          className="pointer-events-none absolute -top-3 right-1.5 z-20 grid h-6 w-6 place-items-center rounded-full bg-white"
-                          style={{
-                            color: gc,
-                            boxShadow: `0 2px 6px -1px ${tint(gc, 0.35)}, 0 0 0 2px ${tint(gc, 0.22)}`,
-                          }}
-                        >
-                          <WIcon size={13} strokeWidth={2.25} />
-                          {badgeWhisper.urgent && (
-                            <span
-                              aria-hidden
-                              className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-amber-500 ring-1 ring-white"
-                            />
-                          )}
-                        </span>
-                      );
-                    })()}
+                    {badgeWhisper && (
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute -top-3 right-1.5 z-20 grid h-6 w-6 place-items-center rounded-full bg-white text-[13px] leading-none"
+                        style={{
+                          boxShadow: `0 2px 6px -1px ${tint(gc, 0.35)}, 0 0 0 2px ${tint(gc, 0.22)}`,
+                        }}
+                      >
+                        {CUE_EMOJI[badgeWhisper.kind]}
+                        {badgeWhisper.urgent && (
+                          <span
+                            aria-hidden
+                            className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-amber-500 ring-1 ring-white"
+                          />
+                        )}
+                      </span>
+                    )}
+
 
 
 
