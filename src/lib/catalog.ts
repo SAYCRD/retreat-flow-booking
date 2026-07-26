@@ -109,3 +109,38 @@ export const SEED_SERVICES: Service[] = [
   { id: "s10", guest: "Priya Anand", service: "Medicine Walk", room: "Land", practitioner: "Uqualla", start: t(16), end: t(17, 30), status: "requested", note: "Awaiting confirmation" },
   { id: "s11", guest: "Lena Costa", service: "Grandmother Crystal Bowl", room: "The Temple", practitioner: "Willow Grey", start: t(16, 30), end: t(17, 15), status: "confirmed" },
 ];
+
+// Seed reservations for tomorrow — rich mix so every cue emoji shows up
+// during a walk through the day (orchestrations, unpaid, elixir gaps,
+// handoffs, IV, notify, escort).
+export const SEED_SERVICES_TOMORROW: Service[] = [
+  { id: "t1", guest: "Isolde March", service: "Sound Healing", room: "Om Space", practitioner: "Uqualla", start: t(8, 30), end: t(9, 20), status: "confirmed" },
+  { id: "t2", guest: "Rowan Blake", service: "Swedish Massage", room: "Buddha Massage", practitioner: "Maya Chen", start: t(9), end: t(10), status: "confirmed" },
+  { id: "t3", guest: "Kenji Ito", service: "Infrared Sauna", room: "Infrared Room", practitioner: "Sofia Park", start: t(10), end: t(10, 45), status: "confirmed", note: "First visit · greet at door" },
+  { id: "t4", guest: "Aria Solano", service: "Ceremonial Tea & Integration", room: "The Temple", practitioner: "Willow Grey", start: t(10, 30), end: t(11), status: "confirmed", note: "Part 1 of 3 · Aria's morning journey" },
+  { id: "t5", guest: "Aria Solano", service: "Sound Healing", room: "Om Space", practitioner: "Uqualla", start: t(11, 15), end: t(12), status: "confirmed", note: "Part 2 of 3 · Aria's morning journey" },
+  { id: "t6", guest: "Aria Solano", service: "Infrared Sauna", room: "Infrared Room", practitioner: "Ravi Kapoor", start: t(12, 30), end: t(13, 15), status: "confirmed", note: "Part 3 of 3 · closes Aria's journey" },
+  { id: "t7", guest: "Marcus & Vera Lund", partySize: 2, service: "Couples Ayurvedic Massage", room: "Ayurveda Room", practitioner: "Daniel Reyes", start: t(13, 30), end: t(15), status: "confirmed", note: "Wedding gift · Vera prefers medium pressure" },
+  { id: "t8", guest: "Priya Anand", service: "Myers Cocktail IV", room: "Land", practitioner: "Dr. Elise Warren", start: t(14), end: t(15), status: "confirmed" },
+  { id: "t9", guest: "Nadia Farrow", service: "Cupping", room: "The Temple", practitioner: "Maya Chen", start: t(15, 30), end: t(16), status: "confirmed" },
+  { id: "t10", guest: "Lena Costa", service: "Grandmother Crystal Bowl", room: "The Temple", practitioner: "Willow Grey", start: t(16, 30), end: t(17, 15), status: "requested", note: "Awaiting confirmation" },
+];
+
+// Cue → emoji glyph. Used in the Coming Up strip, the active-cue marker
+// on the timeline, and the small whisper badge on session cards, so the
+// three surfaces stay visually synchronized.
+export const CUE_EMOJI: Record<string, string> = {
+  message: "💬",
+  notify: "✨",
+  escort: "👣",
+  checkin: "👋",
+  turnover: "🌀",
+  reset: "🧹",
+  setup: "🌸",
+  pickup: "🤲",
+  handoff: "🤝",
+  elixir: "🫖",
+  payment: "💳",
+  conflict: "⚠️",
+};
+

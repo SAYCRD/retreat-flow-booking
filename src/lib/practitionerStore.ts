@@ -6,7 +6,7 @@
 // ------------------------------------------------------------------
 
 import { useEffect, useState } from "react";
-import { SEED_SERVICES, type Service } from "./catalog";
+import { SEED_SERVICES, SEED_SERVICES_TOMORROW, type Service } from "./catalog";
 
 export type AvailabilitySource = "phone" | "self" | "text";
 
@@ -243,12 +243,19 @@ export function hasAvailabilityCovering(
 
 // ---------- Services (live: seed + created − canceled) ----------
 
-export function getLiveServices(): Service[] {
+export function getLiveServices(dateKey?: string): Service[] {
+  const today = dateKeyOf(new Date());
+  const key = dateKey ?? today;
+  const tomorrow = dateKeyOf(new Date(Date.now() + 86400000));
+  const seed = key === tomorrow ? SEED_SERVICES_TOMORROW
+             : key === today ? SEED_SERVICES
+             : [];
   const ov = state.serviceOverrides;
-  return [...SEED_SERVICES, ...state.createdServices]
+  return [...seed, ...state.createdServices]
     .filter((s) => !state.canceledIds.has(s.id))
     .map((s) => (ov[s.id] ? { ...s, start: ov[s.id].start, end: ov[s.id].end } : s));
 }
+
 
 export function addService(svc: Service) {
   set({ createdServices: [...state.createdServices, svc] });
@@ -301,13 +308,11 @@ export function clearMoveToast() {
 
 
 export function servicesForPractitioner(name: string, dateKey: string): Service[] {
-  // For v1 the timeline is always "today". When multi-day arrives, filter by
-  // dateKey here.
-  void dateKey;
-  return getLiveServices()
+  return getLiveServices(dateKey)
     .filter((s) => s.practitioner === name)
     .sort((a, b) => a.start - b.start);
 }
+
 
 // ---------- Practitioner panel ----------
 

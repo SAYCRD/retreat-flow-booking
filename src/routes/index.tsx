@@ -33,9 +33,13 @@ import {
   OFFERINGS_BY_ROOM,
   SEED_SERVICES as SERVICES,
   setupMinutesFor,
+  CUE_EMOJI,
   type Service,
   type Status,
 } from "@/lib/catalog";
+import { usePayments, isPaid } from "@/lib/paymentState";
+import { usePractitionerReplies, getReply, setReply, replyLine, REPLY_META, type ReplyStatus } from "@/lib/practitionerReplies";
+
 
 const WHISPER_ICON = {
   message: MessageSquare,
@@ -460,20 +464,21 @@ function getProtocols(serviceName: string): Protocol[] {
   return SESSION_PROTOCOLS[serviceName] ?? [];
 }
 
-// Payment state per service (in a real app this would come from the DB).
-// A guest's `paid` flag in FINANCES represents the whole visit;
-// here we mark individual services so the panel can show a payment link.
-const SERVICE_PAID: Record<string, boolean> = {
-  s1: true, s2: true, s3: true, s4: true,
-  s5: false, s6: false, s7: true, s8: false, s9: false,
-  s10: false, s11: false,
-};
+// Payment state now lives in @/lib/paymentState so cards and the panel
+// can share reads/writes. Retained here only as a legacy alias for
+// generatePrompts, which reads it synchronously outside a React render.
+const SERVICE_PAID = new Proxy({} as Record<string, boolean>, {
+  get: (_t, id: string) => isPaid(id),
+});
 
 const PRICES: Record<string, number> = {
   s1: 220, s2: 180, s3: 95, s4: 50,
   s5: 320, s6: 140, s7: 140, s8: 60, s9: 140,
   s10: 180, s11: 150,
+  t1: 140, t2: 180, t3: 95, t4: 60, t5: 140,
+  t6: 95, t7: 320, t8: 220, t9: 140, t10: 150,
 };
+
 
 
 // ------------------------------------------------------------------
@@ -688,7 +693,12 @@ function TodayPage() {
   // Services flow through the shared store so the practitioner panel sees
   // the same live list (seed + created − canceled).
   const storeSnap = usePractitioners();
-  const liveServices = useMemo(() => getLiveServices(), [storeSnap]);
+  const selectedDateKey = useMemo(() => dateKeyOf(selectedDate), [selectedDate]);
+  const liveServices = useMemo(() => getLiveServices(selectedDateKey), [storeSnap, selectedDateKey]);
+  // Subscribe to payments/replies so cards re-render when they change.
+  usePayments();
+  usePractitionerReplies();
+
   const openService = openServiceId ? liveServices.find((s) => s.id === openServiceId) ?? null : null;
 
   // Bus: practitioner panel can request that we open a reservation card.
@@ -730,7 +740,7 @@ function TodayPage() {
   const stillToCome = SERVICES.filter((s) => s.start > nowMin).length;
   const overlaps = conflicts.length;
 
-  const allPrompts = useMemo(() => generatePrompts(nowMin), [nowMin]);
+  const allPrompts = useMemo(() => isToday ? generatePrompts(nowMin) : [], [nowMin, isToday]);
   const prompts = useMemo(
     () => allPrompts.filter((p) => !resolvedIds.has(p.id)),
     [allPrompts, resolvedIds],
@@ -909,17 +919,17 @@ function TodayPage() {
           {/* cue body */}
           <div className="flex min-w-0 flex-1 items-center gap-3.5">
             {cue ? (() => {
-              const Icon = WHISPER_ICON[cue.kind];
+              const emoji = CUE_EMOJI[cue.kind];
               const tint = cue.room ? roomColor(cue.room) : "#0a0a0a";
               return (
                 <>
                   <span className="relative shrink-0">
                     <span
                       aria-hidden
-                      className="grid h-9 w-9 place-items-center rounded-full"
-                      style={{ background: `${tint}14`, color: tint }}
+                      className="grid h-9 w-9 place-items-center rounded-full text-[19px] leading-none"
+                      style={{ background: `${tint}14` }}
                     >
-                      <Icon size={18} strokeWidth={2} />
+                      {emoji}
                     </span>
                     {cue.urgent && (
                       <span aria-hidden className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
@@ -928,6 +938,7 @@ function TodayPage() {
                       </span>
                     )}
                   </span>
+
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline gap-2.5">
@@ -966,15 +977,34 @@ function TodayPage() {
           <div className="flex shrink-0 items-center gap-3">
             {cue && (
               <>
-                <button
-                  onClick={confirmCue}
-                  className="text-[13.5px] font-medium text-black/85 underline decoration-black/25 underline-offset-4 transition-colors hover:decoration-black"
-                >
-                  {cue.primary}
-                </button>
+                {cue.kind === "notify" && cue.serviceId ? (
+                  <div className="flex items-center gap-1">
+                    {(["confirmed", "here", "on-way"] as ReplyStatus[]).map((status) => {
+                      const meta = REPLY_META[status];
+                      return (
+                        <button
+                          key={status}
+                          onClick={() => { setReply(cue.serviceId!, status); confirmCue(); }}
+                          className="inline-flex items-center gap-1 rounded-full border border-black/10 bg-white px-2.5 py-1 text-[12px] font-semibold text-black/75 transition-colors hover:border-black/40 hover:text-black"
+                        >
+                          <span aria-hidden>{meta.emoji}</span>
+                          <span className="capitalize">{meta.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <button
+                    onClick={confirmCue}
+                    className="text-[13.5px] font-medium text-black/85 underline decoration-black/25 underline-offset-4 transition-colors hover:decoration-black"
+                  >
+                    {cue.primary}
+                  </button>
+                )}
                 <span className="h-5 w-px bg-black/10" />
               </>
             )}
+
             <div className="flex items-center gap-0.5">
               <button
                 onClick={prevCue}
@@ -1057,7 +1087,7 @@ function TodayPage() {
               cueRoom={isToday ? cue?.room ?? null : null}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
-              allServices={isToday ? liveServices : liveServices.filter((s) => !SERVICES.some((seed) => seed.id === s.id))}
+              allServices={liveServices}
               blocks={blocks}
               draft={openSlot}
               onOpenSlot={(room, start, end, editingBlockId) => {
@@ -2044,7 +2074,7 @@ function Timeline({
                   separate from the session card, so check-ins/reset notifications feel
                   like their own actions rather than decoration on a booking. */}
               {cueMarker && cueMarker.room === room && (() => {
-                const Icon = WHISPER_ICON[cueMarker.kind];
+                const emoji = CUE_EMOJI[cueMarker.kind];
                 const wash = `color-mix(in oklab, ${cueMarker.gc} 34%, white)`;
                 const topPx = cueMarker.after && afterTopPx != null
                   ? afterTopPx
@@ -2061,7 +2091,7 @@ function Timeline({
                       // Elegant, minimal — a thin marker-pen underline behind
                       // just the verb, no room name, no card chrome.
                       <div className="mx-3 flex w-fit items-center gap-1.5">
-                        <Icon size={13} strokeWidth={1.75} style={{ color: cueMarker.gc, flexShrink: 0 }} />
+                        <span aria-hidden className="text-[15px] leading-none" style={{ flexShrink: 0 }}>{emoji}</span>
                         <span
                           className="text-[12px] font-medium tracking-tight text-black/85"
                           style={{
@@ -2079,7 +2109,7 @@ function Timeline({
                           borderRadius: "3px 7px 4px 8px",
                         }}
                       >
-                        <Icon size={16} strokeWidth={2} style={{ color: cueMarker.gc, flexShrink: 0 }} />
+                        <span aria-hidden className="text-[17px] leading-none" style={{ flexShrink: 0 }}>{emoji}</span>
                         <span className="text-[13px] font-semibold tracking-tight text-black">
                           {cueMarker.verb}
                           {cueMarker.label && (
@@ -2143,6 +2173,11 @@ function Timeline({
                   (w) => w.id === activeCueId,
                 );
                 const badgeWhisper = activeWhisper && !markerKinds.includes(activeWhisper.kind) ? activeWhisper : null;
+                const unpaid = !isPaid(s.id);
+                const legsForGuest = allServices.filter((x) => x.guest === s.guest).length;
+                const isOrchestrationCard = legsForGuest > 1;
+                const reply = getReply(s.id);
+
               {/* Prep strips — a soft "room open for setup" cushion before
                   every reservation, so it's clear the room isn't free right
                   up to the session start. Non-interactive. */}
@@ -2229,28 +2264,24 @@ function Timeline({
 
                     {/* Badge whisper — for non-gap kinds (payment, message, handoff, conflict)
                         floats a small dot in the top-right of the card. */}
-                    {badgeWhisper && (() => {
-                      const WIcon = WHISPER_ICON[badgeWhisper.kind];
-                      return (
-                        <span
-                          aria-hidden
-                          
-                          className="pointer-events-none absolute -top-3 right-1.5 z-20 grid h-6 w-6 place-items-center rounded-full bg-white"
-                          style={{
-                            color: gc,
-                            boxShadow: `0 2px 6px -1px ${tint(gc, 0.35)}, 0 0 0 2px ${tint(gc, 0.22)}`,
-                          }}
-                        >
-                          <WIcon size={13} strokeWidth={2.25} />
-                          {badgeWhisper.urgent && (
-                            <span
-                              aria-hidden
-                              className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-amber-500 ring-1 ring-white"
-                            />
-                          )}
-                        </span>
-                      );
-                    })()}
+                    {badgeWhisper && (
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute -top-3 right-1.5 z-20 grid h-6 w-6 place-items-center rounded-full bg-white text-[13px] leading-none"
+                        style={{
+                          boxShadow: `0 2px 6px -1px ${tint(gc, 0.35)}, 0 0 0 2px ${tint(gc, 0.22)}`,
+                        }}
+                      >
+                        {CUE_EMOJI[badgeWhisper.kind]}
+                        {badgeWhisper.urgent && (
+                          <span
+                            aria-hidden
+                            className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-amber-500 ring-1 ring-white"
+                          />
+                        )}
+                      </span>
+                    )}
+
 
 
 
@@ -2275,13 +2306,22 @@ function Timeline({
                           <div>{fmt(s.start + (isDragging ? svcDrag!.delta : 0))}</div>
                           <div style={{ opacity: 0.55 }}>{fmt(s.end + (isDragging ? svcDrag!.delta : 0))}</div>
                         </div>
-                        <div
-                          className="shrink-0 whitespace-nowrap text-[12px] font-semibold tabular-nums tracking-[0.08em]"
-                          style={{ color: metaColor, fontFamily: MONO, opacity: 0.65 }}
-                        >
-                          {duration}m
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          {isOrchestrationCard && (
+                            <span aria-label="Part of a multi-service journey" className="text-[15px] leading-none">🌀</span>
+                          )}
+                          {unpaid && (
+                            <span aria-label="Unpaid — outstanding" className="text-[14px] leading-none">💳</span>
+                          )}
+                          <div
+                            className="whitespace-nowrap text-[12px] font-semibold tabular-nums tracking-[0.08em]"
+                            style={{ color: metaColor, fontFamily: MONO, opacity: 0.65 }}
+                          >
+                            {duration}m
+                          </div>
                         </div>
                       </div>
+
 
                       {/* Room — the space this session happens in */}
                       <div
@@ -2362,6 +2402,16 @@ function Timeline({
                           {practInitials}
                         </span>
                       </div>
+                      {reply && (
+                        <div
+                          className="mt-1 text-right text-[11.5px] font-medium tabular-nums"
+                          style={{ color: gc, fontFamily: MONO }}
+                        >
+                          {replyLine(reply, s.practitioner)}
+                        </div>
+                      )}
+
+
 
                       {/* Orchestration pill or plain note — pushed to bottom */}
                       {(orchestration || plainNote) && height > 120 && (
