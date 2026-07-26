@@ -312,8 +312,16 @@ export function cancelService(id: string) {
 
 // ---------- Reschedule (drag reservations) ----------
 
+function findServiceById(id: string): Service | undefined {
+  const ov = state.serviceOverrides;
+  const pool = [...SEED_SERVICES, ...SEED_SERVICES_TOMORROW, ...state.createdServices];
+  const svc = pool.find((s) => s.id === id);
+  if (!svc) return undefined;
+  return ov[id] ? { ...svc, start: ov[id].start, end: ov[id].end } : svc;
+}
+
 export function requestMoveService(id: string, start: number, end: number) {
-  const svc = getLiveServices().find((s) => s.id === id);
+  const svc = findServiceById(id);
   if (!svc) return;
   if (svc.start === start && svc.end === end) return;
   set({
@@ -329,7 +337,7 @@ export function confirmPendingMove() {
   const pm = state.pendingMove;
   if (!pm) return;
   const nextOv = { ...state.serviceOverrides, [pm.id]: pm.to };
-  const svc = getLiveServices().find((s) => s.id === pm.id);
+  const svc = findServiceById(pm.id);
   const toastText = svc
     ? `${svc.service} moved · notifications sent`
     : `Reservation moved · notifications sent`;
@@ -339,6 +347,7 @@ export function confirmPendingMove() {
     moveToast: { text: toastText, at: Date.now() },
   });
 }
+
 
 export function cancelPendingMove() {
   set({ pendingMove: null });
