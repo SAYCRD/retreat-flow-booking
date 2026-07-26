@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PractitionersRouteImport } from './routes/practitioners'
+import { Route as FieldRouteImport } from './routes/field'
 import { Route as IndexRouteImport } from './routes/index'
 
 const PractitionersRoute = PractitionersRouteImport.update({
   id: '/practitioners',
   path: '/practitioners',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FieldRoute = FieldRouteImport.update({
+  id: '/field',
+  path: '/field',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -25,27 +31,31 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/field': typeof FieldRoute
   '/practitioners': typeof PractitionersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/field': typeof FieldRoute
   '/practitioners': typeof PractitionersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/field': typeof FieldRoute
   '/practitioners': typeof PractitionersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/practitioners'
+  fullPaths: '/' | '/field' | '/practitioners'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/practitioners'
-  id: '__root__' | '/' | '/practitioners'
+  to: '/' | '/field' | '/practitioners'
+  id: '__root__' | '/' | '/field' | '/practitioners'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FieldRoute: typeof FieldRoute
   PractitionersRoute: typeof PractitionersRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/practitioners'
       fullPath: '/practitioners'
       preLoaderRoute: typeof PractitionersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/field': {
+      id: '/field'
+      path: '/field'
+      fullPath: '/field'
+      preLoaderRoute: typeof FieldRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -70,18 +87,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FieldRoute: FieldRoute,
   PractitionersRoute: PractitionersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
