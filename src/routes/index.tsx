@@ -1122,7 +1122,18 @@ function TodayPage() {
 
       <PractitionerPanel />
 
+      <MoveConfirmBar
+        pending={storeSnap.pendingMove}
+        service={
+          storeSnap.pendingMove
+            ? liveServices.find((s) => s.id === storeSnap.pendingMove!.id) ?? null
+            : null
+        }
+      />
+      <MoveToast toast={storeSnap.moveToast} />
+
     </div>
+
   );
 }
 
