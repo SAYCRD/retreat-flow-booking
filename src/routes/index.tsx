@@ -1070,6 +1070,14 @@ function TodayPage() {
       )}
 
       <ReservationPanel service={openService} onClose={() => setOpenServiceId(null)} />
+      <BlockPanel
+        block={openBlock}
+        onClose={() => setOpenBlockId(null)}
+        onRemove={(id) => {
+          setBlocks((prev) => prev.filter((b) => b.id !== id));
+          setOpenBlockId(null);
+        }}
+      />
     </div>
   );
 }
