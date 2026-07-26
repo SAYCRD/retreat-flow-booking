@@ -6,7 +6,7 @@
 // ------------------------------------------------------------------
 
 import { useEffect, useState } from "react";
-import { SEED_SERVICES, type Service } from "./catalog";
+import { SEED_SERVICES, SEED_SERVICES_TOMORROW, type Service } from "./catalog";
 
 export type AvailabilitySource = "phone" | "self" | "text";
 
