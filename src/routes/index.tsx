@@ -38,7 +38,7 @@ import {
   type Status,
 } from "@/lib/catalog";
 import { usePayments, isPaid } from "@/lib/paymentState";
-import { usePractitionerReplies, getReply, setReply, replyLine, REPLY_META, type ReplyStatus } from "@/lib/practitionerReplies";
+import { usePractitionerReplies, getReply, setReply, replyLine, REPLY_META, getTexted, textedLine, type ReplyStatus } from "@/lib/practitionerReplies";
 
 
 const WHISPER_ICON = {
@@ -980,6 +980,7 @@ function TodayPage() {
                   serviceLabel: cueSvc.service,
                   roomLabel: cueSvc.room,
                   startMin: cueSvc.start,
+                  serviceId: cueSvc.id,
                 },
               });
             };
@@ -1058,34 +1059,33 @@ function TodayPage() {
                 <div className="flex shrink-0 items-center gap-3">
                   {cue && (
                     <>
-                      {isNotify ? (
-                        <div className="flex items-center gap-2">
-                          {/* Primary: open the practitioner sidebar with a prefilled text */}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openPractitionerFromCue(); }}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-black px-3 py-1.5 text-[12.5px] font-semibold text-white transition-opacity hover:opacity-85"
-                          >
-                            <MessageSquare size={13} strokeWidth={2} />
-                            Text {cueSvc!.practitioner.split(" ")[0]}
-                          </button>
-                          {/* Secondary: record her reply once it comes back */}
-                          <div className="hidden items-center gap-1 sm:flex">
-                            {(["confirmed", "here", "on-way"] as ReplyStatus[]).map((status) => {
-                              const meta = REPLY_META[status];
-                              return (
-                                <button
-                                  key={status}
-                                  onClick={(e) => { e.stopPropagation(); setReply(cue.serviceId!, status); confirmCue(); }}
-                                  className="inline-flex items-center gap-1 rounded-full border border-black/10 bg-white px-2.5 py-1 text-[12px] font-semibold text-black/70 transition-colors hover:border-black/40 hover:text-black"
-                                >
-                                  <span aria-hidden>{meta.emoji}</span>
-                                  <span className="capitalize">{meta.label}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ) : (
+                      {isNotify ? (() => {
+                        // No action button — the "text" happens by clicking
+                        // the little notify marker on the timeline, which
+                        // opens the practitioner's sidebar with the prefill.
+                        // Here we just surface where we are in the loop.
+                        const reply = getReply(cue.serviceId!);
+                        const t = getTexted(cue.serviceId!);
+                        if (reply) {
+                          return (
+                            <span className="text-[13px] font-medium text-black/70">
+                              {replyLine(reply, cueSvc!.practitioner)}
+                            </span>
+                          );
+                        }
+                        if (t) {
+                          return (
+                            <span className="text-[13px] italic text-black/55">
+                              {textedLine(t, cueSvc!.practitioner)} · awaiting reply
+                            </span>
+                          );
+                        }
+                        return (
+                          <span className="hidden text-[12.5px] italic text-black/45 sm:inline">
+                            tap the {cueSvc!.practitioner.split(" ")[0].toLowerCase()} marker to send a text
+                          </span>
+                        );
+                      })() : (
                         <button
                           onClick={confirmCue}
                           className="text-[13.5px] font-medium text-black/85 underline decoration-black/25 underline-offset-4 transition-colors hover:decoration-black"
