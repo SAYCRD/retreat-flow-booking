@@ -2109,6 +2109,143 @@ function Timeline({
                 );
 
               })}
+
+              {/* Existing blocks — soft diagonal hatch in the room's own hue.
+                  Flatter than reservation cards so eye separates the two. */}
+              {roomBlocks.map((b) => {
+                const bTop = TOP_PAD + minToPx(b.start);
+                const bH = Math.max(minToPx(b.end) - minToPx(b.start), 18);
+                const isPast = b.end <= nowMin;
+                const hatch = `repeating-linear-gradient(135deg, ${tint(rc, 0.18)} 0 6px, ${tint(rc, 0.06)} 6px 12px)`;
+                return (
+                  <div
+                    key={b.id}
+                    data-block-chip
+                    className="group absolute inset-x-1 z-[5] flex flex-col justify-between rounded-none px-2 py-1.5 cursor-pointer transition-opacity"
+                    style={{
+                      top: bTop,
+                      height: bH,
+                      background: hatch,
+                      borderLeft: `2px solid ${rc}`,
+                      opacity: isPast ? 0.55 : 0.95,
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); onOpenBlock?.(b.id); }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className="truncate text-[10.5px] font-bold uppercase tracking-[0.14em]"
+                        style={{ color: "#1a1a1a", fontFamily: MONO }}
+                      >
+                        Blocked
+                      </span>
+                      <span
+                        className="shrink-0 text-[10.5px] font-semibold tabular-nums"
+                        style={{ color: "#2a2a2a", fontFamily: MONO }}
+                      >
+                        {fmt(b.start)}–{fmt(b.end)}
+                      </span>
+                    </div>
+                    {bH > 34 && (
+                      <div
+                        className="truncate text-[12px] font-medium leading-tight"
+                        style={{ color: "#0a0a0a", fontFamily: DISPLAY }}
+                      >
+                        {b.reason}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Live drag preview */}
+              {activeDrag && activeDrag.endMin > activeDrag.startMin && (() => {
+                const pTop = TOP_PAD + minToPx(activeDrag.startMin);
+                const pH = Math.max(minToPx(activeDrag.endMin) - minToPx(activeDrag.startMin), 18);
+                const bg = dragBad
+                  ? "repeating-linear-gradient(135deg, rgba(220,38,38,0.22) 0 6px, rgba(220,38,38,0.08) 6px 12px)"
+                  : `repeating-linear-gradient(135deg, ${tint(rc, 0.28)} 0 6px, ${tint(rc, 0.10)} 6px 12px)`;
+                return (
+                  <div
+                    className="pointer-events-none absolute inset-x-1 z-[6] flex items-center justify-between px-2"
+                    style={{
+                      top: pTop,
+                      height: pH,
+                      background: bg,
+                      borderLeft: `2px solid ${dragBad ? "#dc2626" : rc}`,
+                    }}
+                  >
+                    <span
+                      className="text-[10.5px] font-bold uppercase tracking-[0.14em]"
+                      style={{ color: dragBad ? "#7f1d1d" : "#1a1a1a", fontFamily: MONO }}
+                    >
+                      {dragBad ? "Overlaps" : "Block"}
+                    </span>
+                    <span
+                      className="text-[10.5px] font-semibold tabular-nums"
+                      style={{ color: "#2a2a2a", fontFamily: MONO }}
+                    >
+                      {fmt(activeDrag.startMin)}–{fmt(activeDrag.endMin)}
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {/* Confirm menu — anchored below the range so it doesn't cover it */}
+              {activeMenu && (() => {
+                const mTop = TOP_PAD + minToPx(activeMenu.endMin) + 6;
+                return (
+                  <div
+                    className="absolute inset-x-1 z-40 border border-black/[0.08] bg-white p-3 shadow-[0_10px_30px_-8px_rgba(15,23,42,0.25)]"
+                    style={{ top: mTop, fontFamily: DISPLAY }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-black/55" style={{ fontFamily: MONO }}>
+                        Block {room}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMenu(null)}
+                        className="grid h-5 w-5 place-items-center text-black/40 hover:text-black"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className="mb-2 text-[13px] font-semibold tabular-nums text-black" style={{ fontFamily: MONO }}>
+                      {fmt(activeMenu.startMin)} – {fmt(activeMenu.endMin)}
+                    </div>
+                    {menuBad ? (
+                      <div className="mb-2 rounded-sm bg-red-50 px-2 py-1 text-[11.5px] font-medium text-red-700">
+                        Overlaps an existing session — shorten the range or cancel.
+                      </div>
+                    ) : null}
+                    <div className="mb-2 flex flex-wrap gap-1">
+                      {BLOCK_REASONS.map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          disabled={menuBad}
+                          onClick={() => commitBlock(r)}
+                          className="rounded-sm border border-black/10 bg-white px-2 py-1 text-[11.5px] font-medium text-black transition-colors hover:border-black/30 hover:bg-black/[0.03] disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setMenu(null)}
+                        className="px-2 py-1 text-[11.5px] font-medium text-black/55 hover:text-black"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           );
         })}
