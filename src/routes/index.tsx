@@ -838,6 +838,12 @@ function TodayPage() {
             <span className="text-[13px] font-medium tracking-tight text-black/80">Seondya</span>
           </div>
 
+          <nav className="flex items-center gap-4 text-[12.5px]">
+            <Link to="/" className="font-semibold text-black">Reservations</Link>
+            <Link to="/practitioners" className="text-black/50 hover:text-black">Practitioners</Link>
+          </nav>
+
+
 
           <div className="ml-auto flex items-center gap-2">
             <button
@@ -2650,7 +2656,13 @@ function ReservationPanel({
                   <span className="font-semibold" style={{ color: rc }}>{s.room}</span>
                 </PanelRow>
                 <PanelRow label="Practitioner">
-                  <span className="font-semibold text-black">{s.practitioner}</span>
+                  <button
+                    type="button"
+                    onClick={() => openPractitionerPanelByName(s.practitioner)}
+                    className="font-semibold text-black underline-offset-4 hover:underline"
+                  >
+                    {s.practitioner}
+                  </button>
                 </PanelRow>
                 <PanelRow label="Time">
                   <span className="font-semibold tabular-nums text-black" style={{ fontFamily: MONO }}>
