@@ -156,11 +156,18 @@ function FieldHome() {
                 className="text-[10px] uppercase tracking-[0.18em] text-neutral-500"
                 style={{ fontFamily: '"JetBrains Mono", monospace' }}
               >
-                <span
-                  className="inline-block px-2 py-[2px] rounded-sm mr-2"
-                  style={{ background: cueSite.accent, color: "#0a0a0a" }}
-                >
-                  {cueSite.name}
+                <span className="relative inline-block mr-2 align-baseline">
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-[-4px] bottom-[1px] h-[70%] -z-0"
+                    style={{
+                      background: cueSite.accent,
+                      transform: "skewX(-6deg) rotate(-1.2deg)",
+                      opacity: 0.9,
+                      borderRadius: "1px 3px 2px 4px",
+                    }}
+                  />
+                  <span className="relative z-10 px-[2px] text-neutral-900">{cueSite.name}</span>
                 </span>
                 {cue.verb}
               </div>
