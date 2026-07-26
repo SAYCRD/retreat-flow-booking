@@ -1753,12 +1753,22 @@ function Timeline({
         {/* Room columns */}
         {ROOMS.map((room, idx) => {
           const services = allServices.filter((s) => s.room === room);
+          const roomBlocks = blocksByRoom[room] ?? [];
+          const rc = roomColor(room);
+          const activeDrag = drag && drag.room === room ? drag : null;
+          const activeMenu = menu && menu.room === room ? menu : null;
+          const dragBad = activeDrag ? rangeOverlaps(room, activeDrag.startMin, activeDrag.endMin) : false;
+          const menuBad = activeMenu ? rangeOverlaps(room, activeMenu.startMin, activeMenu.endMin) : false;
           return (
           <div
               key={room}
-              className={`relative min-w-0 flex-1 bg-white ${
+              className={`relative min-w-0 flex-1 select-none bg-white ${
                 idx < ROOMS.length - 1 ? "border-r border-black/[0.06]" : ""
               }`}
+              onMouseDown={(e) => beginDrag(room, e)}
+              onMouseMove={(e) => moveDrag(room, e)}
+              onMouseUp={() => endDrag(room)}
+              onMouseLeave={() => { if (drag && drag.room === room) endDrag(room); }}
             >
               {/* Hour lines */}
               {hourTops.map((top, i) => (
