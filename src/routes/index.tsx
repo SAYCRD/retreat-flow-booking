@@ -1507,11 +1507,11 @@ function Timeline({
 
   const trackHeight = TOP_PAD + minToPx(DAY_SPAN);
 
-  // Drag-to-block state — while the operator drags over an empty stretch of
-  // a room column, we preview the range. On mouseup we open a confirm menu
-  // anchored at the top of the range with a reason picker.
+  // Drag-to-open state — while the operator drags across an empty stretch of a
+  // room column we paint a live "draft" card in-place. On mouseup (or a plain
+  // click) we hand the range to the parent, which opens the side panel in
+  // Reservation mode by default.
   const [drag, setDrag] = useState<{ room: string; anchorMin: number; startMin: number; endMin: number } | null>(null);
-  const [menu, setMenu] = useState<{ room: string; startMin: number; endMin: number } | null>(null);
   const dragDidMove = useRef(false);
 
   const blocksByRoom = useMemo(() => {
@@ -1520,24 +1520,23 @@ function Timeline({
     return map;
   }, [blocks]);
 
-  const rangeOverlaps = (room: string, startMin: number, endMin: number) => {
+  const rangeOverlaps = (room: string, startMin: number, endMin: number, ignoreBlockId?: string) => {
     if (startMin >= endMin) return true;
     const s = allServices.some((sv) => sv.room === room && sv.start < endMin && sv.end > startMin);
     if (s) return true;
-    return (blocksByRoom[room] ?? []).some((b) => b.start < endMin && b.end > startMin);
+    return (blocksByRoom[room] ?? []).some((b) => b.id !== ignoreBlockId && b.start < endMin && b.end > startMin);
   };
 
   const beginDrag = (room: string, e: React.MouseEvent<HTMLDivElement>) => {
-    if (!onCreateBlock) return;
-    // Ignore clicks that started on a service card or existing block chip.
+    if (!onOpenSlot) return;
+    // Ignore clicks that started on a service card, existing block, or the draft.
     const target = e.target as HTMLElement;
-    if (target.closest("[data-svc-card], [data-block-chip]")) return;
+    if (target.closest("[data-svc-card], [data-block-chip], [data-slot-draft]")) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top - TOP_PAD;
     const anchor = pxToMin(y);
     dragDidMove.current = false;
-    setDrag({ room, anchorMin: anchor, startMin: anchor, endMin: anchor + 30 });
-    setMenu(null);
+    setDrag({ room, anchorMin: anchor, startMin: anchor, endMin: anchor + 60 });
   };
 
   const moveDrag = (room: string, e: React.MouseEvent<HTMLDivElement>) => {
@@ -1552,26 +1551,15 @@ function Timeline({
   };
 
   const endDrag = (room: string) => {
-    if (!drag || drag.room !== room) return;
+    if (!drag || drag.room !== room || !onOpenSlot) return;
     const startMin = drag.startMin;
-    const endMin = dragDidMove.current ? drag.endMin : drag.anchorMin + 30;
+    const endMin = dragDidMove.current ? drag.endMin : drag.anchorMin + 60;
     setDrag(null);
-    setMenu({ room, startMin, endMin });
+    if (rangeOverlaps(room, startMin, endMin)) return;
+    onOpenSlot(room, startMin, endMin);
   };
 
-  const commitBlock = (reason: string, note?: string) => {
-    if (!menu || !onCreateBlock) return;
-    if (rangeOverlaps(menu.room, menu.startMin, menu.endMin)) return;
-    onCreateBlock({
-      id: `blk-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      room: menu.room,
-      start: menu.startMin,
-      end: menu.endMin,
-      reason,
-      note,
-    });
-    setMenu(null);
-  };
+
 
 
   // Group whispers by the service they touch, so the calendar can render
