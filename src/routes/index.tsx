@@ -2967,8 +2967,52 @@ function ReservationPanel({
                 );
               })()}
             </div>
+
+            {onCancel && (
+              <div className="flex shrink-0 items-center justify-between gap-3 border-t border-black/[0.08] px-7 py-4">
+                {confirmingCancel ? (
+                  <>
+                    <div className="text-[12.5px] text-black/60">Cancel this reservation?</div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingCancel(false)}
+                        className="rounded-[8px] border border-black/10 bg-white px-3 py-2 text-[13px] font-medium text-black/70 hover:bg-black/[0.03] hover:text-black"
+                      >
+                        Keep
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onCancel(s.id)}
+                        className="rounded-[8px] bg-rose-600 px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-rose-700"
+                      >
+                        Confirm cancel
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingCancel(true)}
+                      className="text-[13px] font-semibold text-rose-700 hover:text-rose-900"
+                    >
+                      Cancel reservation
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="text-[13px] font-medium text-black/55 hover:text-black"
+                    >
+                      Close
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </>
         )}
+
       </aside>
     </>
   );
