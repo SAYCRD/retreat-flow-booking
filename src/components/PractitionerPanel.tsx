@@ -25,6 +25,7 @@ import {
   type Service,
 } from "@/lib/catalog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { markTexted } from "@/lib/practitionerReplies";
 
 // --- typography tokens matched to routes/index.tsx ------------------
 const DISPLAY = "'Inter Tight', Inter, system-ui, sans-serif";
