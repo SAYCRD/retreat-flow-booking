@@ -1014,39 +1014,19 @@ function TodayPage() {
             </div>
           )}
           <div className="mt-6" ref={timelineRef}>
-            {isToday ? (
-              <Timeline
-                nowMin={nowMin}
-                highlightServiceId={cue?.serviceId}
-                highlightKind={cue?.kind}
-                highlightUrgent={cue?.urgent}
-                whispers={prompts}
-                activeCueId={cue?.id}
-                activeRoom={activeRoom}
-                cueRoom={cue?.room ?? null}
-                onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
-                onOpenService={(id) => setOpenServiceId(id)}
-              />
-            ) : (
-              <div className="rounded-lg border border-black/10 bg-white px-8 py-20 text-center">
-                <div className="text-[13px] uppercase tracking-[0.18em] text-black/45" style={{ fontFamily: MONO }}>
-                  {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-                </div>
-                <div className="mt-3 text-[22px] text-black/80" style={{ fontFamily: DISPLAY }}>
-                  No reservations on this day yet.
-                </div>
-                <div className="mt-2 text-[13.5px] text-black/55">
-                  Pick another day, or return to today to see the live board.
-                </div>
-                <button
-                  onClick={() => setSelectedDate(new Date())}
-                  className="mt-6 inline-flex items-center gap-1.5 rounded-full border border-black/15 bg-white px-4 py-1.5 text-[12.5px] font-medium text-black/75 hover:border-black/30 hover:text-black"
-                  style={{ fontFamily: MONO }}
-                >
-                  ← Back to today
-                </button>
-              </div>
-            )}
+            <Timeline
+              nowMin={nowMin}
+              highlightServiceId={isToday ? cue?.serviceId : undefined}
+              highlightKind={isToday ? cue?.kind : undefined}
+              highlightUrgent={isToday ? cue?.urgent : undefined}
+              whispers={isToday ? prompts : []}
+              activeCueId={isToday ? cue?.id : undefined}
+              activeRoom={activeRoom}
+              cueRoom={isToday ? cue?.room ?? null : null}
+              onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
+              onOpenService={(id) => setOpenServiceId(id)}
+              allServices={isToday ? SERVICES : []}
+            />
           </div>
         </div>
       </section>
@@ -1378,6 +1358,8 @@ function Timeline({
   cueRoom,
   onRoomClick,
   onOpenService,
+  allServices = SERVICES,
+  emptyLabel,
 }: {
   nowMin: number;
   highlightServiceId?: string;
@@ -1389,6 +1371,8 @@ function Timeline({
   cueRoom?: string | null;
   onRoomClick?: (room: string) => void;
   onOpenService?: (id: string) => void;
+  allServices?: Service[];
+  emptyLabel?: string;
 }) {
   const PX_PER_MIN = 4; // 240px per hour vertical — gives 15/30-min slots room to breathe
   const TAIL_PX_PER_MIN = 1.2; // compress the quiet evening tail so midnight doesn't feel empty
@@ -1400,7 +1384,7 @@ function Timeline({
 
   // Keep the busy part of the day at full scale; compress the empty evening
   // tail so the calendar reaches midnight without a huge white void.
-  const lastEnd = useMemo(() => Math.max(...SERVICES.map((s) => s.end)), []);
+  const lastEnd = useMemo(() => (allServices.length ? Math.max(...allServices.map((s) => s.end)) : 0), [allServices]);
   const compressAfter = useMemo(() => {
     const buffer = Math.max(nowMin + 60, lastEnd + 30);
     return Math.min(Math.max(buffer, DAY_SPAN * 0.5), DAY_SPAN);
@@ -1436,14 +1420,14 @@ function Timeline({
 
   const cueMarker = useMemo(() => {
     if (!activeCue?.serviceId) return null;
-    const s = SERVICES.find((x) => x.id === activeCue.serviceId);
+    const s = allServices.find((x) => x.id === activeCue.serviceId);
     if (!s || !markerKinds.includes(activeCue.kind)) return null;
 
-    const roomServices = SERVICES.filter((x) => x.room === s.room).sort((a, b) => a.start - b.start);
+    const roomServices = allServices.filter((x) => x.room === s.room).sort((a, b) => a.start - b.start);
     const prevInRoom = roomServices.find((s2, i, arr) => arr[i + 1]?.id === s.id);
     const idxInRoom = roomServices.findIndex((x) => x.id === s.id);
     const nextInRoom = idxInRoom >= 0 ? roomServices[idxInRoom + 1] ?? null : null;
-    const guestServices = SERVICES.filter((x) => x.guest === s.guest).sort((a, b) => a.start - b.start);
+    const guestServices = allServices.filter((x) => x.guest === s.guest).sort((a, b) => a.start - b.start);
     const guestIdx = guestServices.findIndex((x) => x.id === s.id);
     const prevGuest = guestIdx > 0 ? guestServices[guestIdx - 1] : null;
 
@@ -1584,7 +1568,7 @@ function Timeline({
           Time
         </div>
         {ROOMS.map((room, idx) => {
-          const count = SERVICES.filter((s) => s.room === room).length;
+          const count = allServices.filter((s) => s.room === room).length;
           const rc = roomColor(room);
           const isPinned = activeRoom === room;
           const isCueRoom = cueRoom === room;
@@ -1647,7 +1631,7 @@ function Timeline({
 
         {/* Room columns */}
         {ROOMS.map((room, idx) => {
-          const services = SERVICES.filter((s) => s.room === room);
+          const services = allServices.filter((s) => s.room === room);
           return (
           <div
               key={room}
