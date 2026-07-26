@@ -1052,9 +1052,9 @@ function TodayPage() {
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
               allServices={isToday ? SERVICES : []}
-              blocks={blocks.filter((b) => selectedDate.toDateString() === new Date().toDateString() || !isToday)}
-              onCreateBlock={(b) => setBlocks((prev) => [...prev, b])}
-              onOpenBlock={(id) => setOpenBlockId(id)}
+              blocks={blocks}
+              onCreateBlock={(b: Block) => setBlocks((prev) => [...prev, b])}
+              onOpenBlock={(id: string) => setOpenBlockId(id)}
             />
           </div>
         </div>
