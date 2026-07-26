@@ -128,6 +128,15 @@ type State = {
   openReservationId: string | null;
 };
 
+type PersistedReservationState = {
+  createdServices: Service[];
+  canceledIds: string[];
+  serviceOverrides: Record<string, { start: number; end: number }>;
+};
+
+const RESERVATION_STORAGE_KEY = "seondya-reservations-v1";
+let hasHydratedReservations = false;
+
 let state: State = {
   practitioners: seedPractitioners,
   availability: seedAvailability,
@@ -144,10 +153,41 @@ let state: State = {
 
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((fn) => fn());
+const persistReservations = () => {
+  if (typeof window === "undefined" || !hasHydratedReservations) return;
+  const persisted: PersistedReservationState = {
+    createdServices: state.createdServices,
+    canceledIds: Array.from(state.canceledIds),
+    serviceOverrides: state.serviceOverrides,
+  };
+  window.localStorage.setItem(RESERVATION_STORAGE_KEY, JSON.stringify(persisted));
+};
 const set = (next: Partial<State>) => {
   state = { ...state, ...next };
+  persistReservations();
   emit();
 };
+
+function hydrateReservations() {
+  if (hasHydratedReservations || typeof window === "undefined") return;
+  hasHydratedReservations = true;
+  try {
+    const raw = window.localStorage.getItem(RESERVATION_STORAGE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw) as Partial<PersistedReservationState>;
+    state = {
+      ...state,
+      createdServices: Array.isArray(saved.createdServices) ? saved.createdServices : [],
+      canceledIds: new Set(Array.isArray(saved.canceledIds) ? saved.canceledIds : []),
+      serviceOverrides: saved.serviceOverrides && typeof saved.serviceOverrides === "object"
+        ? saved.serviceOverrides
+        : {},
+    };
+    emit();
+  } catch {
+    window.localStorage.removeItem(RESERVATION_STORAGE_KEY);
+  }
+}
 
 const uid = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -169,6 +209,8 @@ export function usePractitioners() {
   useEffect(() => {
     const fn = () => setSnap(state);
     listeners.add(fn);
+    hydrateReservations();
+    setSnap(state);
     return () => { listeners.delete(fn); };
   }, []);
   return snap;
@@ -251,7 +293,8 @@ export function getLiveServices(dateKey?: string): Service[] {
              : key === today ? SEED_SERVICES
              : [];
   const ov = state.serviceOverrides;
-  return [...seed, ...state.createdServices]
+  const created = state.createdServices.filter((s) => (s.date ?? today) === key);
+  return [...seed, ...created]
     .filter((s) => !state.canceledIds.has(s.id))
     .map((s) => (ov[s.id] ? { ...s, start: ov[s.id].start, end: ov[s.id].end } : s));
 }

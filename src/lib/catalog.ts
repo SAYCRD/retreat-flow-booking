@@ -9,6 +9,7 @@ export type Status = "in-session" | "confirmed" | "requested" | "hold";
 
 export type Service = {
   id: string;
+  date?: string;   // YYYY-MM-DD; seed sessions without a date belong to their seed day
   guest: string;
   partySize?: number;
   service: string;

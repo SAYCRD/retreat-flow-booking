@@ -3394,6 +3394,7 @@ function SlotPanel({
     const pending = selectedPract && !selectedPract.onCalendarToday;
     onSaveReservation({
       id: `svc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      date: dateKeyOf(selectedDate),
       guest: guest.trim(),
       service: offering,
       room,
