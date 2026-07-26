@@ -526,17 +526,36 @@ function ScheduleCanvas({
   const beginBookingMove = (svc: Service, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    // Find nearest scrollable ancestor so auto-scroll works inside the sheet.
+    const findScrollParent = (el: HTMLElement | null): HTMLElement | Window => {
+      let n: HTMLElement | null = el;
+      while (n) {
+        const s = getComputedStyle(n);
+        if (/(auto|scroll|overlay)/.test(s.overflowY) && n.scrollHeight > n.clientHeight) return n;
+        n = n.parentElement;
+      }
+      return window;
+    };
+    const scroller = findScrollParent(e.currentTarget as HTMLElement);
+    const scrollTopOf = () => scroller instanceof Window ? window.scrollY : scroller.scrollTop;
+    const scrollByOf = (dy: number) => scroller instanceof Window ? window.scrollBy(0, dy) : (scroller.scrollTop += dy);
+    const viewRect = () => scroller instanceof Window
+      ? { top: 0, bottom: window.innerHeight }
+      : (() => { const r = (scroller as HTMLElement).getBoundingClientRect(); return { top: r.top, bottom: r.bottom }; })();
+
+    const originScroll = scrollTopOf();
     const originY = e.clientY;
     const dur = svc.end - svc.start;
     let moved = false;
     let curDelta = 0;
     let curBad = false;
-    // Overlap check against this practitioner's other live bookings (any room).
+    let lastClientY = e.clientY;
+    let rafId: number | null = null;
     const others = getLiveServices().filter(
       (s) => s.practitioner === svc.practitioner && s.id !== svc.id,
     );
-    const onMove = (ev: MouseEvent) => {
-      const dy = ev.clientY - originY;
+    const recompute = () => {
+      const dy = (lastClientY - originY) + (scrollTopOf() - originScroll);
       const deltaMin = Math.round(dy / PX_PER_MIN / 15) * 15;
       if (Math.abs(deltaMin) >= 15) moved = true;
       let ns = Math.max(0, svc.start + deltaMin);
@@ -546,9 +565,29 @@ function ScheduleCanvas({
       curBad = others.some((o) => o.start < ne && o.end > ns);
       setSvcDrag({ id: svc.id, delta: curDelta, bad: curBad });
     };
+    const EDGE = 90;
+    const MAX_SPEED = 18;
+    const autoScroll = () => {
+      const { top, bottom } = viewRect();
+      let dy = 0;
+      if (lastClientY < top + EDGE) dy = -Math.ceil(((top + EDGE - lastClientY) / EDGE) * MAX_SPEED);
+      else if (lastClientY > bottom - EDGE) dy = Math.ceil(((lastClientY - (bottom - EDGE)) / EDGE) * MAX_SPEED);
+      if (dy !== 0) {
+        const before = scrollTopOf();
+        scrollByOf(dy);
+        if (scrollTopOf() !== before) recompute();
+      }
+      rafId = requestAnimationFrame(autoScroll);
+    };
+    rafId = requestAnimationFrame(autoScroll);
+    const onMove = (ev: MouseEvent) => {
+      lastClientY = ev.clientY;
+      recompute();
+    };
     const onUp = () => {
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
+      if (rafId !== null) cancelAnimationFrame(rafId);
       setSvcDrag(null);
       if (moved) {
         swallowClickRef.current = true;
