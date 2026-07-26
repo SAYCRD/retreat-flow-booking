@@ -2063,14 +2063,19 @@ function Timeline({
   // If a Coming Up cue is active, the parent handles scrolling to the action
   // marker; this fallback only runs when there is no cue to follow.
   useEffect(() => {
-    if (scrolledRef.current || !gridRef.current || activeCueId) return;
+    if (scrolledRef.current || !gridRef.current) return;
     scrolledRef.current = true;
+    // If a Coming Up cue is active on first mount, its own scroll handler owns
+    // the initial position — don't fight it.
+    if (activeCueId) return;
     const rect = gridRef.current.getBoundingClientRect();
     const gridTop = rect.top + window.scrollY;
     // Offset for sticky header (44) + sticky Coming Up strip (~88) + room headers + top bounce.
     const target = gridTop + nowTop - 180;
     smoothScrollTo(Math.max(0, target), 1400);
-  }, [nowTop, activeCueId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
 
   return (
