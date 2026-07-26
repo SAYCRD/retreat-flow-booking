@@ -2048,29 +2048,54 @@ function Timeline({
 
 
 
+                const isDragging = svcDrag?.id === s.id;
+                const dragTx = isDragging ? svcDrag!.delta * PX_PER_MIN : 0;
+                const dragBadThis = isDragging && svcDrag!.bad;
                 return (
                   <div
                     key={s.id}
                     id={`svc-${s.id}`}
                     data-svc-card
-                    className="group absolute inset-x-0 flex flex-col rounded-none bg-white transition-[transform,box-shadow] duration-200 ease-out will-change-transform hover:z-20 hover:-translate-y-[1px] cursor-pointer"
+                    className={`group absolute inset-x-0 flex flex-col rounded-none bg-white transition-[box-shadow] duration-200 ease-out will-change-transform hover:z-20 ${isDragging ? "cursor-grabbing z-30" : onRequestMoveService ? "cursor-grab hover:-translate-y-[1px]" : "cursor-pointer"}`}
                     style={{
                       top: top + 1,
                       minHeight: Math.max(height - 2, 96),
-                      boxShadow: baseShadow,
+                      boxShadow: dragBadThis
+                        ? `0 0 0 1.5px rgba(220,38,38,0.6), 8px 14px 28px -12px rgba(220,38,38,0.35)`
+                        : baseShadow,
                       opacity: isPast ? 0.9 : 1,
+                      transform: isDragging ? `translateY(${dragTx}px)` : undefined,
+                      transition: isDragging ? "box-shadow 120ms ease-out" : undefined,
                     }}
                     onMouseEnter={(e) => {
+                      if (isDragging) return;
                       e.currentTarget.style.boxShadow = hoverShadow;
                     }}
                     onMouseLeave={(e) => {
+                      if (isDragging) return;
                       e.currentTarget.style.boxShadow = baseShadow;
                     }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); onOpenService?.(s.id); }}
-                    
-                    
+                    onMouseDown={(e) => beginServiceMove(s, e)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (swallowSvcClickRef.current) return;
+                      onOpenService?.(s.id);
+                    }}
                   >
+                    {/* Live time pill while dragging */}
+                    {isDragging && (
+                      <div
+                        className="pointer-events-none absolute -top-3 left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-sm px-2 py-1 text-[11px] font-semibold tabular-nums shadow"
+                        style={{
+                          background: dragBadThis ? "#dc2626" : "#0a0a0a",
+                          color: "#fff",
+                          fontFamily: MONO,
+                        }}
+                      >
+                        {dragBadThis ? "Overlaps" : `→ ${fmt(s.start + svcDrag!.delta)} – ${fmt(s.end + svcDrag!.delta)}`}
+                      </div>
+                    )}
+
                     {/* Top color rail — thinner, high-chroma, thickens subtly on hover */}
                     <span
                       aria-hidden
