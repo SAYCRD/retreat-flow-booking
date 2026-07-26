@@ -1141,6 +1141,90 @@ function TodayPage() {
 // Bits
 // ------------------------------------------------------------------
 
+// Confirm bar — appears after a reservation is dragged to a new time.
+// The move is not committed until the operator confirms & notifies.
+function MoveConfirmBar({
+  pending,
+  service,
+}: {
+  pending: { id: string; from: { start: number; end: number }; to: { start: number; end: number } } | null;
+  service: Service | null;
+}) {
+  if (!pending || !service) return null;
+  const rc = roomColor(service.room);
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex justify-center px-4">
+      <div
+        className="pointer-events-auto flex max-w-[720px] items-center gap-5 bg-white px-5 py-3.5"
+        style={{
+          boxShadow: `0 20px 50px -20px rgba(15,23,42,0.35), 0 0 0 1px ${tint(rc, 0.18)}`,
+          borderTop: `2px solid ${rc}`,
+        }}
+      >
+        <div className="flex min-w-0 flex-col">
+          <div className="text-[10.5px] uppercase tracking-[0.16em] text-black/45" style={{ fontFamily: MONO }}>
+            Reschedule
+          </div>
+          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-[15px] font-semibold text-black" style={{ fontFamily: DISPLAY }}>
+            <span>{service.service}</span>
+            <span className="text-black/45">·</span>
+            <span>{firstName(service.guest)}</span>
+            <span className="text-black/45">·</span>
+            <span className="tabular-nums text-black/55 line-through" style={{ fontFamily: MONO }}>
+              {fmt(pending.from.start)}
+            </span>
+            <span className="text-black/40">→</span>
+            <span
+              className="tabular-nums font-bold"
+              style={{ fontFamily: MONO, color: rc }}
+            >
+              {fmt(pending.to.start)} – {fmt(pending.to.end)}
+            </span>
+          </div>
+        </div>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <button
+            onClick={cancelPendingMove}
+            className="px-3 py-1.5 text-[12.5px] font-medium text-black/60 hover:text-black"
+            style={{ fontFamily: DISPLAY }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={confirmPendingMove}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-semibold text-white"
+            style={{ background: "#0a0a0a", fontFamily: DISPLAY }}
+          >
+            <Bell size={13} strokeWidth={2.25} />
+            Confirm &amp; notify
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MoveToast({ toast }: { toast: { text: string; at: number } | null }) {
+  useEffect(() => {
+    if (!toast) return;
+    const id = window.setTimeout(() => clearMoveToast(), 2600);
+    return () => window.clearTimeout(id);
+  }, [toast?.at]);
+  if (!toast) return null;
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-8 z-[60] flex justify-center">
+      <div
+        className="pointer-events-auto flex items-center gap-2 bg-black px-4 py-2 text-[12.5px] font-semibold text-white"
+        style={{ fontFamily: DISPLAY, boxShadow: "0 12px 30px -12px rgba(0,0,0,0.4)" }}
+      >
+        <Check size={13} strokeWidth={2.5} />
+        {toast.text}
+      </div>
+    </div>
+  );
+}
+
+
 function LiveDot() {
   return (
     <span className="relative inline-flex h-2 w-2">
