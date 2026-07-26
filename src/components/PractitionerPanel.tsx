@@ -512,6 +512,8 @@ function ScheduleCanvas({
 }) {
   const surfaceRef = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState<{ anchor: number; cursor: number } | null>(null);
+  const [svcDrag, setSvcDrag] = useState<{ id: string; delta: number; bad: boolean } | null>(null);
+  const swallowClickRef = useRef(false);
   const hours = useMemo(() => Array.from({ length: 20 }, (_, i) => 5 + i), []);
 
   const yToMin = (clientY: number) => {
@@ -519,6 +521,45 @@ function ScheduleCanvas({
     if (!el) return 0;
     const rect = el.getBoundingClientRect();
     return pxToMin(clientY - rect.top);
+  };
+
+  const beginBookingMove = (svc: Service, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const originY = e.clientY;
+    const dur = svc.end - svc.start;
+    let moved = false;
+    let curDelta = 0;
+    let curBad = false;
+    // Overlap check against this practitioner's other live bookings (any room).
+    const others = getLiveServices().filter(
+      (s) => s.practitioner === svc.practitioner && s.id !== svc.id,
+    );
+    const onMove = (ev: MouseEvent) => {
+      const dy = ev.clientY - originY;
+      const deltaMin = Math.round(dy / PX_PER_MIN / 15) * 15;
+      if (Math.abs(deltaMin) >= 15) moved = true;
+      let ns = Math.max(0, svc.start + deltaMin);
+      let ne = ns + dur;
+      if (ne > DAY_SPAN) { ne = DAY_SPAN; ns = ne - dur; }
+      curDelta = ns - svc.start;
+      curBad = others.some((o) => o.start < ne && o.end > ns);
+      setSvcDrag({ id: svc.id, delta: curDelta, bad: curBad });
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      setSvcDrag(null);
+      if (moved) {
+        swallowClickRef.current = true;
+        setTimeout(() => { swallowClickRef.current = false; }, 0);
+        if (curDelta !== 0 && !curBad) {
+          requestMoveService(svc.id, svc.start + curDelta, svc.end + curDelta);
+        }
+      }
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -547,6 +588,7 @@ function ScheduleCanvas({
     const wall = now.getHours() * 60 + now.getMinutes() - DAY_START_MIN;
     return wall >= 0 && wall <= DAY_SPAN ? wall : null;
   })();
+
 
   return (
     <div className="mt-4 overflow-hidden border-t border-b border-black/[0.08] bg-white">
