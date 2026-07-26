@@ -18,7 +18,6 @@ import {
 import {
   roomColor,
   allOfferings,
-  setupMinutesFor,
   fmt,
   type Service,
 } from "@/lib/catalog";
@@ -580,17 +579,26 @@ function ScheduleCanvas({
             className="relative flex-1 cursor-crosshair bg-white"
             style={{ height: TRACK_HEIGHT }}
           >
-            {/* hour rules */}
-            {hours.map((h) => {
-              const top = minToPx(h * 60 - DAY_START_MIN);
-              return (
-                <div
-                  key={h}
-                  className="pointer-events-none absolute left-0 right-0"
-                  style={{ top, height: 1, background: "rgba(0,0,0,0.05)" }}
-                />
-              );
-            })}
+            {/* hour + quarter-hour rules */}
+            {hours.flatMap((h) =>
+              [0, 15, 30, 45].map((m) => {
+                const min = h * 60 + m - DAY_START_MIN;
+                if (min < 0 || min > DAY_SPAN) return null;
+                const top = minToPx(min);
+                const isHour = m === 0;
+                return (
+                  <div
+                    key={`${h}-${m}`}
+                    className="pointer-events-none absolute left-0 right-0"
+                    style={{
+                      top,
+                      height: 1,
+                      background: isHour ? "rgba(0,0,0,0.06)" : "rgba(0,0,0,0.03)",
+                    }}
+                  />
+                );
+              }),
+            )}
 
             {/* now line */}
             {nowMin != null && (
@@ -600,7 +608,7 @@ function ScheduleCanvas({
               />
             )}
 
-            {/* Availability — white card, thin practitioner-hued rail, label */}
+            {/* Availability — plain white block, thin inner border, "Available" label */}
             {availability.map((b, i) => {
               const top = minToPx(b.start);
               const h = Math.max(20, (b.end - b.start) * PX_PER_MIN);
@@ -616,20 +624,15 @@ function ScheduleCanvas({
                   style={{
                     top,
                     height: h,
-                    boxShadow: `inset 0 0 0 1px rgba(0,0,0,0.06)`,
+                    boxShadow: `inset 0 0 0 1px rgba(0,0,0,0.08)`,
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.boxShadow = `inset 0 0 0 1px rgba(0,0,0,0.18)`;
+                    (e.currentTarget as HTMLElement).style.boxShadow = `inset 0 0 0 1px rgba(0,0,0,0.20)`;
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.boxShadow = `inset 0 0 0 1px rgba(0,0,0,0.06)`;
+                    (e.currentTarget as HTMLElement).style.boxShadow = `inset 0 0 0 1px rgba(0,0,0,0.08)`;
                   }}
                 >
-                  <span
-                    aria-hidden
-                    className="absolute inset-y-0 left-0"
-                    style={{ width: 2, background: practitionerHue }}
-                  />
                   <div className="flex h-full flex-col justify-between px-3 py-2">
                     <div
                       className="text-[11px] uppercase tracking-[0.16em]"
@@ -656,36 +659,7 @@ function ScheduleCanvas({
               );
             })}
 
-            {/* Prep strips (dashed room-colored cushion before session) */}
-            {bookings.map((s) => {
-              const prep = setupMinutesFor(s.service);
-              if (prep <= 0) return null;
-              const start = Math.max(0, s.start - prep);
-              const top = minToPx(start);
-              const height = Math.max(8, (s.start - start) * PX_PER_MIN);
-              const rc = roomColor(s.room);
-              return (
-                <div
-                  key={`prep-${s.id}`}
-                  className="pointer-events-none absolute inset-x-2 z-[2] border-l-2 border-dashed"
-                  style={{
-                    top,
-                    height,
-                    borderColor: tint(rc, 0.35),
-                    background: `repeating-linear-gradient(135deg, ${tint(rc, 0.90)} 0 6px, transparent 6px 12px)`,
-                  }}
-                >
-                  <div
-                    className="px-2 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]"
-                    style={{ color: tint(rc, 0.35), fontFamily: MONO }}
-                  >
-                    Prep · {prep}m
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Reservation cards — mirror the main timeline card */}
+            {/* Reservation cards — mirror the main timeline card exactly */}
             {bookings.map((s) => {
               const top = minToPx(s.start);
               const h = Math.max(64, (s.end - s.start) * PX_PER_MIN);
@@ -696,6 +670,14 @@ function ScheduleCanvas({
               const isPast = s.end <= wallMin;
               const isRequest = s.status === "requested";
               const duration = s.end - s.start;
+              const serviceColor = isPast ? tint(rc, 0.5) : rc;
+              const metaColor = isPast ? "#4a4a4a" : "#2a2a2a";
+              const baseShadow = isLive
+                ? `2px 3px 0 -1px rgba(15,23,42,0.05), 4px 8px 18px -10px ${tint(rc, 0.45)}, 0 0 0 1px ${tint(rc, 0.15)}`
+                : isRequest
+                  ? "2px 3px 0 -1px rgba(15,23,42,0.05), 4px 8px 16px -10px rgba(217,119,6,0.35)"
+                  : "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)";
+              const hoverShadow = `2px 4px 0 -1px rgba(15,23,42,0.05), 8px 14px 28px -12px ${tint(rc, 0.26)}, 0 0 0 1px ${tint(rc, 0.18)}`;
               return (
                 <div
                   key={s.id}
@@ -704,61 +686,68 @@ function ScheduleCanvas({
                   className="group absolute inset-x-2 z-[3] flex flex-col cursor-pointer bg-white transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-[1px]"
                   style={{
                     top: top + 1,
-                    minHeight: h - 2,
-                    boxShadow: `0 1px 0 rgba(15,23,42,0.05), 0 6px 18px -12px rgba(15,23,42,0.25)`,
+                    minHeight: Math.max(h - 2, 96),
+                    boxShadow: baseShadow,
                     opacity: isPast ? 0.9 : 1,
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.boxShadow = hoverShadow; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.boxShadow = baseShadow; }}
                 >
-                  {/* top rail — dashed for request, solid room color otherwise */}
+                  {/* top rail — same as main card */}
                   <span
                     aria-hidden
-                    className="absolute inset-x-0 top-0 h-[2px]"
+                    className="absolute inset-x-0 top-0 h-[2px] transition-[height] duration-200 ease-out group-hover:h-[3px]"
                     style={{
                       background: isRequest
                         ? "repeating-linear-gradient(to right, #d97706 0 6px, transparent 6px 10px)"
                         : rc,
                     }}
                   />
+
                   <div className="relative z-10 flex flex-1 flex-col px-3 pt-3 pb-2.5">
+                    {/* Time — from / to on separate lines, big */}
                     <div className="flex items-start justify-between gap-2">
                       <div
-                        className="whitespace-nowrap text-[15px] font-semibold tabular-nums leading-[1.15] tracking-tight"
-                        style={{ color: META, fontFamily: MONO }}
+                        className="whitespace-nowrap text-[17px] font-semibold tabular-nums leading-[1.15] tracking-tight"
+                        style={{ color: metaColor, fontFamily: MONO }}
                       >
                         <div>{fmt(s.start)}</div>
                         <div style={{ opacity: 0.55 }}>{fmt(s.end)}</div>
                       </div>
                       <div
-                        className="shrink-0 whitespace-nowrap text-[11px] font-semibold tabular-nums tracking-[0.08em]"
-                        style={{ color: META, fontFamily: MONO, opacity: 0.65 }}
+                        className="shrink-0 whitespace-nowrap text-[12px] font-semibold tabular-nums tracking-[0.08em]"
+                        style={{ color: metaColor, fontFamily: MONO, opacity: 0.65 }}
                       >
                         {duration}m
                       </div>
                     </div>
 
+                    {/* Offering — the heading, in room chroma */}
                     <div
-                      className="mt-2 text-[18px] font-semibold leading-[1.05] tracking-[-0.025em]"
-                      style={{ color: INK, fontFamily: DISPLAY }}
-                    >
-                      {s.room}
-                    </div>
-
-                    <div
-                      className="mt-1 text-[15px] font-semibold leading-[1.15] tracking-[-0.015em]"
-                      style={{ color: rc, fontFamily: DISPLAY }}
+                      className="mt-2.5 text-[21px] font-semibold leading-[1.05] tracking-[-0.025em]"
+                      style={{ color: serviceColor, fontFamily: DISPLAY }}
                     >
                       {s.service}
                     </div>
 
-                    <div className="mt-2 flex items-center gap-1.5">
+                    {/* Room — secondary, black */}
+                    <div
+                      className="mt-1 text-[15px] font-semibold leading-[1.15] tracking-[-0.015em]"
+                      style={{ color: "#0a0a0a", fontFamily: DISPLAY }}
+                    >
+                      {s.room}
+                    </div>
+
+                    {/* for {guest} */}
+                    <div className="mt-2.5 flex items-center gap-1.5">
                       {isLive && (
-                        <span className="relative inline-flex h-2 w-2 shrink-0">
+                        <span className="relative inline-flex h-2.5 w-2.5 shrink-0">
                           <span
                             className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
                             style={{ background: rc }}
                           />
                           <span
-                            className="relative inline-flex h-2 w-2 rounded-full"
+                            className="relative inline-flex h-2.5 w-2.5 rounded-full"
                             style={{ background: rc }}
                           />
                         </span>
@@ -770,7 +759,7 @@ function ScheduleCanvas({
                         for
                       </span>
                       <div
-                        className="truncate text-[14.5px] font-semibold leading-tight"
+                        className="truncate text-[15px] font-semibold leading-tight"
                         style={{ color: INK, fontFamily: DISPLAY }}
                       >
                         {s.guest}
@@ -805,7 +794,6 @@ function ScheduleCanvas({
                     boxShadow: `inset 0 0 0 1px ${practitionerHue}`,
                   }}
                 >
-                  <span aria-hidden className="absolute inset-y-0 left-0" style={{ width: 2, background: practitionerHue }} />
                   <div className="flex items-center justify-between px-3 pt-1.5">
                     <span className="text-[10.5px] uppercase tracking-[0.16em]" style={{ color: INK, fontFamily: MONO }}>
                       Available
