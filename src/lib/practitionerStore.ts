@@ -71,6 +71,20 @@ const seedPractitioners: PractitionerRec[] = [
     notes: "Medical director. Only available Wed / Fri unless specifically requested.",
     colorHue: "#9d8bff",
   },
+  {
+    id: "p-ravi", name: "Ravi Kapoor",
+    phone: "+1 415 555 0344", email: "ravi@seondya.co",
+    offerings: ["Infrared Sauna", "BEMER Session", "Sound Healing"],
+    notes: "Confirms same day by text. Prefers back-to-back afternoons.",
+    colorHue: "#ff7aa2",
+  },
+  {
+    id: "p-willow", name: "Willow Grey",
+    phone: "+1 928 555 0422", email: "willow@seondya.co",
+    offerings: ["Ceremonial Tea & Integration", "Grandmother Crystal Bowl", "Meditation"],
+    notes: "Ceremonialist. Arrives 20 minutes before each session to prepare the space.",
+    colorHue: "#e57ac8",
+  },
 ];
 
 const todayKey = () => dateKeyOf(new Date());
