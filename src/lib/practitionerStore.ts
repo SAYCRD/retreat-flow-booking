@@ -115,6 +115,7 @@ export type PanelContext = {
     serviceLabel?: string;
     roomLabel?: string;
     startMin?: number;
+    serviceId?: string;
   };
 };
 
