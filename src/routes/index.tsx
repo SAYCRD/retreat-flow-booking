@@ -735,8 +735,12 @@ function TodayPage() {
   }, []);
 
   const conflicts = useMemo(() => detectConflicts(SERVICES), []);
-  const inSession = SERVICES.filter((s) => s.start <= nowMin && s.end > nowMin).length;
-  const stillToCome = SERVICES.filter((s) => s.start > nowMin).length;
+  const inSession = isToday
+    ? liveServices.filter((s) => s.start <= nowMin && s.end > nowMin).length
+    : 0;
+  const stillToCome = isToday
+    ? liveServices.filter((s) => s.start > nowMin).length
+    : liveServices.length;
   const overlaps = conflicts.length;
 
   const allPrompts = useMemo(() => isToday ? generatePrompts(nowMin, liveServices) : [], [nowMin, isToday, liveServices]);
