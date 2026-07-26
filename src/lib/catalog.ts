@@ -141,6 +141,7 @@ export const CUE_EMOJI: Record<string, string> = {
   pickup: "🤲",
   handoff: "🤝",
   elixir: "🫖",
+  journey: "🧭",
   payment: "💳",
   conflict: "⚠️",
 };
