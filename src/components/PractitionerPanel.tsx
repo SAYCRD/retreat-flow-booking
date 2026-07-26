@@ -633,26 +633,33 @@ function ScheduleCanvas({
                     (e.currentTarget as HTMLElement).style.boxShadow = `inset 0 0 0 1px rgba(0,0,0,0.08)`;
                   }}
                 >
-                  <div className="flex h-full flex-col justify-between px-3 py-2">
+                  <div className="relative z-10 flex h-full flex-col px-3 pt-3 pb-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div
+                        className="whitespace-nowrap text-[17px] font-semibold tabular-nums leading-[1.15] tracking-tight"
+                        style={{ color: "#2a2a2a", fontFamily: MONO }}
+                      >
+                        <div>{fmt(b.start)}</div>
+                        <div style={{ opacity: 0.55 }}>{fmt(b.end)}</div>
+                      </div>
+                      <div
+                        className="shrink-0 whitespace-nowrap text-[12px] font-semibold tabular-nums tracking-[0.08em]"
+                        style={{ color: "#2a2a2a", fontFamily: MONO, opacity: 0.65 }}
+                      >
+                        {b.end - b.start}m
+                      </div>
+                    </div>
                     <div
-                      className="text-[11px] uppercase tracking-[0.16em]"
-                      style={{ color: INK, fontFamily: MONO }}
+                      className="mt-2.5 text-[21px] font-semibold leading-[1.05] tracking-[-0.025em]"
+                      style={{ color: INK, fontFamily: DISPLAY }}
                     >
                       Available
                     </div>
-                    <div className="flex items-end justify-between gap-2">
-                      <span
-                        className="text-[12px] tabular-nums"
-                        style={{ color: META, fontFamily: MONO }}
-                      >
-                        {fmt(b.start)} – {fmt(b.end)}
-                      </span>
-                      <span
-                        className="text-[11px] italic"
-                        style={{ color: META, opacity: 0.7, fontFamily: SERIF }}
-                      >
-                        {SOURCE_LABEL[b.source]}
-                      </span>
+                    <div
+                      className="mt-auto pt-2 text-[12px] italic"
+                      style={{ color: META, opacity: 0.7, fontFamily: SERIF }}
+                    >
+                      {SOURCE_LABEL[b.source]}
                     </div>
                   </div>
                 </div>
