@@ -1705,16 +1705,18 @@ function Timeline({
     if (!onRequestMoveService) return;
     e.stopPropagation();
     e.preventDefault();
-    const originY = e.clientY;
+    const originPageY = e.clientY + window.scrollY;
     const dur = svc.end - svc.start;
     let moved = false;
     let curDelta = 0;
     let curBad = false;
+    let lastClientY = e.clientY;
+    let rafId: number | null = null;
     const checkBad = (ns: number, ne: number) =>
       allServices.some((o) => o.id !== svc.id && o.room === svc.room && o.start < ne && o.end > ns) ||
       (blocksByRoom[svc.room] ?? []).some((b) => b.start < ne && b.end > ns);
-    const onMove = (ev: MouseEvent) => {
-      const dy = ev.clientY - originY;
+    const recompute = () => {
+      const dy = lastClientY + window.scrollY - originPageY;
       const deltaMin = Math.round(dy / PX_PER_MIN / 15) * 15;
       if (Math.abs(deltaMin) >= 15) moved = true;
       let ns = Math.max(0, svc.start + deltaMin);
@@ -1724,9 +1726,29 @@ function Timeline({
       curBad = checkBad(ns, ne);
       setSvcDrag({ id: svc.id, delta: curDelta, bad: curBad });
     };
+    const EDGE = 110;
+    const MAX_SPEED = 20;
+    const autoScroll = () => {
+      const h = window.innerHeight;
+      let dy = 0;
+      if (lastClientY < EDGE) dy = -Math.ceil(((EDGE - lastClientY) / EDGE) * MAX_SPEED);
+      else if (lastClientY > h - EDGE) dy = Math.ceil(((lastClientY - (h - EDGE)) / EDGE) * MAX_SPEED);
+      if (dy !== 0) {
+        const before = window.scrollY;
+        window.scrollBy(0, dy);
+        if (window.scrollY !== before) recompute();
+      }
+      rafId = requestAnimationFrame(autoScroll);
+    };
+    rafId = requestAnimationFrame(autoScroll);
+    const onMove = (ev: MouseEvent) => {
+      lastClientY = ev.clientY;
+      recompute();
+    };
     const onUp = () => {
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
+      if (rafId !== null) cancelAnimationFrame(rafId);
       setSvcDrag(null);
       if (moved) {
         swallowSvcClickRef.current = true;
