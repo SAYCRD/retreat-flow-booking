@@ -75,7 +75,7 @@ export const Route = createFileRoute("/")({
 // Model
 // ------------------------------------------------------------------
 
-type WhisperKind = "message" | "notify" | "escort" | "checkin" | "turnover" | "reset" | "setup" | "pickup" | "handoff" | "elixir" | "payment" | "conflict";
+type WhisperKind = "message" | "notify" | "escort" | "checkin" | "turnover" | "reset" | "setup" | "pickup" | "handoff" | "elixir" | "journey" | "payment" | "conflict";
 type Prompt = {
   id: string;
   kind: WhisperKind;
@@ -282,7 +282,10 @@ function generatePrompts(nowMin: number, services: Service[] = SERVICES): Prompt
   });
 
 
-  // 3. Elixir windows — a guest has a break between two services.
+  // 3. Journey orchestration — for guests with multiple sessions today, coach
+  // the arc. Fires ~20 min before the current session ends so the front desk
+  // can prepare the next room, brew tea, or walk the guest across the campus.
+  // 3b. Elixir windows — a guest has a break between two services.
   const byGuest: Record<string, Service[]> = {};
   SERVICES.forEach((s) => {
     byGuest[s.guest] = byGuest[s.guest] ?? [];
@@ -291,16 +294,63 @@ function generatePrompts(nowMin: number, services: Service[] = SERVICES): Prompt
   Object.entries(byGuest).forEach(([guest, svcs]) => {
     if (svcs.length < 2) return;
     const sorted = [...svcs].sort((a, b) => a.start - b.start);
+    const name = firstName(guest);
+    const totalSessions = sorted.length;
+
     for (let i = 0; i < sorted.length - 1; i++) {
       const a = sorted[i];
       const b = sorted[i + 1];
       const gap = b.start - a.end;
-      if (gap >= 5 && gap <= 60 && b.start > nowMin) {
+
+      // Journey cue: mid-session, look ahead to what's next in their arc.
+      // Fires from 20 min before the current session ends until it ends.
+      const windowOpen = a.end - 20;
+      if (nowMin >= windowOpen && nowMin <= a.end && b.start > nowMin) {
+        const gapLabel =
+          gap <= 0
+            ? "back-to-back"
+            : gap < 60
+              ? `${gap}-min gap`
+              : `${Math.floor(gap / 60)}h${gap % 60 ? ` ${gap % 60}m` : ""} gap`;
+        const sameRoom = a.room === b.room;
+        const stepIdx = i + 1; // 1-indexed "session N of M"
+        const arcTag = `session ${stepIdx} of ${totalSessions}`;
+
+        // Suggested next action, chosen from the arc shape.
+        let nextMove: string;
+        let primary: string;
+        if (sameRoom) {
+          nextMove = `stay in ${b.room} — quick reset, then ${b.service}`;
+          primary = "Confirm reset";
+        } else if (gap <= 10) {
+          nextMove = `walk to ${b.room} for ${b.service} at ${fmt(b.start)}`;
+          primary = "Confirm handoff";
+        } else if (gap <= 45) {
+          nextMove = `elixir break, then ${b.service} in ${b.room} at ${fmt(b.start)}`;
+          primary = "Prepare tea";
+        } else {
+          nextMove = `open window · ${b.service} in ${b.room} at ${fmt(b.start)}`;
+          primary = "Note the window";
+        }
+
+        out.push({
+          id: `journey-${a.id}-${b.id}`,
+          kind: "journey",
+          headline: `${name} finishes ${a.service} at ${fmt(a.end)} — ${nextMove}`,
+          reason: `${arcTag} · ${a.room} → ${b.room} · ${gapLabel}`,
+          room: b.room,
+          serviceId: b.id,
+          primary,
+        });
+      }
+
+      // Elixir cue: fires during the actual gap, room-specific tea prep.
+      if (gap >= 5 && gap <= 60 && b.start > nowMin && a.end <= nowMin + 5) {
         out.push({
           id: `elixir-${a.id}-${b.id}`,
           kind: "elixir",
-          headline: `A quiet window opens for ${firstName(guest)}`,
-          reason: `${fmt(a.end)}–${fmt(b.start)} between ${a.service} and ${b.service}`,
+          headline: `Elixir break for ${name} — ${gap} min before ${b.service}`,
+          reason: `tea in the lounge · next: ${b.room} at ${fmt(b.start)} with ${b.practitioner}`,
           room: b.room,
           serviceId: b.id,
           primary: "Tea ready",
