@@ -1001,19 +1001,40 @@ function TodayPage() {
               </button>
             </div>
           )}
-          <div className="mt-6">
-            <Timeline
-              nowMin={nowMin}
-              highlightServiceId={cue?.serviceId}
-              highlightKind={cue?.kind}
-              highlightUrgent={cue?.urgent}
-              whispers={prompts}
-              activeCueId={cue?.id}
-              activeRoom={activeRoom}
-              cueRoom={cue?.room ?? null}
-              onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
-              onOpenService={(id) => setOpenServiceId(id)}
-            />
+          <div className="mt-6" ref={timelineRef}>
+            {isToday ? (
+              <Timeline
+                nowMin={nowMin}
+                highlightServiceId={cue?.serviceId}
+                highlightKind={cue?.kind}
+                highlightUrgent={cue?.urgent}
+                whispers={prompts}
+                activeCueId={cue?.id}
+                activeRoom={activeRoom}
+                cueRoom={cue?.room ?? null}
+                onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
+                onOpenService={(id) => setOpenServiceId(id)}
+              />
+            ) : (
+              <div className="rounded-lg border border-black/10 bg-white px-8 py-20 text-center">
+                <div className="text-[13px] uppercase tracking-[0.18em] text-black/45" style={{ fontFamily: MONO }}>
+                  {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                </div>
+                <div className="mt-3 text-[22px] text-black/80" style={{ fontFamily: DISPLAY }}>
+                  No reservations on this day yet.
+                </div>
+                <div className="mt-2 text-[13.5px] text-black/55">
+                  Pick another day, or return to today to see the live board.
+                </div>
+                <button
+                  onClick={() => setSelectedDate(new Date())}
+                  className="mt-6 inline-flex items-center gap-1.5 rounded-full border border-black/15 bg-white px-4 py-1.5 text-[12.5px] font-medium text-black/75 hover:border-black/30 hover:text-black"
+                  style={{ fontFamily: MONO }}
+                >
+                  ← Back to today
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </section>
