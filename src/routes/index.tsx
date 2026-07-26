@@ -1072,14 +1072,13 @@ function TodayPage() {
             >
               <div className="text-[22px] font-semibold leading-none tracking-tight text-black">{clock}</div>
             </div>
-                  </div>
-                </div>
-              </>
-            );
-          })()}
+          </div>
+                </>
+              );
+            })()}
         </div>
-
       </section>
+
 
 
 
