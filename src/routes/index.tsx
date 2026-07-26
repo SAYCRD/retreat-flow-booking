@@ -2920,92 +2920,369 @@ function PanelSection({
 }
 
 // ------------------------------------------------------------------
-// Block panel — edit / remove a room block
+// Slot panel — one surface for creating a reservation or a block,
+// and for editing an existing block. Reservation is the default mode
+// because ~95% of clicks on empty space are bookings.
 // ------------------------------------------------------------------
 
-function BlockPanel({
-  block,
+function SlotPanel({
+  draft,
+  allServices,
+  blocks,
   onClose,
-  onRemove,
+  onSaveReservation,
+  onSaveBlock,
+  onRemoveBlock,
 }: {
-  block: Block | null;
+  draft: SlotDraft | null;
+  allServices: Service[];
+  blocks: Block[];
   onClose: () => void;
-  onRemove: (id: string) => void;
+  onSaveReservation: (svc: Service) => void;
+  onSaveBlock: (b: Block) => void;
+  onRemoveBlock: (id: string) => void;
 }) {
-  const open = !!block;
-  if (!block) {
-    return (
+  const open = !!draft;
+
+  // Local editable copy so field edits don't move the on-canvas draft card
+  // (per the design: what you drew stays anchored while you fill the form).
+  const [mode, setMode] = useState<"reservation" | "block">("reservation");
+  const [room, setRoom] = useState<string>("");
+  const [start, setStart] = useState<number>(0);
+  const [end, setEnd] = useState<number>(0);
+  const [offering, setOffering] = useState<string>("");
+  const [practitioner, setPractitioner] = useState<string>("");
+  const [guest, setGuest] = useState<string>("");
+  const [reason, setReason] = useState<string>(BLOCK_REASONS[0]);
+
+  useEffect(() => {
+    if (!draft) return;
+    setMode(draft.mode);
+    setRoom(draft.room);
+    setStart(draft.start);
+    setEnd(draft.end);
+    if (draft.editingBlockId) {
+      const b = blocks.find((x) => x.id === draft.editingBlockId);
+      setReason(b?.reason ?? BLOCK_REASONS[0]);
+    } else {
+      const offerings = OFFERINGS_BY_ROOM[draft.room] ?? [];
+      setOffering(offerings[0] ?? "");
+      setPractitioner("");
+      setGuest("");
+      setReason(BLOCK_REASONS[0]);
+    }
+  }, [draft, blocks]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  const rc = room ? roomColor(room) : ACCENT;
+  const isEditingBlock = !!draft?.editingBlockId;
+
+  const offerings = OFFERINGS_BY_ROOM[room] ?? [];
+  const eligiblePractitioners = useMemo(
+    () => PRACTITIONERS.filter((p) => p.offerings.includes(offering)),
+    [offering],
+  );
+
+  const conflicts = useMemo(() => {
+    if (!room || start >= end) return { session: false, block: false };
+    const session = allServices.some((s) => s.room === room && s.start < end && s.end > start);
+    const block = blocks.some((b) => b.id !== draft?.editingBlockId && b.room === room && b.start < end && b.end > start);
+    return { session, block };
+  }, [room, start, end, allServices, blocks, draft?.editingBlockId]);
+  const conflict = conflicts.session || conflicts.block;
+
+  const selectedPract = PRACTITIONERS.find((p) => p.name === practitioner);
+  const reservationValid = !!room && !!offering && !!practitioner && !!guest.trim() && start < end && !conflict;
+
+  const saveReservation = () => {
+    if (!reservationValid) return;
+    const pending = selectedPract && !selectedPract.onCalendarToday;
+    onSaveReservation({
+      id: `svc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      guest: guest.trim(),
+      service: offering,
+      room,
+      practitioner,
+      start,
+      end,
+      status: pending ? "requested" : "confirmed",
+      note: pending ? "Awaiting practitioner SMS confirmation" : undefined,
+    });
+  };
+
+  const saveBlock = () => {
+    if (conflict || start >= end) return;
+    onSaveBlock({
+      id: draft?.editingBlockId ?? `blk-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      room,
+      start,
+      end,
+      reason,
+    });
+  };
+
+  return (
+    <>
       <div
-        className={`fixed inset-0 z-50 pointer-events-none transition-opacity duration-200 ${
-          open ? "opacity-100" : "opacity-0"
+        aria-hidden
+        onClick={onClose}
+        className={`fixed inset-0 z-40 bg-black/25 backdrop-blur-[2px] transition-opacity duration-200 ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       />
-    );
-  }
-  const rc = roomColor(block.room);
-  return (
-    <div className="fixed inset-0 z-50">
-      <div
-        className="absolute inset-0 bg-black/25 transition-opacity"
-        onClick={onClose}
-      />
       <aside
-        className="absolute right-0 top-0 h-full w-full max-w-[440px] overflow-y-auto bg-white shadow-[-20px_0_40px_-20px_rgba(15,23,42,0.35)]"
-        style={{ fontFamily: DISPLAY }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={mode === "block" ? "Room block" : "New reservation"}
+        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-[520px] flex-col bg-white shadow-[-24px_0_60px_-24px_rgba(15,23,42,0.25)] transition-transform duration-300 ease-out ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+        style={{ fontFamily: DISPLAY, color: INK }}
       >
-        <div className="h-1.5 w-full" style={{ background: rc }} />
-        <div className="flex items-start justify-between gap-3 px-6 pt-5">
-          <div>
-            <div
-              className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-black/55"
-              style={{ fontFamily: MONO }}
-            >
-              Room block
-            </div>
-            <h2 className="mt-1 text-[22px] font-semibold leading-tight text-black">
-              {block.room}
-            </h2>
-            <div
-              className="mt-1 text-[13px] font-semibold tabular-nums text-black/75"
-              style={{ fontFamily: MONO }}
-            >
-              {fmt(block.start)} – {fmt(block.end)}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="grid h-8 w-8 place-items-center text-black/45 hover:text-black"
-          >
-            <X size={18} />
-          </button>
-        </div>
+        {!draft ? null : (
+          <>
+            <div className="h-[3px] w-full shrink-0" style={{ background: rc }} />
 
-        <div className="px-6 pb-8">
-          <section className="border-t border-black/[0.08] py-5">
-            <div
-              className="mb-2 text-[10.5px] uppercase tracking-[0.16em] text-black/45"
-              style={{ fontFamily: MONO }}
-            >
-              Reason
+            <div className="flex items-start justify-between gap-3 px-7 pt-6 pb-4">
+              <div className="min-w-0 flex-1">
+                <div className="text-[10.5px] uppercase tracking-[0.16em] text-black/45" style={{ fontFamily: MONO }}>
+                  {isEditingBlock ? "Edit room block" : mode === "block" ? "New room block" : "New reservation"}
+                </div>
+                <h2 className="mt-1 truncate text-[24px] font-semibold tracking-[-0.02em] text-black">
+                  {room || "Choose a room"}
+                </h2>
+                <div className="mt-1 text-[13px] font-semibold tabular-nums" style={{ color: rc, fontFamily: MONO }}>
+                  {fmt(start)} – {fmt(end)}
+                </div>
+              </div>
+              <button
+                aria-label="Close"
+                onClick={onClose}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-black/50 hover:bg-black/[0.05] hover:text-black"
+              >
+                <X size={16} />
+              </button>
             </div>
-            <div className="text-[15px] font-medium text-black">{block.reason}</div>
-            {block.note ? (
-              <div className="mt-2 text-[13px] text-black/70">{block.note}</div>
-            ) : null}
-          </section>
 
-          <section className="border-t border-black/[0.08] py-5">
-            <button
-              type="button"
-              onClick={() => onRemove(block.id)}
-              className="w-full border border-red-200 bg-red-50 px-3 py-2 text-[13px] font-semibold text-red-700 transition-colors hover:bg-red-100"
-            >
-              Remove block
-            </button>
-          </section>
-        </div>
+            {/* Mode toggle — only for new slots, not when editing an existing block */}
+            {!isEditingBlock && (
+              <div className="mx-7 mb-4 inline-flex shrink-0 self-start rounded-full border border-black/[0.1] bg-black/[0.03] p-0.5 text-[12px] font-semibold" style={{ fontFamily: MONO }}>
+                {(["reservation", "block"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setMode(m)}
+                    className={`rounded-full px-3 py-1 transition-colors ${
+                      mode === m ? "bg-white text-black shadow-sm" : "text-black/50 hover:text-black"
+                    }`}
+                  >
+                    {m === "reservation" ? "Reservation" : "Block"}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-6">
+              {conflict && (
+                <div className="mb-4 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-[12.5px] font-medium text-rose-800">
+                  Overlaps {conflicts.session ? "an existing session" : "another block"} in {room}. Adjust the time.
+                </div>
+              )}
+
+              <FieldGrid>
+                <Field label="Time">
+                  <div className="flex items-center gap-2 text-[13.5px]">
+                    <TimeInput value={start} onChange={setStart} />
+                    <span className="text-black/40">→</span>
+                    <TimeInput value={end} onChange={setEnd} />
+                  </div>
+                </Field>
+                <Field label="Room">
+                  <select
+                    value={room}
+                    onChange={(e) => setRoom(e.target.value)}
+                    className="w-full rounded-[8px] border border-black/10 bg-white px-2.5 py-1.5 text-[13.5px] font-medium text-black focus:border-black/40 focus:outline-none"
+                  >
+                    {ROOMS.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </Field>
+              </FieldGrid>
+
+              {mode === "reservation" ? (
+                <>
+                  <Field label="Offering" block>
+                    <select
+                      value={offering}
+                      onChange={(e) => { setOffering(e.target.value); setPractitioner(""); }}
+                      className="w-full rounded-[8px] border border-black/10 bg-white px-2.5 py-2 text-[14px] font-medium text-black focus:border-black/40 focus:outline-none"
+                    >
+                      <option value="" disabled>Select an offering…</option>
+                      {offerings.map((o) => (
+                        <option key={o} value={o}>{o}</option>
+                      ))}
+                    </select>
+                    {offerings.length === 0 && (
+                      <div className="mt-1 text-[11.5px] text-black/50">No offerings configured for {room}.</div>
+                    )}
+                  </Field>
+
+                  <Field label="Practitioner" block>
+                    {!offering ? (
+                      <div className="text-[12.5px] text-black/45">Choose an offering to see who can run it.</div>
+                    ) : eligiblePractitioners.length === 0 ? (
+                      <div className="text-[12.5px] text-black/50">No practitioners qualified for this offering.</div>
+                    ) : (
+                      <div className="flex flex-col gap-1.5">
+                        {eligiblePractitioners.map((p) => {
+                          const selected = practitioner === p.name;
+                          return (
+                            <button
+                              key={p.name}
+                              type="button"
+                              onClick={() => setPractitioner(p.name)}
+                              className={`flex items-center justify-between gap-3 rounded-[8px] border px-3 py-2 text-left transition-colors ${
+                                selected ? "border-black bg-black/[0.03]" : "border-black/10 bg-white hover:border-black/30"
+                              }`}
+                            >
+                              <div className="min-w-0">
+                                <div className="truncate text-[14px] font-semibold text-black">{p.name}</div>
+                                <div className="text-[11.5px]" style={{ fontFamily: MONO, color: p.onCalendarToday ? "#059669" : "#b45309" }}>
+                                  {p.onCalendarToday ? "Available today" : "Not on today's calendar — will request via SMS"}
+                                </div>
+                              </div>
+                              {selected && <Check size={14} strokeWidth={2.5} className="shrink-0 text-black" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </Field>
+
+                  <Field label="Guest" block>
+                    <input
+                      value={guest}
+                      onChange={(e) => setGuest(e.target.value)}
+                      placeholder="Guest name"
+                      className="w-full rounded-[8px] border border-black/10 bg-white px-2.5 py-2 text-[14px] font-medium text-black placeholder:text-black/35 focus:border-black/40 focus:outline-none"
+                    />
+                  </Field>
+                </>
+              ) : (
+                <Field label="Reason" block>
+                  <div className="flex flex-wrap gap-1.5">
+                    {BLOCK_REASONS.map((r) => {
+                      const selected = reason === r;
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setReason(r)}
+                          className={`rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${
+                            selected ? "border-black bg-black text-white" : "border-black/15 bg-white text-black/75 hover:border-black/40"
+                          }`}
+                        >
+                          {r}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Field>
+              )}
+            </div>
+
+            <div className="flex shrink-0 items-center justify-between gap-3 border-t border-black/[0.08] px-7 py-4">
+              {isEditingBlock ? (
+                <button
+                  type="button"
+                  onClick={() => onRemoveBlock(draft.editingBlockId!)}
+                  className="text-[13px] font-semibold text-rose-700 hover:text-rose-900"
+                >
+                  Remove block
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="text-[13px] font-medium text-black/55 hover:text-black"
+                >
+                  Cancel
+                </button>
+              )}
+              {mode === "reservation" ? (
+                <button
+                  type="button"
+                  disabled={!reservationValid}
+                  onClick={saveReservation}
+                  className="inline-flex items-center gap-2 rounded-[8px] px-4 py-2 text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ background: ACCENT }}
+                >
+                  {selectedPract && !selectedPract.onCalendarToday ? "Send request" : "Confirm reservation"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={conflict || start >= end}
+                  onClick={saveBlock}
+                  className="inline-flex items-center gap-2 rounded-[8px] px-4 py-2 text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ background: ACCENT }}
+                >
+                  {isEditingBlock ? "Save block" : "Confirm block"}
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </aside>
+    </>
+  );
+}
+
+function FieldGrid({ children }: { children: React.ReactNode }) {
+  return <div className="mb-4 grid grid-cols-2 gap-3">{children}</div>;
+}
+
+function Field({ label, children, block }: { label: string; children: React.ReactNode; block?: boolean }) {
+  return (
+    <div className={block ? "mb-4" : ""}>
+      <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-black/50" style={{ fontFamily: MONO }}>
+        {label}
+      </div>
+      {children}
     </div>
   );
 }
+
+function TimeInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  // value = minutes since DAY_START; render as HH:MM (24h) so it's compact and
+  // unambiguous inside the form. Snap to 5-min increments.
+  const abs = value + DAY_START;
+  const hh = Math.floor(abs / 60);
+  const mm = abs % 60;
+  const str = `${String(hh % 24).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  return (
+    <input
+      type="time"
+      step={300}
+      value={str}
+      onChange={(e) => {
+        const [h, m] = e.target.value.split(":").map(Number);
+        if (Number.isFinite(h) && Number.isFinite(m)) {
+          onChange(h * 60 + m - DAY_START);
+        }
+      }}
+      className="rounded-[8px] border border-black/10 bg-white px-2.5 py-1.5 text-[13.5px] font-semibold tabular-nums text-black focus:border-black/40 focus:outline-none"
+      style={{ fontFamily: MONO }}
+    />
+  );
+}
+
