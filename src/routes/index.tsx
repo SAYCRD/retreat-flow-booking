@@ -693,7 +693,12 @@ function TodayPage() {
   // Services flow through the shared store so the practitioner panel sees
   // the same live list (seed + created − canceled).
   const storeSnap = usePractitioners();
-  const liveServices = useMemo(() => getLiveServices(), [storeSnap]);
+  const selectedDateKey = useMemo(() => dateKeyOf(selectedDate), [selectedDate]);
+  const liveServices = useMemo(() => getLiveServices(selectedDateKey), [storeSnap, selectedDateKey]);
+  // Subscribe to payments/replies so cards re-render when they change.
+  usePayments();
+  usePractitionerReplies();
+
   const openService = openServiceId ? liveServices.find((s) => s.id === openServiceId) ?? null : null;
 
   // Bus: practitioner panel can request that we open a reservation card.
