@@ -10,11 +10,14 @@ import {
   addPractitionerOffering,
   removePractitionerOffering,
   servicesForPractitioner,
+  getLiveServices,
+  requestMoveService,
   openReservation,
   dateKeyOf,
   type AvailabilityBlock,
   type AvailabilitySource,
 } from "@/lib/practitionerStore";
+
 import {
   roomColor,
   allOfferings,
