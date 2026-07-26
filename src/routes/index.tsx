@@ -155,7 +155,9 @@ function smoothScrollTo(targetY: number, duration = 900) {
 }
 
 
-function generatePrompts(nowMin: number): Prompt[] {
+function generatePrompts(nowMin: number, services: Service[] = SERVICES): Prompt[] {
+  const SERVICES = services;
+
   const out: Prompt[] = [];
 
   // 1a. Check-ins — services starting in 10–30 minutes; guest expected at the desk.
