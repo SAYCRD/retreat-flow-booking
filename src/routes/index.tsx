@@ -14,7 +14,12 @@ import {
   cancelService as storeCancelService,
   getLiveServices,
   consumeOpenReservation,
+  requestMoveService,
+  confirmPendingMove,
+  cancelPendingMove,
+  clearMoveToast,
 } from "@/lib/practitionerStore";
+
 import {
   DAY_START,
   DAY_END,
@@ -1067,7 +1072,11 @@ function TodayPage() {
               onMoveBlock={(b) => {
                 setBlocks((prev) => prev.map((x) => (x.id === b.id ? b : x)));
               }}
+              onRequestMoveService={(id, start, end) => {
+                requestMoveService(id, start, end);
+              }}
             />
+
           </div>
         </div>
       </section>
@@ -1113,13 +1122,108 @@ function TodayPage() {
 
       <PractitionerPanel />
 
+      <MoveConfirmBar
+        pending={storeSnap.pendingMove}
+        service={
+          storeSnap.pendingMove
+            ? liveServices.find((s) => s.id === storeSnap.pendingMove!.id) ?? null
+            : null
+        }
+      />
+      <MoveToast toast={storeSnap.moveToast} />
+
     </div>
+
   );
 }
 
 // ------------------------------------------------------------------
 // Bits
 // ------------------------------------------------------------------
+
+// Confirm bar — appears after a reservation is dragged to a new time.
+// The move is not committed until the operator confirms & notifies.
+function MoveConfirmBar({
+  pending,
+  service,
+}: {
+  pending: { id: string; from: { start: number; end: number }; to: { start: number; end: number } } | null;
+  service: Service | null;
+}) {
+  if (!pending || !service) return null;
+  const rc = roomColor(service.room);
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex justify-center px-4">
+      <div
+        className="pointer-events-auto flex max-w-[720px] items-center gap-5 bg-white px-5 py-3.5"
+        style={{
+          boxShadow: `0 20px 50px -20px rgba(15,23,42,0.35), 0 0 0 1px ${tint(rc, 0.18)}`,
+          borderTop: `2px solid ${rc}`,
+        }}
+      >
+        <div className="flex min-w-0 flex-col">
+          <div className="text-[10.5px] uppercase tracking-[0.16em] text-black/45" style={{ fontFamily: MONO }}>
+            Reschedule
+          </div>
+          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-[15px] font-semibold text-black" style={{ fontFamily: DISPLAY }}>
+            <span>{service.service}</span>
+            <span className="text-black/45">·</span>
+            <span>{firstName(service.guest)}</span>
+            <span className="text-black/45">·</span>
+            <span className="tabular-nums text-black/55 line-through" style={{ fontFamily: MONO }}>
+              {fmt(pending.from.start)}
+            </span>
+            <span className="text-black/40">→</span>
+            <span
+              className="tabular-nums font-bold"
+              style={{ fontFamily: MONO, color: rc }}
+            >
+              {fmt(pending.to.start)} – {fmt(pending.to.end)}
+            </span>
+          </div>
+        </div>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <button
+            onClick={cancelPendingMove}
+            className="px-3 py-1.5 text-[12.5px] font-medium text-black/60 hover:text-black"
+            style={{ fontFamily: DISPLAY }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={confirmPendingMove}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-semibold text-white"
+            style={{ background: "#0a0a0a", fontFamily: DISPLAY }}
+          >
+            <Bell size={13} strokeWidth={2.25} />
+            Confirm &amp; notify
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MoveToast({ toast }: { toast: { text: string; at: number } | null }) {
+  useEffect(() => {
+    if (!toast) return;
+    const id = window.setTimeout(() => clearMoveToast(), 2600);
+    return () => window.clearTimeout(id);
+  }, [toast?.at]);
+  if (!toast) return null;
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-8 z-[60] flex justify-center">
+      <div
+        className="pointer-events-auto flex items-center gap-2 bg-black px-4 py-2 text-[12.5px] font-semibold text-white"
+        style={{ fontFamily: DISPLAY, boxShadow: "0 12px 30px -12px rgba(0,0,0,0.4)" }}
+      >
+        <Check size={13} strokeWidth={2.5} />
+        {toast.text}
+      </div>
+    </div>
+  );
+}
+
 
 function LiveDot() {
   return (
@@ -1436,6 +1540,7 @@ function Timeline({
   draft,
   onOpenSlot,
   onMoveBlock,
+  onRequestMoveService,
 }: {
   nowMin: number;
   highlightServiceId?: string;
@@ -1453,8 +1558,10 @@ function Timeline({
   draft?: SlotDraft | null;
   onOpenSlot?: (room: string, start: number, end: number, editingBlockId?: string) => void;
   onMoveBlock?: (b: Block) => void;
+  onRequestMoveService?: (id: string, start: number, end: number) => void;
 
 }) {
+
   const PX_PER_MIN = 4; // 240px per hour vertical — gives 15/30-min slots room to breathe
   const TAIL_PX_PER_MIN = 1.2; // compress the quiet evening tail so midnight doesn't feel empty
   const TIME_COL = 88;
@@ -1586,6 +1693,54 @@ function Timeline({
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
   };
+
+
+  // Drag reservation cards vertically within their own room column to
+  // reschedule. Same gesture semantics as block moves: >=15-min threshold
+  // distinguishes a reschedule from a plain click. On drop we don't commit —
+  // we hand the new time up so the parent can render a confirm bar.
+  const [svcDrag, setSvcDrag] = useState<{ id: string; delta: number; bad: boolean } | null>(null);
+  const swallowSvcClickRef = useRef(false);
+  const beginServiceMove = (svc: Service, e: React.MouseEvent) => {
+    if (!onRequestMoveService) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const originY = e.clientY;
+    const dur = svc.end - svc.start;
+    let moved = false;
+    let curDelta = 0;
+    let curBad = false;
+    const checkBad = (ns: number, ne: number) =>
+      allServices.some((o) => o.id !== svc.id && o.room === svc.room && o.start < ne && o.end > ns) ||
+      (blocksByRoom[svc.room] ?? []).some((b) => b.start < ne && b.end > ns);
+    const onMove = (ev: MouseEvent) => {
+      const dy = ev.clientY - originY;
+      const deltaMin = Math.round(dy / PX_PER_MIN / 15) * 15;
+      if (Math.abs(deltaMin) >= 15) moved = true;
+      let ns = Math.max(0, svc.start + deltaMin);
+      let ne = ns + dur;
+      if (ne > DAY_SPAN) { ne = DAY_SPAN; ns = ne - dur; }
+      curDelta = ns - svc.start;
+      curBad = checkBad(ns, ne);
+      setSvcDrag({ id: svc.id, delta: curDelta, bad: curBad });
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      setSvcDrag(null);
+      if (moved) {
+        swallowSvcClickRef.current = true;
+        setTimeout(() => { swallowSvcClickRef.current = false; }, 0);
+        const ns = svc.start + curDelta;
+        const ne = svc.end + curDelta;
+        if (curDelta !== 0 && !curBad) onRequestMoveService!(svc.id, ns, ne);
+      }
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
+
+
 
 
 
@@ -1999,29 +2154,54 @@ function Timeline({
 
 
 
+                const isDragging = svcDrag?.id === s.id;
+                const dragTx = isDragging ? svcDrag!.delta * PX_PER_MIN : 0;
+                const dragBadThis = isDragging && svcDrag!.bad;
                 return (
                   <div
                     key={s.id}
                     id={`svc-${s.id}`}
                     data-svc-card
-                    className="group absolute inset-x-0 flex flex-col rounded-none bg-white transition-[transform,box-shadow] duration-200 ease-out will-change-transform hover:z-20 hover:-translate-y-[1px] cursor-pointer"
+                    className={`group absolute inset-x-0 flex flex-col rounded-none bg-white transition-[box-shadow] duration-200 ease-out will-change-transform hover:z-20 ${isDragging ? "cursor-grabbing z-30" : onRequestMoveService ? "cursor-grab hover:-translate-y-[1px]" : "cursor-pointer"}`}
                     style={{
                       top: top + 1,
                       minHeight: Math.max(height - 2, 96),
-                      boxShadow: baseShadow,
+                      boxShadow: dragBadThis
+                        ? `0 0 0 1.5px rgba(220,38,38,0.6), 8px 14px 28px -12px rgba(220,38,38,0.35)`
+                        : baseShadow,
                       opacity: isPast ? 0.9 : 1,
+                      transform: isDragging ? `translateY(${dragTx}px)` : undefined,
+                      transition: isDragging ? "box-shadow 120ms ease-out" : undefined,
                     }}
                     onMouseEnter={(e) => {
+                      if (isDragging) return;
                       e.currentTarget.style.boxShadow = hoverShadow;
                     }}
                     onMouseLeave={(e) => {
+                      if (isDragging) return;
                       e.currentTarget.style.boxShadow = baseShadow;
                     }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); onOpenService?.(s.id); }}
-                    
-                    
+                    onMouseDown={(e) => beginServiceMove(s, e)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (swallowSvcClickRef.current) return;
+                      onOpenService?.(s.id);
+                    }}
                   >
+                    {/* Live time pill while dragging */}
+                    {isDragging && (
+                      <div
+                        className="pointer-events-none absolute -top-3 left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-sm px-2 py-1 text-[11px] font-semibold tabular-nums shadow"
+                        style={{
+                          background: dragBadThis ? "#dc2626" : "#0a0a0a",
+                          color: "#fff",
+                          fontFamily: MONO,
+                        }}
+                      >
+                        {dragBadThis ? "Overlaps" : `→ ${fmt(s.start + svcDrag!.delta)} – ${fmt(s.end + svcDrag!.delta)}`}
+                      </div>
+                    )}
+
                     {/* Top color rail — thinner, high-chroma, thickens subtly on hover */}
                     <span
                       aria-hidden

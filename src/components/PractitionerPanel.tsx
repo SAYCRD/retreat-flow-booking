@@ -10,11 +10,14 @@ import {
   addPractitionerOffering,
   removePractitionerOffering,
   servicesForPractitioner,
+  getLiveServices,
+  requestMoveService,
   openReservation,
   dateKeyOf,
   type AvailabilityBlock,
   type AvailabilitySource,
 } from "@/lib/practitionerStore";
+
 import {
   roomColor,
   allOfferings,
@@ -509,6 +512,8 @@ function ScheduleCanvas({
 }) {
   const surfaceRef = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState<{ anchor: number; cursor: number } | null>(null);
+  const [svcDrag, setSvcDrag] = useState<{ id: string; delta: number; bad: boolean } | null>(null);
+  const swallowClickRef = useRef(false);
   const hours = useMemo(() => Array.from({ length: 20 }, (_, i) => 5 + i), []);
 
   const yToMin = (clientY: number) => {
@@ -516,6 +521,45 @@ function ScheduleCanvas({
     if (!el) return 0;
     const rect = el.getBoundingClientRect();
     return pxToMin(clientY - rect.top);
+  };
+
+  const beginBookingMove = (svc: Service, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const originY = e.clientY;
+    const dur = svc.end - svc.start;
+    let moved = false;
+    let curDelta = 0;
+    let curBad = false;
+    // Overlap check against this practitioner's other live bookings (any room).
+    const others = getLiveServices().filter(
+      (s) => s.practitioner === svc.practitioner && s.id !== svc.id,
+    );
+    const onMove = (ev: MouseEvent) => {
+      const dy = ev.clientY - originY;
+      const deltaMin = Math.round(dy / PX_PER_MIN / 15) * 15;
+      if (Math.abs(deltaMin) >= 15) moved = true;
+      let ns = Math.max(0, svc.start + deltaMin);
+      let ne = ns + dur;
+      if (ne > DAY_SPAN) { ne = DAY_SPAN; ns = ne - dur; }
+      curDelta = ns - svc.start;
+      curBad = others.some((o) => o.start < ne && o.end > ns);
+      setSvcDrag({ id: svc.id, delta: curDelta, bad: curBad });
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      setSvcDrag(null);
+      if (moved) {
+        swallowClickRef.current = true;
+        setTimeout(() => { swallowClickRef.current = false; }, 0);
+        if (curDelta !== 0 && !curBad) {
+          requestMoveService(svc.id, svc.start + curDelta, svc.end + curDelta);
+        }
+      }
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -544,6 +588,7 @@ function ScheduleCanvas({
     const wall = now.getHours() * 60 + now.getMinutes() - DAY_START_MIN;
     return wall >= 0 && wall <= DAY_SPAN ? wall : null;
   })();
+
 
   return (
     <div className="mt-4 overflow-hidden border-t border-b border-black/[0.08] bg-white">
@@ -685,21 +730,45 @@ function ScheduleCanvas({
                   ? "2px 3px 0 -1px rgba(15,23,42,0.05), 4px 8px 16px -10px rgba(217,119,6,0.35)"
                   : "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)";
               const hoverShadow = `2px 4px 0 -1px rgba(15,23,42,0.05), 8px 14px 28px -12px ${tint(rc, 0.26)}, 0 0 0 1px ${tint(rc, 0.18)}`;
+              const isDragging = svcDrag?.id === s.id;
+              const dragTx = isDragging ? svcDrag!.delta * PX_PER_MIN : 0;
+              const dragBadThis = isDragging && svcDrag!.bad;
               return (
                 <div
                   key={s.id}
                   data-blocker
-                  onClick={(e) => { e.stopPropagation(); onOpenBooking(s.id); }}
-                  className="group absolute inset-x-2 z-[3] flex flex-col cursor-pointer bg-white transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-[1px]"
+                  onMouseDown={(e) => beginBookingMove(s, e)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (swallowClickRef.current) return;
+                    onOpenBooking(s.id);
+                  }}
+                  className={`group absolute inset-x-2 z-[3] flex flex-col bg-white transition-[box-shadow] duration-200 ease-out ${isDragging ? "cursor-grabbing z-[8]" : "cursor-grab hover:-translate-y-[1px]"}`}
                   style={{
                     top: top + 1,
                     minHeight: Math.max(h - 2, 96),
-                    boxShadow: baseShadow,
+                    boxShadow: dragBadThis
+                      ? `0 0 0 1.5px rgba(220,38,38,0.6), 8px 14px 28px -12px rgba(220,38,38,0.35)`
+                      : baseShadow,
                     opacity: isPast ? 0.9 : 1,
+                    transform: isDragging ? `translateY(${dragTx}px)` : undefined,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.boxShadow = hoverShadow; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.boxShadow = baseShadow; }}
+                  onMouseEnter={(e) => { if (!isDragging) e.currentTarget.style.boxShadow = hoverShadow; }}
+                  onMouseLeave={(e) => { if (!isDragging) e.currentTarget.style.boxShadow = baseShadow; }}
                 >
+                  {isDragging && (
+                    <div
+                      className="pointer-events-none absolute -top-3 left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-sm px-2 py-1 text-[11px] font-semibold tabular-nums shadow"
+                      style={{
+                        background: dragBadThis ? "#dc2626" : "#0a0a0a",
+                        color: "#fff",
+                        fontFamily: MONO,
+                      }}
+                    >
+                      {dragBadThis ? "Overlaps" : `→ ${fmt(s.start + svcDrag!.delta)} – ${fmt(s.end + svcDrag!.delta)}`}
+                    </div>
+                  )}
+
                   {/* top rail — same as main card */}
                   <span
                     aria-hidden
