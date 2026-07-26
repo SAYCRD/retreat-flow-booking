@@ -1,8 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MessageSquare, Footprints, RefreshCcw, Sparkles, Sparkle, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush, ClipboardCheck, Bell, ArrowRight, HandHeart, Wand2, Flower2, Wind, PartyPopper, Hand, Feather, ChevronLeft, ChevronRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as MiniCalendar } from "@/components/ui/calendar";
+import { PractitionerPanel } from "@/components/PractitionerPanel";
+import { openPractitionerPanelByName, hasAvailabilityCovering, findPractitionerByName, dateKeyOf } from "@/lib/practitionerStore";
 
 const WHISPER_ICON = {
   message: MessageSquare,
@@ -836,6 +838,12 @@ function TodayPage() {
             <span className="text-[13px] font-medium tracking-tight text-black/80">Seondya</span>
           </div>
 
+          <nav className="flex items-center gap-4 text-[12.5px]">
+            <Link to="/" className="font-semibold text-black">Reservations</Link>
+            <Link to="/practitioners" className="text-black/50 hover:text-black">Practitioners</Link>
+          </nav>
+
+
 
           <div className="ml-auto flex items-center gap-2">
             <button
@@ -1148,6 +1156,8 @@ function TodayPage() {
           setOpenSlot(null);
         }}
       />
+
+      <PractitionerPanel />
 
     </div>
   );
@@ -2648,7 +2658,13 @@ function ReservationPanel({
                   <span className="font-semibold" style={{ color: rc }}>{s.room}</span>
                 </PanelRow>
                 <PanelRow label="Practitioner">
-                  <span className="font-semibold text-black">{s.practitioner}</span>
+                  <button
+                    type="button"
+                    onClick={() => openPractitionerPanelByName(s.practitioner)}
+                    className="font-semibold text-black underline-offset-4 hover:underline"
+                  >
+                    {s.practitioner}
+                  </button>
                 </PanelRow>
                 <PanelRow label="Time">
                   <span className="font-semibold tabular-nums text-black" style={{ fontFamily: MONO }}>
@@ -3124,10 +3140,24 @@ function SlotPanel({
   const isEditingBlock = !!draft?.editingBlockId;
 
   const offerings = OFFERINGS_BY_ROOM[room] ?? [];
-  const eligiblePractitioners = useMemo(
-    () => PRACTITIONERS.filter((p) => p.offerings.includes(offering)),
-    [offering],
-  );
+  const eligiblePractitioners = useMemo(() => {
+    const list = PRACTITIONERS.filter((p) => p.offerings.includes(offering));
+    const today = dateKeyOf(new Date());
+    // Prefer practitioners with green availability covering the requested slot,
+    // then those already on today's calendar, then everyone else.
+    return list
+      .map((p) => {
+        const rec = findPractitionerByName(p.name);
+        const covered = rec ? hasAvailabilityCovering(rec.id, today, start, end) : false;
+        return { p, rec, covered };
+      })
+      .sort((a, b) => {
+        if (a.covered !== b.covered) return a.covered ? -1 : 1;
+        if (a.p.onCalendarToday !== b.p.onCalendarToday) return a.p.onCalendarToday ? -1 : 1;
+        return a.p.name.localeCompare(b.p.name);
+      });
+  }, [offering, start, end]);
+
 
   const conflicts = useMemo(() => {
     if (!room || start >= end) return { session: false, block: false };
@@ -3281,25 +3311,49 @@ function SlotPanel({
                       <div className="text-[12.5px] text-black/50">No practitioners qualified for this offering.</div>
                     ) : (
                       <div className="flex flex-col gap-1.5">
-                        {eligiblePractitioners.map((p) => {
+                        {eligiblePractitioners.map(({ p, rec, covered }) => {
                           const selected = practitioner === p.name;
+                          const status = covered
+                            ? { label: "Available for this slot", color: "#059669" }
+                            : p.onCalendarToday
+                              ? { label: "On today's calendar", color: "#0f766e" }
+                              : { label: "Not marked available — call or text to request", color: "#b45309" };
                           return (
-                            <button
+                            <div
                               key={p.name}
-                              type="button"
-                              onClick={() => setPractitioner(p.name)}
                               className={`flex items-center justify-between gap-3 rounded-[8px] border px-3 py-2 text-left transition-colors ${
                                 selected ? "border-black bg-black/[0.03]" : "border-black/10 bg-white hover:border-black/30"
                               }`}
                             >
-                              <div className="min-w-0">
+                              <button
+                                type="button"
+                                onClick={() => setPractitioner(p.name)}
+                                className="min-w-0 flex-1 text-left"
+                              >
                                 <div className="truncate text-[14px] font-semibold text-black">{p.name}</div>
-                                <div className="text-[11.5px]" style={{ fontFamily: MONO, color: p.onCalendarToday ? "#059669" : "#b45309" }}>
-                                  {p.onCalendarToday ? "Available today" : "Not on today's calendar — will request via SMS"}
+                                <div className="text-[11.5px]" style={{ fontFamily: MONO, color: status.color }}>
+                                  {status.label}
                                 </div>
-                              </div>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!rec) return;
+                                  openPractitionerPanelByName(p.name, {
+                                    service: offering,
+                                    room,
+                                    start,
+                                    end,
+                                    date: dateKeyOf(new Date()),
+                                    onAssign: (_id, name) => setPractitioner(name),
+                                  });
+                                }}
+                                className="shrink-0 rounded-[6px] border border-black/10 bg-white px-2 py-1 text-[11px] font-semibold text-black/70 hover:border-black/30 hover:text-black"
+                              >
+                                Open
+                              </button>
                               {selected && <Check size={14} strokeWidth={2.5} className="shrink-0 text-black" />}
-                            </button>
+                            </div>
                           );
                         })}
                       </div>
