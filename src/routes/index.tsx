@@ -4,7 +4,33 @@ import { MessageSquare, Footprints, RefreshCcw, Sparkles, Sparkle, Radio, Calend
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as MiniCalendar } from "@/components/ui/calendar";
 import { PractitionerPanel } from "@/components/PractitionerPanel";
-import { openPractitionerPanelByName, hasAvailabilityCovering, findPractitionerByName, dateKeyOf } from "@/lib/practitionerStore";
+import {
+  openPractitionerPanelByName,
+  hasAvailabilityCovering,
+  findPractitionerByName,
+  dateKeyOf,
+  usePractitioners,
+  addService as storeAddService,
+  cancelService as storeCancelService,
+  getLiveServices,
+  consumeOpenReservation,
+} from "@/lib/practitionerStore";
+import {
+  DAY_START,
+  DAY_END,
+  DAY_SPAN,
+  t,
+  fmt,
+  ROOMS,
+  ROOM_COLORS,
+  NEUTRAL,
+  roomColor,
+  OFFERINGS_BY_ROOM,
+  SEED_SERVICES as SERVICES,
+  setupMinutesFor,
+  type Service,
+  type Status,
+} from "@/lib/catalog";
 
 const WHISPER_ICON = {
   message: MessageSquare,
