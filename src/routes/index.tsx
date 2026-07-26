@@ -1203,6 +1203,7 @@ function TodayPage() {
               onRequestMoveService={(id, start, end) => {
                 requestMoveService(id, start, end);
               }}
+              onResolveCue={confirmCue}
             />
 
           </div>
@@ -1671,6 +1672,7 @@ function Timeline({
   onMoveBlock,
   onRequestMoveService,
   dateKey,
+  onResolveCue,
 }: {
   nowMin: number;
   highlightServiceId?: string;
@@ -1690,6 +1692,7 @@ function Timeline({
   onMoveBlock?: (b: Block) => void;
   onRequestMoveService?: (id: string, start: number, end: number) => void;
   dateKey?: string;
+  onResolveCue?: () => void;
 }) {
 
   const PX_PER_MIN = 4; // 240px per hour vertical — gives 15/30-min slots room to breathe
@@ -2222,32 +2225,70 @@ function Timeline({
                     },
                   });
                 };
+
+                // Route each marker kind to the right action:
+                //  - notify   → practitioner sidebar with prefilled SMS
+                //  - reset    → confirm room cleaned (dismisses the cue)
+                //  - others w/ serviceId → open that reservation's sidebar
+                //    (check-in, waiver, credit card, escort, etc. all live there)
+                //  - nothing to do → not clickable
+                let onMarkerClick: (() => void) | null = null;
+                if (isNotifyMarker) {
+                  onMarkerClick = notifySvc ? openNotifyPanel : null;
+                } else if (isReset) {
+                  onMarkerClick = onResolveCue ?? null;
+                } else if (cueMarker.serviceId && onOpenService) {
+                  const sid = cueMarker.serviceId;
+                  onMarkerClick = () => onOpenService(sid);
+                }
+                const clickable = !!onMarkerClick;
+
                 return (
                   <div
                     id="active-cue-marker"
-                    className={`absolute inset-x-0 z-30 ${isNotifyMarker ? "" : "pointer-events-none"}`}
+                    className={`absolute inset-x-0 z-30 ${clickable ? "" : "pointer-events-none"}`}
                     style={{ top: topPx, transform: shift }}
                   >
                     {isReset ? (
                       // Elegant, minimal — a thin marker-pen underline behind
                       // just the verb, no room name, no card chrome.
-                      <div className="mx-3 flex w-fit items-center gap-1.5">
-                        <span aria-hidden className="text-[15px] leading-none" style={{ flexShrink: 0 }}>{emoji}</span>
-                        <span
-                          className="text-[12px] font-medium tracking-tight text-black/85"
-                          style={{
-                            backgroundImage: `linear-gradient(transparent 62%, ${wash} 62%, ${wash} 96%, transparent 96%)`,
-                            padding: "0 3px",
-                          }}
+                      clickable ? (
+                        <button
+                          type="button"
+                          onClick={onMarkerClick!}
+                          aria-label={`Confirm ${cueMarker.verb.toLowerCase()}`}
+                          className="mx-3 flex w-fit items-center gap-1.5 text-left transition-opacity hover:opacity-80"
                         >
-                          {cueMarker.verb}
-                        </span>
-                      </div>
-                    ) : isNotifyMarker ? (
+                          <span aria-hidden className="text-[15px] leading-none" style={{ flexShrink: 0 }}>{emoji}</span>
+                          <span
+                            className="text-[12px] font-medium tracking-tight text-black/85"
+                            style={{
+                              backgroundImage: `linear-gradient(transparent 62%, ${wash} 62%, ${wash} 96%, transparent 96%)`,
+                              padding: "0 3px",
+                            }}
+                          >
+                            {cueMarker.verb}
+                          </span>
+                        </button>
+                      ) : (
+                        <div className="mx-3 flex w-fit items-center gap-1.5">
+                          <span aria-hidden className="text-[15px] leading-none" style={{ flexShrink: 0 }}>{emoji}</span>
+                          <span
+                            className="text-[12px] font-medium tracking-tight text-black/85"
+                            style={{
+                              backgroundImage: `linear-gradient(transparent 62%, ${wash} 62%, ${wash} 96%, transparent 96%)`,
+                              padding: "0 3px",
+                            }}
+                          >
+                            {cueMarker.verb}
+                          </span>
+                        </div>
+                      )
+                    ) : clickable ? (
                       <button
                         type="button"
-                        onClick={openNotifyPanel}
-                        aria-label={notifySvc ? `Open ${notifySvc.practitioner} to send a text` : "Open practitioner"}
+                        onClick={onMarkerClick!}
+                        aria-label={cueMarker.verb + (cueMarker.label ? ` · ${cueMarker.label}` : "")}
                         className="mx-2 flex w-fit items-center gap-2 px-2 py-1 text-left transition-transform hover:-translate-y-px hover:brightness-[0.97]"
                         style={{
                           background: `linear-gradient(178deg, transparent 8%, ${wash} 14%, ${wash} 92%, transparent 98%)`,
