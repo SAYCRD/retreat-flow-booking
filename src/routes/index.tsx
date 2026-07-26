@@ -1081,10 +1081,18 @@ function TodayPage() {
               cueRoom={isToday ? cue?.room ?? null : null}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
-              allServices={isToday ? SERVICES : []}
+              allServices={isToday ? [...SERVICES, ...createdServices] : createdServices}
               blocks={blocks}
-              onCreateBlock={(b: Block) => setBlocks((prev) => [...prev, b])}
-              onOpenBlock={(id: string) => setOpenBlockId(id)}
+              draft={openSlot}
+              onOpenSlot={(room, start, end, editingBlockId) => {
+                if (editingBlockId) {
+                  const b = blocks.find((x) => x.id === editingBlockId);
+                  if (!b) return;
+                  setOpenSlot({ room: b.room, start: b.start, end: b.end, mode: "block", editingBlockId });
+                } else {
+                  setOpenSlot({ room, start, end, mode: "reservation" });
+                }
+              }}
             />
           </div>
         </div>
@@ -1100,14 +1108,28 @@ function TodayPage() {
       )}
 
       <ReservationPanel service={openService} onClose={() => setOpenServiceId(null)} />
-      <BlockPanel
-        block={openBlock}
-        onClose={() => setOpenBlockId(null)}
-        onRemove={(id: string) => {
-          setBlocks((prev) => prev.filter((b) => b.id !== id));
-          setOpenBlockId(null);
+      <SlotPanel
+        draft={openSlot}
+        allServices={[...SERVICES, ...createdServices]}
+        blocks={blocks}
+        onClose={() => setOpenSlot(null)}
+        onSaveReservation={(svc) => {
+          setCreatedServices((prev) => [...prev, svc]);
+          setOpenSlot(null);
+        }}
+        onSaveBlock={(b) => {
+          setBlocks((prev) => {
+            const others = prev.filter((x) => x.id !== b.id);
+            return [...others, b];
+          });
+          setOpenSlot(null);
+        }}
+        onRemoveBlock={(id) => {
+          setBlocks((prev) => prev.filter((x) => x.id !== id));
+          setOpenSlot(null);
         }}
       />
+
     </div>
   );
 }
