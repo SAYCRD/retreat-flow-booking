@@ -2109,7 +2109,7 @@ function Timeline({
                           borderRadius: "3px 7px 4px 8px",
                         }}
                       >
-                        <Icon size={16} strokeWidth={2} style={{ color: cueMarker.gc, flexShrink: 0 }} />
+                        <span aria-hidden className="text-[17px] leading-none" style={{ flexShrink: 0 }}>{emoji}</span>
                         <span className="text-[13px] font-semibold tracking-tight text-black">
                           {cueMarker.verb}
                           {cueMarker.label && (
