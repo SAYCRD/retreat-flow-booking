@@ -2110,84 +2110,102 @@ function Timeline({
 
               })}
 
-              {/* Existing blocks — soft diagonal hatch in the room's own hue.
-                  Flatter than reservation cards so eye separates the two. */}
-              {roomBlocks.map((b) => {
-                const bTop = TOP_PAD + minToPx(b.start);
-                const bH = Math.max(minToPx(b.end) - minToPx(b.start), 18);
-                const isPast = b.end <= nowMin;
-                const hatch = `repeating-linear-gradient(135deg, ${tint(rc, 0.18)} 0 6px, ${tint(rc, 0.06)} 6px 12px)`;
-                return (
-                  <div
-                    key={b.id}
-                    data-block-chip
-                    className="group absolute inset-x-1 z-[5] flex flex-col justify-between rounded-none px-2 py-1.5 cursor-pointer transition-opacity"
-                    style={{
-                      top: bTop,
-                      height: bH,
-                      background: hatch,
-                      borderLeft: `2px solid ${rc}`,
-                      opacity: isPast ? 0.55 : 0.95,
-                    }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); onOpenBlock?.(b.id); }}
-                  >
-                    <div className="flex items-center justify-between gap-2">
+              {/* Renders a block-style card (white, top color rail, ROOM BLOCK
+                  label). Used for committed blocks, live drag previews, and
+                  the pending range while the confirm menu is open — so the
+                  block always sits at exactly the time it was drawn. */}
+              {(() => {
+                const renderBlockCard = (opts: {
+                  key: string;
+                  startMin: number;
+                  endMin: number;
+                  label: string;   // reason or "New block" / "Overlaps"
+                  bad?: boolean;
+                  past?: boolean;
+                  pending?: boolean; // preview / not yet committed
+                  onClick?: (e: React.MouseEvent) => void;
+                }) => {
+                  const bTop = TOP_PAD + minToPx(opts.startMin);
+                  const bH = Math.max(minToPx(opts.endMin) - minToPx(opts.startMin), 60);
+                  const rail = opts.bad ? "#dc2626" : rc;
+                  return (
+                    <div
+                      key={opts.key}
+                      data-block-chip
+                      className={`absolute inset-x-0 z-[5] flex flex-col rounded-none bg-white px-2.5 py-2 ${opts.pending ? "pointer-events-none" : "cursor-pointer"}`}
+                      style={{
+                        top: bTop + 1,
+                        minHeight: bH - 2,
+                        boxShadow: opts.pending
+                          ? `0 0 0 1px ${opts.bad ? "rgba(220,38,38,0.55)" : tint(rail, 0.55)}`
+                          : "0 1px 2px rgba(15,23,42,0.06), 0 6px 14px -8px rgba(15,23,42,0.12)",
+                        opacity: opts.past ? 0.6 : 1,
+                      }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={opts.onClick}
+                    >
                       <span
-                        className="truncate text-[10.5px] font-bold uppercase tracking-[0.14em]"
-                        style={{ color: "#1a1a1a", fontFamily: MONO }}
-                      >
-                        Blocked
-                      </span>
-                      <span
-                        className="shrink-0 text-[10.5px] font-semibold tabular-nums"
-                        style={{ color: "#2a2a2a", fontFamily: MONO }}
-                      >
-                        {fmt(b.start)}–{fmt(b.end)}
-                      </span>
-                    </div>
-                    {bH > 34 && (
+                        aria-hidden
+                        className="absolute inset-x-0 top-0 h-[2px]"
+                        style={{ background: rail }}
+                      />
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className="truncate text-[10.5px] font-bold uppercase tracking-[0.16em]"
+                          style={{ color: opts.bad ? "#7f1d1d" : "#0a0a0a", fontFamily: MONO }}
+                        >
+                          Room block
+                        </span>
+                        <span
+                          className="shrink-0 text-[11px] font-semibold tabular-nums"
+                          style={{ color: "#2a2a2a", fontFamily: MONO }}
+                        >
+                          {fmt(opts.startMin)}–{fmt(opts.endMin)}
+                        </span>
+                      </div>
                       <div
-                        className="truncate text-[12px] font-medium leading-tight"
+                        className="mt-1 truncate text-[15px] font-semibold leading-tight"
                         style={{ color: "#0a0a0a", fontFamily: DISPLAY }}
                       >
-                        {b.reason}
+                        {opts.label}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                    </div>
+                  );
+                };
 
-              {/* Live drag preview */}
-              {activeDrag && activeDrag.endMin > activeDrag.startMin && (() => {
-                const pTop = TOP_PAD + minToPx(activeDrag.startMin);
-                const pH = Math.max(minToPx(activeDrag.endMin) - minToPx(activeDrag.startMin), 18);
-                const bg = dragBad
-                  ? "repeating-linear-gradient(135deg, rgba(220,38,38,0.22) 0 6px, rgba(220,38,38,0.08) 6px 12px)"
-                  : `repeating-linear-gradient(135deg, ${tint(rc, 0.28)} 0 6px, ${tint(rc, 0.10)} 6px 12px)`;
                 return (
-                  <div
-                    className="pointer-events-none absolute inset-x-1 z-[6] flex items-center justify-between px-2"
-                    style={{
-                      top: pTop,
-                      height: pH,
-                      background: bg,
-                      borderLeft: `2px solid ${dragBad ? "#dc2626" : rc}`,
-                    }}
-                  >
-                    <span
-                      className="text-[10.5px] font-bold uppercase tracking-[0.14em]"
-                      style={{ color: dragBad ? "#7f1d1d" : "#1a1a1a", fontFamily: MONO }}
-                    >
-                      {dragBad ? "Overlaps" : "Block"}
-                    </span>
-                    <span
-                      className="text-[10.5px] font-semibold tabular-nums"
-                      style={{ color: "#2a2a2a", fontFamily: MONO }}
-                    >
-                      {fmt(activeDrag.startMin)}–{fmt(activeDrag.endMin)}
-                    </span>
-                  </div>
+                  <>
+                    {roomBlocks.map((b) =>
+                      renderBlockCard({
+                        key: b.id,
+                        startMin: b.start,
+                        endMin: b.end,
+                        label: b.reason,
+                        past: b.end <= nowMin,
+                        onClick: (e) => { e.stopPropagation(); onOpenBlock?.(b.id); },
+                      }),
+                    )}
+
+                    {activeDrag && activeDrag.endMin > activeDrag.startMin &&
+                      renderBlockCard({
+                        key: "drag-preview",
+                        startMin: activeDrag.startMin,
+                        endMin: activeDrag.endMin,
+                        label: dragBad ? "Overlaps a session" : "New block — release to choose reason",
+                        bad: dragBad,
+                        pending: true,
+                      })}
+
+                    {activeMenu &&
+                      renderBlockCard({
+                        key: "menu-preview",
+                        startMin: activeMenu.startMin,
+                        endMin: activeMenu.endMin,
+                        label: menuBad ? "Overlaps a session" : "New block — pick a reason",
+                        bad: menuBad,
+                        pending: true,
+                      })}
+                  </>
                 );
               })()}
 
