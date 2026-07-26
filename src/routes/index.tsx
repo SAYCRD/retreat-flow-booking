@@ -2272,8 +2272,8 @@ function Timeline({
                           className="whitespace-nowrap text-[17px] font-semibold tabular-nums leading-[1.15] tracking-tight"
                           style={{ color: metaColor, fontFamily: MONO }}
                         >
-                          <div>{fmt(s.start)}</div>
-                          <div style={{ opacity: 0.55 }}>{fmt(s.end)}</div>
+                          <div>{fmt(s.start + (isDragging ? svcDrag!.delta : 0))}</div>
+                          <div style={{ opacity: 0.55 }}>{fmt(s.end + (isDragging ? svcDrag!.delta : 0))}</div>
                         </div>
                         <div
                           className="shrink-0 whitespace-nowrap text-[12px] font-semibold tabular-nums tracking-[0.08em]"
