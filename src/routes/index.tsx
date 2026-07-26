@@ -1585,7 +1585,11 @@ function Timeline({
           onMoveBlock({ ...b, start: curStart, end: curEnd });
         }
       }
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
   };
+
 
   // Drag reservation cards vertically within their own room column to
   // reschedule. Same gesture semantics as block moves: >=15-min threshold
