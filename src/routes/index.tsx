@@ -1648,6 +1648,22 @@ function Timeline({
     return (blocksByRoom[room] ?? []).some((b) => b.id !== ignoreBlockId && b.start < endMin && b.end > startMin);
   };
 
+  // For a plain click (no drag), pick the largest free window starting at
+  // the click point, up to 60 minutes, so we never open the panel with a
+  // default range that already overlaps the neighbouring session.
+  const defaultClickEnd = (room: string, startMin: number) => {
+    const nextEdges: number[] = [];
+    for (const sv of allServices) {
+      if (sv.room === room && sv.start >= startMin) nextEdges.push(sv.start);
+    }
+    for (const b of blocksByRoom[room] ?? []) {
+      if (b.start >= startMin) nextEdges.push(b.start);
+    }
+    const cap = nextEdges.length ? Math.min(...nextEdges) : Infinity;
+    const preferred = startMin + 60;
+    return Math.max(startMin + 15, Math.min(preferred, cap));
+  };
+
   const beginDrag = (room: string, e: React.MouseEvent<HTMLDivElement>) => {
     if (!onOpenSlot) return;
     // Ignore clicks that started on a service card, existing block, or the draft.
@@ -1674,11 +1690,12 @@ function Timeline({
   const endDrag = (room: string) => {
     if (!drag || drag.room !== room || !onOpenSlot) return;
     const startMin = drag.startMin;
-    const endMin = dragDidMove.current ? drag.endMin : drag.anchorMin + 60;
+    const endMin = dragDidMove.current ? drag.endMin : defaultClickEnd(room, drag.anchorMin);
     setDrag(null);
     if (rangeOverlaps(room, startMin, endMin)) return;
     onOpenSlot(room, startMin, endMin);
   };
+
 
   // Drag existing blocks vertically within the same room column to reschedule.
   // Uses document-level pointer listeners so the drag survives mouse crossings
