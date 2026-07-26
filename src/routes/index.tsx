@@ -739,7 +739,7 @@ function TodayPage() {
   const stillToCome = SERVICES.filter((s) => s.start > nowMin).length;
   const overlaps = conflicts.length;
 
-  const allPrompts = useMemo(() => isToday ? generatePrompts(nowMin) : [], [nowMin, isToday]);
+  const allPrompts = useMemo(() => isToday ? generatePrompts(nowMin, liveServices) : [], [nowMin, isToday, liveServices]);
   const prompts = useMemo(
     () => allPrompts.filter((p) => !resolvedIds.has(p.id)),
     [allPrompts, resolvedIds],
