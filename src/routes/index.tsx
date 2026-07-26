@@ -2232,19 +2232,23 @@ function Timeline({
                   bad?: boolean;
                   past?: boolean;
                   pending?: boolean;  // preview / not yet committed
+                  draggable?: boolean;
+                  hidden?: boolean;
                   onClick?: (e: React.MouseEvent) => void;
+                  onMouseDown?: (e: React.MouseEvent) => void;
                 }) => {
                   const bTop = TOP_PAD + minToPx(opts.startMin);
                   const bH = Math.max(minToPx(opts.endMin) - minToPx(opts.startMin), 96);
                   const rail = opts.bad ? "#dc2626" : rc;
                   const duration = Math.round(opts.endMin - opts.startMin);
                   const subColor = opts.bad ? "#7f1d1d" : rc;
+                  if (opts.hidden) return null;
                   return (
                     <div
                       key={opts.key}
                       data-slot-draft={opts.pending ? "" : undefined}
                       data-block-chip={opts.pending ? undefined : ""}
-                      className={`absolute inset-x-0 z-[6] flex flex-col rounded-none bg-white ${opts.pending ? "pointer-events-none" : "cursor-pointer"}`}
+                      className={`absolute inset-x-0 z-[6] flex flex-col rounded-none bg-white ${opts.pending ? "pointer-events-none" : opts.draggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
                       style={{
                         top: bTop + 1,
                         minHeight: bH - 2,
@@ -2253,7 +2257,7 @@ function Timeline({
                           : "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)",
                         opacity: opts.past ? 0.6 : 1,
                       }}
-                      onMouseDown={(e) => e.stopPropagation()}
+                      onMouseDown={opts.onMouseDown ?? ((e) => e.stopPropagation())}
                       onClick={opts.onClick}
                     >
                       <span
