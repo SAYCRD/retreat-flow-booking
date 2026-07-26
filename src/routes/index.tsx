@@ -1185,6 +1185,7 @@ function TodayPage() {
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
               allServices={liveServices}
+              dateKey={selectedDateKey}
               blocks={blocks}
               draft={openSlot}
               onOpenSlot={(room, start, end, editingBlockId) => {
@@ -2209,7 +2210,7 @@ function Timeline({
                     room: notifySvc.room,
                     start: notifySvc.start,
                     end: notifySvc.end,
-                    date: selectedDateKey,
+                    date: dateKey,
                     notifyDraft: {
                       message,
                       guestFirstName: first,
