@@ -2290,31 +2290,29 @@ function Timeline({
 
 
 
-                    {/* Time — floated fully outside the card, to the left of the room column,
-                        so the card itself stays quiet and the timeline reads at a glance. */}
-                    <div
-                      aria-hidden
-                      className="pointer-events-none absolute right-full top-0 z-10 flex flex-col items-end pr-2 pt-3"
-                      style={{ color: metaColor, fontFamily: MONO }}
-                    >
-                      <div className="whitespace-nowrap text-[15px] font-semibold tabular-nums leading-[1.1] tracking-tight">
-                        {fmt(s.start + (isDragging ? svcDrag!.delta : 0))}
-                      </div>
-                      <div className="whitespace-nowrap text-[13px] font-semibold tabular-nums leading-[1.1] tracking-tight" style={{ opacity: 0.5 }}>
-                        {fmt(s.end + (isDragging ? svcDrag!.delta : 0))}
-                      </div>
-                      <div className="mt-1 whitespace-nowrap text-[10px] font-semibold tabular-nums tracking-[0.1em]" style={{ opacity: 0.55 }}>
-                        {duration}m
-                      </div>
-                    </div>
-
                     <div className="relative z-10 flex flex-1 flex-col px-3 pt-3 pb-2.5">
-                      {/* Journey indicator only — payment status lives in the side panel */}
-                      {isOrchestrationCard && (
-                        <div className="flex items-start justify-end">
-                          <span aria-label="Part of a multi-service journey" className="text-[15px] leading-none">🌀</span>
+                      {/* Time — from on one line, to on the next, so it reads calmly */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div
+                          className="whitespace-nowrap text-[17px] font-semibold tabular-nums leading-[1.15] tracking-tight"
+                          style={{ color: metaColor, fontFamily: MONO }}
+                        >
+                          <div>{fmt(s.start + (isDragging ? svcDrag!.delta : 0))}</div>
+                          <div style={{ opacity: 0.55 }}>{fmt(s.end + (isDragging ? svcDrag!.delta : 0))}</div>
                         </div>
-                      )}
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          {isOrchestrationCard && (
+                            <span aria-label="Part of a multi-service journey" className="text-[15px] leading-none">🌀</span>
+                          )}
+                          <div
+                            className="whitespace-nowrap text-[12px] font-semibold tabular-nums tracking-[0.08em]"
+                            style={{ color: metaColor, fontFamily: MONO, opacity: 0.65 }}
+                          >
+                            {duration}m
+                          </div>
+                        </div>
+                      </div>
+
 
 
 
