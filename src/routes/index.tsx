@@ -2402,6 +2402,16 @@ function Timeline({
                           {practInitials}
                         </span>
                       </div>
+                      {reply && (
+                        <div
+                          className="mt-1 text-right text-[11.5px] font-medium tabular-nums"
+                          style={{ color: gc, fontFamily: MONO }}
+                        >
+                          {replyLine(reply, s.practitioner)}
+                        </div>
+                      )}
+
+
 
                       {/* Orchestration pill or plain note — pushed to bottom */}
                       {(orchestration || plainNote) && height > 120 && (
