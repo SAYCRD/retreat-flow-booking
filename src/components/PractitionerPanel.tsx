@@ -291,6 +291,15 @@ export function PractitionerPanel() {
 
             {/* Scrollable body */}
             <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-8">
+              {/* Notify draft — prefilled text the front desk can send now */}
+              {panelContext?.notifyDraft && practitioner.phone && (
+                <NotifyDraftBlock
+                  hue={practitioner.colorHue}
+                  phone={practitioner.phone}
+                  draft={panelContext.notifyDraft}
+                />
+              )}
+
               {/* Reservation-in-flight context (assignment picker) */}
               {panelContext?.service && panelContext.start != null && panelContext.end != null && (
                 <div className="mt-5 border-t border-b border-black/[0.08] py-4">
