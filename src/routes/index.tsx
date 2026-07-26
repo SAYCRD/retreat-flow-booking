@@ -1436,6 +1436,7 @@ function Timeline({
   draft,
   onOpenSlot,
   onMoveBlock,
+  onRequestMoveService,
 }: {
   nowMin: number;
   highlightServiceId?: string;
@@ -1453,8 +1454,10 @@ function Timeline({
   draft?: SlotDraft | null;
   onOpenSlot?: (room: string, start: number, end: number, editingBlockId?: string) => void;
   onMoveBlock?: (b: Block) => void;
+  onRequestMoveService?: (id: string, start: number, end: number) => void;
 
 }) {
+
   const PX_PER_MIN = 4; // 240px per hour vertical — gives 15/30-min slots room to breathe
   const TAIL_PX_PER_MIN = 1.2; // compress the quiet evening tail so midnight doesn't feel empty
   const TIME_COL = 88;
