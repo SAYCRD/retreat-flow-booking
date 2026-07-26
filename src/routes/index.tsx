@@ -2074,7 +2074,7 @@ function Timeline({
                   separate from the session card, so check-ins/reset notifications feel
                   like their own actions rather than decoration on a booking. */}
               {cueMarker && cueMarker.room === room && (() => {
-                const Icon = WHISPER_ICON[cueMarker.kind];
+                const emoji = CUE_EMOJI[cueMarker.kind];
                 const wash = `color-mix(in oklab, ${cueMarker.gc} 34%, white)`;
                 const topPx = cueMarker.after && afterTopPx != null
                   ? afterTopPx
