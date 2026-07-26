@@ -1580,6 +1580,51 @@ function Timeline({
     onOpenSlot(room, startMin, endMin);
   };
 
+  // Drag existing blocks vertically within the same room column to reschedule.
+  // Uses document-level pointer listeners so the drag survives mouse crossings
+  // over the block card's own children. A short movement threshold distinguishes
+  // a reschedule gesture from a plain click (which opens the panel).
+  const [blockGhost, setBlockGhost] = useState<{ id: string; room: string; start: number; end: number; bad: boolean } | null>(null);
+  const swallowBlockClickRef = useRef(false);
+  const beginBlockMove = (b: Block, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!onMoveBlock) return;
+    const originY = e.clientY;
+    const dur = b.end - b.start;
+    let moved = false;
+    let curStart = b.start;
+    let curEnd = b.end;
+    const onMove = (ev: MouseEvent) => {
+      const dy = ev.clientY - originY;
+      const deltaMin = Math.round(dy / PX_PER_MIN / 15) * 15;
+      if (Math.abs(deltaMin) >= 15) moved = true;
+      let ns = Math.max(0, b.start + deltaMin);
+      let ne = ns + dur;
+      if (ne > DAY_SPAN) { ne = DAY_SPAN; ns = ne - dur; }
+      curStart = ns;
+      curEnd = ne;
+      const bad = rangeOverlaps(b.room, ns, ne, b.id);
+      setBlockGhost({ id: b.id, room: b.room, start: ns, end: ne, bad });
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      setBlockGhost(null);
+      if (moved) {
+        swallowBlockClickRef.current = true;
+        setTimeout(() => { swallowBlockClickRef.current = false; }, 0);
+        if (!rangeOverlaps(b.room, curStart, curEnd, b.id)) {
+          onMoveBlock({ ...b, start: curStart, end: curEnd });
+        }
+      }
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
+
+
+
 
 
 
