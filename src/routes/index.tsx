@@ -1157,6 +1157,8 @@ function TodayPage() {
         }}
       />
 
+      <PractitionerPanel />
+
     </div>
   );
 }
