@@ -18,7 +18,6 @@ import {
 import {
   roomColor,
   allOfferings,
-  setupMinutesFor,
   fmt,
   type Service,
 } from "@/lib/catalog";
