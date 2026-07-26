@@ -33,9 +33,13 @@ import {
   OFFERINGS_BY_ROOM,
   SEED_SERVICES as SERVICES,
   setupMinutesFor,
+  CUE_EMOJI,
   type Service,
   type Status,
 } from "@/lib/catalog";
+import { usePayments, isPaid } from "@/lib/paymentState";
+import { usePractitionerReplies, getReply, setReply, replyLine, REPLY_META, type ReplyStatus } from "@/lib/practitionerReplies";
+
 
 const WHISPER_ICON = {
   message: MessageSquare,
