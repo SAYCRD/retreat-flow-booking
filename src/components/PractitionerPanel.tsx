@@ -756,18 +756,8 @@ function ScheduleCanvas({
                   onMouseEnter={(e) => { if (!isDragging) e.currentTarget.style.boxShadow = hoverShadow; }}
                   onMouseLeave={(e) => { if (!isDragging) e.currentTarget.style.boxShadow = baseShadow; }}
                 >
-                  {isDragging && (
-                    <div
-                      className="pointer-events-none absolute -top-3 left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-sm px-2 py-1 text-[11px] font-semibold tabular-nums shadow"
-                      style={{
-                        background: dragBadThis ? "#dc2626" : "#0a0a0a",
-                        color: "#fff",
-                        fontFamily: MONO,
-                      }}
-                    >
-                      {dragBadThis ? "Overlaps" : `→ ${fmt(s.start + svcDrag!.delta)} – ${fmt(s.end + svcDrag!.delta)}`}
-                    </div>
-                  )}
+                  {/* (Times inside the card update live while dragging.) */}
+
 
                   {/* top rail — same as main card */}
                   <span
