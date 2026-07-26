@@ -712,17 +712,14 @@ function TodayPage() {
 
 
   const timelineRef = useRef<HTMLDivElement | null>(null);
+  // Intentionally do NOT auto-scroll to the timeline when the date changes —
+  // the user is up top interacting with the date picker and expects to stay
+  // there. Track the key only for parity with other date-diff effects.
   const prevDateKeyRef = useRef<string>(new Date().toDateString());
-
   useEffect(() => {
-    const key = selectedDate.toDateString();
-    if (key === prevDateKeyRef.current) return;
-    prevDateKeyRef.current = key;
-    const el = timelineRef.current;
-    if (!el) return;
-    const y = el.getBoundingClientRect().top + window.scrollY - 180;
-    window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+    prevDateKeyRef.current = selectedDate.toDateString();
   }, [selectedDate]);
+
 
   const clock = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const isToday = selectedDate.toDateString() === now.toDateString();
