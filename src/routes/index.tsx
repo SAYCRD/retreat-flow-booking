@@ -1966,6 +1966,37 @@ function Timeline({
                   (w) => w.id === activeCueId,
                 );
                 const badgeWhisper = activeWhisper && !markerKinds.includes(activeWhisper.kind) ? activeWhisper : null;
+              {/* Prep strips — a soft "room open for setup" cushion before
+                  every reservation, so it's clear the room isn't free right
+                  up to the session start. Non-interactive. */}
+              {services.map((s) => {
+                const prepMin = setupMinutesFor(s.service);
+                if (prepMin <= 0) return null;
+                const prepStart = Math.max(0, s.start - prepMin);
+                const top = TOP_PAD + minToPx(prepStart);
+                const height = minToPx(s.start) - minToPx(prepStart);
+                return (
+                  <div
+                    key={`prep-${s.id}`}
+                    className="pointer-events-none absolute inset-x-2 z-[5] rounded-[6px] border-l-2 border-dashed"
+                    style={{
+                      top,
+                      height,
+                      borderColor: tint(rc, 0.35),
+                      background: `repeating-linear-gradient(135deg, ${tint(rc, 0.10)} 0 6px, transparent 6px 12px)`,
+                    }}
+                  >
+                    <div
+                      className="px-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.14em]"
+                      style={{ color: tint(rc, 0.55), fontFamily: MONO }}
+                    >
+                      Prep · {prepMin}m
+                    </div>
+                  </div>
+                );
+              })}
+
+
 
 
                 return (
