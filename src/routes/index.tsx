@@ -728,8 +728,13 @@ function TodayPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [createdServices, setCreatedServices] = useState<Service[]>([]);
+  const [canceledIds, setCanceledIds] = useState<Set<string>>(() => new Set());
   const [openSlot, setOpenSlot] = useState<SlotDraft | null>(null);
-  const openService = openServiceId ? [...SERVICES, ...createdServices].find((s) => s.id === openServiceId) ?? null : null;
+  const liveServices = useMemo(
+    () => [...SERVICES, ...createdServices].filter((s) => !canceledIds.has(s.id)),
+    [createdServices, canceledIds],
+  );
+  const openService = openServiceId ? liveServices.find((s) => s.id === openServiceId) ?? null : null;
 
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const prevDateKeyRef = useRef<string>(new Date().toDateString());
@@ -1081,7 +1086,7 @@ function TodayPage() {
               cueRoom={isToday ? cue?.room ?? null : null}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
-              allServices={isToday ? [...SERVICES, ...createdServices] : createdServices}
+              allServices={isToday ? liveServices : createdServices.filter((s) => !canceledIds.has(s.id))}
               blocks={blocks}
               draft={openSlot}
               onOpenSlot={(room, start, end, editingBlockId) => {
@@ -1092,6 +1097,9 @@ function TodayPage() {
                 } else {
                   setOpenSlot({ room, start, end, mode: "reservation" });
                 }
+              }}
+              onMoveBlock={(b) => {
+                setBlocks((prev) => prev.map((x) => (x.id === b.id ? b : x)));
               }}
             />
           </div>
@@ -1107,10 +1115,21 @@ function TodayPage() {
         <FocusOverlay cue={cue} onClose={() => setFocusOpen(false)} />
       )}
 
-      <ReservationPanel service={openService} onClose={() => setOpenServiceId(null)} />
+      <ReservationPanel
+        service={openService}
+        onClose={() => setOpenServiceId(null)}
+        onCancel={(id) => {
+          setCanceledIds((prev) => {
+            const next = new Set(prev);
+            next.add(id);
+            return next;
+          });
+          setOpenServiceId(null);
+        }}
+      />
       <SlotPanel
         draft={openSlot}
-        allServices={[...SERVICES, ...createdServices]}
+        allServices={liveServices}
         blocks={blocks}
         onClose={() => setOpenSlot(null)}
         onSaveReservation={(svc) => {
@@ -1452,6 +1471,7 @@ function Timeline({
   blocks = [],
   draft,
   onOpenSlot,
+  onMoveBlock,
 }: {
   nowMin: number;
   highlightServiceId?: string;
@@ -1468,6 +1488,7 @@ function Timeline({
   blocks?: Block[];
   draft?: SlotDraft | null;
   onOpenSlot?: (room: string, start: number, end: number, editingBlockId?: string) => void;
+  onMoveBlock?: (b: Block) => void;
 
 }) {
   const PX_PER_MIN = 4; // 240px per hour vertical — gives 15/30-min slots room to breathe
@@ -1558,6 +1579,51 @@ function Timeline({
     if (rangeOverlaps(room, startMin, endMin)) return;
     onOpenSlot(room, startMin, endMin);
   };
+
+  // Drag existing blocks vertically within the same room column to reschedule.
+  // Uses document-level pointer listeners so the drag survives mouse crossings
+  // over the block card's own children. A short movement threshold distinguishes
+  // a reschedule gesture from a plain click (which opens the panel).
+  const [blockGhost, setBlockGhost] = useState<{ id: string; room: string; start: number; end: number; bad: boolean } | null>(null);
+  const swallowBlockClickRef = useRef(false);
+  const beginBlockMove = (b: Block, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!onMoveBlock) return;
+    const originY = e.clientY;
+    const dur = b.end - b.start;
+    let moved = false;
+    let curStart = b.start;
+    let curEnd = b.end;
+    const onMove = (ev: MouseEvent) => {
+      const dy = ev.clientY - originY;
+      const deltaMin = Math.round(dy / PX_PER_MIN / 15) * 15;
+      if (Math.abs(deltaMin) >= 15) moved = true;
+      let ns = Math.max(0, b.start + deltaMin);
+      let ne = ns + dur;
+      if (ne > DAY_SPAN) { ne = DAY_SPAN; ns = ne - dur; }
+      curStart = ns;
+      curEnd = ne;
+      const bad = rangeOverlaps(b.room, ns, ne, b.id);
+      setBlockGhost({ id: b.id, room: b.room, start: ns, end: ne, bad });
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      setBlockGhost(null);
+      if (moved) {
+        swallowBlockClickRef.current = true;
+        setTimeout(() => { swallowBlockClickRef.current = false; }, 0);
+        if (!rangeOverlaps(b.room, curStart, curEnd, b.id)) {
+          onMoveBlock({ ...b, start: curStart, end: curEnd });
+        }
+      }
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
+
+
 
 
 
@@ -2166,19 +2232,23 @@ function Timeline({
                   bad?: boolean;
                   past?: boolean;
                   pending?: boolean;  // preview / not yet committed
+                  draggable?: boolean;
+                  hidden?: boolean;
                   onClick?: (e: React.MouseEvent) => void;
+                  onMouseDown?: (e: React.MouseEvent) => void;
                 }) => {
                   const bTop = TOP_PAD + minToPx(opts.startMin);
                   const bH = Math.max(minToPx(opts.endMin) - minToPx(opts.startMin), 96);
                   const rail = opts.bad ? "#dc2626" : rc;
                   const duration = Math.round(opts.endMin - opts.startMin);
                   const subColor = opts.bad ? "#7f1d1d" : rc;
+                  if (opts.hidden) return null;
                   return (
                     <div
                       key={opts.key}
                       data-slot-draft={opts.pending ? "" : undefined}
                       data-block-chip={opts.pending ? undefined : ""}
-                      className={`absolute inset-x-0 z-[6] flex flex-col rounded-none bg-white ${opts.pending ? "pointer-events-none" : "cursor-pointer"}`}
+                      className={`absolute inset-x-0 z-[6] flex flex-col rounded-none bg-white ${opts.pending ? "pointer-events-none" : opts.draggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
                       style={{
                         top: bTop + 1,
                         minHeight: bH - 2,
@@ -2187,7 +2257,7 @@ function Timeline({
                           : "2px 3px 0 -1px rgba(15,23,42,0.04), 3px 5px 12px -8px rgba(15,23,42,0.14)",
                         opacity: opts.past ? 0.6 : 1,
                       }}
-                      onMouseDown={(e) => e.stopPropagation()}
+                      onMouseDown={opts.onMouseDown ?? ((e) => e.stopPropagation())}
                       onClick={opts.onClick}
                     >
                       <span
@@ -2233,17 +2303,37 @@ function Timeline({
 
                 return (
                   <>
-                    {roomBlocks.map((b) =>
-                      renderSlotCard({
+                    {roomBlocks.map((b) => {
+                      const beingMoved = blockGhost?.id === b.id;
+                      return renderSlotCard({
                         key: b.id,
                         startMin: b.start,
                         endMin: b.end,
                         headline: b.room,
                         subline: b.reason,
                         past: b.end <= nowMin,
-                        onClick: (e) => { e.stopPropagation(); onOpenSlot?.(b.room, b.start, b.end, b.id); },
-                      }),
-                    )}
+                        draggable: !!onMoveBlock,
+                        hidden: beingMoved,
+                        onMouseDown: (e) => beginBlockMove(b, e),
+                        onClick: (e) => {
+                          e.stopPropagation();
+                          if (swallowBlockClickRef.current) return;
+                          onOpenSlot?.(b.room, b.start, b.end, b.id);
+                        },
+                      });
+                    })}
+
+                    {blockGhost && blockGhost.room === room &&
+                      renderSlotCard({
+                        key: "block-ghost",
+                        startMin: blockGhost.start,
+                        endMin: blockGhost.end,
+                        headline: room,
+                        subline: blockGhost.bad ? "Overlaps a session" : "Reschedule block",
+                        bad: blockGhost.bad,
+                        pending: true,
+                      })}
+
 
                     {activeDrag && activeDrag.endMin > activeDrag.startMin &&
                       renderSlotCard({
@@ -2451,10 +2541,14 @@ function FocusOverlay({ cue, onClose }: { cue: Prompt; onClose: () => void }) {
 function ReservationPanel({
   service,
   onClose,
+  onCancel,
 }: {
   service: Service | null;
   onClose: () => void;
+  onCancel?: (id: string) => void;
 }) {
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  useEffect(() => { if (!service) setConfirmingCancel(false); }, [service]);
   // Trap Esc to close
   useEffect(() => {
     if (!service) return;
@@ -2873,8 +2967,52 @@ function ReservationPanel({
                 );
               })()}
             </div>
+
+            {onCancel && (
+              <div className="flex shrink-0 items-center justify-between gap-3 border-t border-black/[0.08] px-7 py-4">
+                {confirmingCancel ? (
+                  <>
+                    <div className="text-[12.5px] text-black/60">Cancel this reservation?</div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingCancel(false)}
+                        className="rounded-[8px] border border-black/10 bg-white px-3 py-2 text-[13px] font-medium text-black/70 hover:bg-black/[0.03] hover:text-black"
+                      >
+                        Keep
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onCancel(s.id)}
+                        className="rounded-[8px] bg-rose-600 px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-rose-700"
+                      >
+                        Confirm cancel
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingCancel(true)}
+                      className="text-[13px] font-semibold text-rose-700 hover:text-rose-900"
+                    >
+                      Cancel reservation
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="text-[13px] font-medium text-black/55 hover:text-black"
+                    >
+                      Close
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </>
         )}
+
       </aside>
     </>
   );
