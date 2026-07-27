@@ -1566,6 +1566,7 @@ function Timeline({
   cueRoom,
   onRoomClick,
   onOpenService,
+  onOpenGuest,
   allServices = SERVICES,
   emptyLabel,
   blocks = [],
@@ -1586,6 +1587,7 @@ function Timeline({
   cueRoom?: string | null;
   onRoomClick?: (room: string) => void;
   onOpenService?: (id: string) => void;
+  onOpenGuest?: (name: string) => void;
   allServices?: Service[];
   emptyLabel?: string;
   blocks?: Block[];
