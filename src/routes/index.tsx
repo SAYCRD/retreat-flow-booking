@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageSquare, Footprints, RefreshCcw, Sparkles, Sparkle, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush, ClipboardCheck, Bell, ArrowRight, HandHeart, Wand2, Flower2, Wind, PartyPopper, Hand, Feather, ChevronLeft, ChevronRight } from "lucide-react";
+import { MessageSquare, Footprints, RefreshCcw, Sparkles, Sparkle, Radio, CalendarRange, ArrowDownRight, AlertTriangle, X, Check, UserCheck, DoorOpen, Coffee, Waves, Phone, Mail, FileText, ShieldAlert, ExternalLink, CreditCard, Copy, Brush, ClipboardCheck, Bell, ArrowRight, HandHeart, Wand2, Flower2, Wind, PartyPopper, Hand, Feather, ChevronLeft, ChevronRight, User } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as MiniCalendar } from "@/components/ui/calendar";
 import { PractitionerPanel } from "@/components/PractitionerPanel";
@@ -952,6 +952,20 @@ function TodayPage() {
                 <div className="flex shrink-0 items-center gap-3">
                   {cue && (
                     <>
+                      {cueSvc && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenGuestName(cueSvc.guest);
+                          }}
+                          className="hidden items-center gap-1 text-[12.5px] font-semibold text-black/60 underline-offset-4 hover:text-black hover:underline sm:inline-flex"
+                          title={`Open ${cueSvc.guest.split(" ")[0]}'s profile`}
+                        >
+                          <User size={13} strokeWidth={2} />
+                          {cueSvc.guest.split(" ")[0]}
+                        </button>
+                      )}
                       {isNotify ? (() => {
                         // No action button — the "text" happens by clicking
                         // the little notify marker on the timeline, which
@@ -1119,6 +1133,10 @@ function TodayPage() {
         onCancel={(id) => {
           storeCancelService(id);
           setOpenServiceId(null);
+        }}
+        onOpenGuest={(name) => {
+          setOpenServiceId(null);
+          setOpenGuestName(name);
         }}
       />
       <GuestPanel
@@ -2480,9 +2498,11 @@ function Timeline({
                             e.stopPropagation();
                             onOpenGuest?.(s.guest);
                           }}
-                          className="truncate text-left text-[16px] font-semibold leading-tight tracking-[-0.005em] hover:underline"
+                          className="group/guest inline-flex max-w-full items-center gap-1 truncate text-left text-[16px] font-semibold leading-tight tracking-[-0.005em] underline underline-offset-2 hover:text-black"
                           style={{ color: nameColor, fontFamily: DISPLAY }}
+                          title="Open guest profile"
                         >
+                          <User size={13} strokeWidth={2.25} className="shrink-0 opacity-60" />
                           {s.guest}
                           {s.partySize ? ` +${s.partySize - 1}` : ""}
                         </button>
@@ -2898,10 +2918,12 @@ function ReservationPanel({
   service,
   onClose,
   onCancel,
+  onOpenGuest,
 }: {
   service: Service | null;
   onClose: () => void;
   onCancel?: (id: string) => void;
+  onOpenGuest?: (name: string) => void;
 }) {
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   useEffect(() => { if (!service) setConfirmingCancel(false); }, [service]);
@@ -3139,7 +3161,21 @@ function ReservationPanel({
 
               {/* Contact */}
               {guest && (
-                <PanelSection eyebrow="Contact">
+                <PanelSection
+                  eyebrow="Contact"
+                  trailing={
+                    onOpenGuest ? (
+                      <button
+                        type="button"
+                        onClick={() => onOpenGuest(s.guest)}
+                        className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-black/70 underline-offset-4 hover:text-black hover:underline"
+                      >
+                        <User size={13} strokeWidth={2} />
+                        Guest profile
+                      </button>
+                    ) : null
+                  }
+                >
                   <div className="space-y-1.5 text-[13.5px]">
                     <a
                       href={`tel:${guest.phone.replace(/\s+/g, "")}`}
