@@ -88,6 +88,8 @@ const TABS = [
   { id: "config", label: "Site Config" },
 ] as const;
 
+type TabId = typeof TABS[number]["id"];
+
 // ---------- Component ----------
 
 function SiteWorkspace() {
