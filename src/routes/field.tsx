@@ -97,8 +97,8 @@ function FieldHome() {
       <div className="flex items-center justify-between px-8 pt-6 text-[11px] uppercase tracking-[0.14em] text-neutral-500" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
         <div className="flex items-center gap-6">
           <span className="font-semibold text-neutral-900">The Field</span>
-          <Link to="/" className="hover:text-neutral-900">Reservations ↗</Link>
-          <Link to="/practitioners" className="hover:text-neutral-900">Practitioners ↗</Link>
+          <a href="#dev-guide" className="hover:text-neutral-900">Dev Guide ↗</a>
+          <a href="#cell-architecture" className="hover:text-neutral-900">Cell Architecture ↗</a>
         </div>
         <a href="#what" className="hover:text-neutral-900 inline-flex items-center gap-1">
           What this is <ArrowUpRight className="h-3 w-3" />
