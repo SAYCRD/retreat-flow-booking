@@ -1077,6 +1077,7 @@ function TodayPage() {
               cueRoom={isToday ? cue?.room ?? null : null}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
+              onOpenGuest={(name) => setOpenGuestName(name)}
               allServices={liveServices}
               dateKey={selectedDateKey}
               blocks={blocks}
