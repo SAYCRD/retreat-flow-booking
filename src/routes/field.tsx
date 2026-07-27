@@ -55,11 +55,11 @@ const SITES: Site[] = [
 ];
 
 const CUES: Cue[] = [
-  { id: "c1", siteId: "seondya", kind: "approve", emoji: "📚", verb: "Approve", headline: "Approve monthly Field Library for Seondya" },
-  { id: "c2", siteId: "land", kind: "request", emoji: "🌱", verb: "Review", headline: "Land Journal cell requests topic input · 3 candidates" },
-  { id: "c3", siteId: "ayurveda", kind: "notes", emoji: "📝", verb: "Read", headline: "New site notes from Ayurveda Daily curator" },
-  { id: "c4", siteId: "temple", kind: "curation", emoji: "✨", verb: "Curate", headline: "Temple Notes queued 4 pieces awaiting curation approval" },
-  { id: "c5", siteId: "om", kind: "request", emoji: "🫖", verb: "Reply", headline: "Om Space cell asks: continue the tea-ritual thread?" },
+  { id: "c1", siteId: "sedona-heartfelt-journeys", kind: "approve", emoji: "✨", verb: "Approve", headline: "Approve homepage composition for Sedona Heartfelt Journeys" },
+  { id: "c2", siteId: "untapped", kind: "request", emoji: "🌱", verb: "Review", headline: "Untapped cell requests 3 new place candidates for curation" },
+  { id: "c3", siteId: "sedonaexperience", kind: "notes", emoji: "📝", verb: "Read", headline: "New itinerary notes from SedonaExperience editor" },
+  { id: "c4", siteId: "sedona-heartfelt-journeys", kind: "curation", emoji: "📚", verb: "Curate", headline: "Sedona Heartfelt Journeys queued 4 pieces awaiting curation approval" },
+  { id: "c5", siteId: "untapped", kind: "request", emoji: "🫖", verb: "Reply", headline: "Untapped cell asks: continue the tea-ritual thread?" },
 ];
 
 // ---------- Component ----------
