@@ -315,7 +315,6 @@ function SiteWorkspace() {
           </div>
         </main>
       </div>
-    </div>
   );
 }
 
