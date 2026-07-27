@@ -2924,14 +2924,22 @@ function ReservationPanel({
   service,
   onClose,
   onCancel,
-  onOpenGuest,
+  initialTab = "booking",
+  onTabChange,
 }: {
   service: Service | null;
   onClose: () => void;
   onCancel?: (id: string) => void;
-  onOpenGuest?: (name: string) => void;
+  initialTab?: "booking" | "guest";
+  onTabChange?: (tab: "booking" | "guest") => void;
 }) {
   const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [tab, setTab] = useState<"booking" | "guest">(initialTab);
+  useEffect(() => { setTab(initialTab); }, [initialTab, service?.id]);
+  const switchTab = (t: "booking" | "guest") => {
+    setTab(t);
+    onTabChange?.(t);
+  };
   useEffect(() => { if (!service) setConfirmingCancel(false); }, [service]);
   // Trap Esc to close
   useEffect(() => {
@@ -2942,6 +2950,7 @@ function ReservationPanel({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [service, onClose]);
+
 
   const open = !!service;
   const s = service;
