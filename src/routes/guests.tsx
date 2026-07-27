@@ -229,7 +229,7 @@ function GuestsPage() {
                 name={name}
                 info={info}
                 visits={visitCounts[name] ?? 0}
-      onClick={onClick}
+                onClick={() => setSelectedGuest(name)}
               />
             ))
           )}
