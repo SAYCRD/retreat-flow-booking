@@ -3398,7 +3398,9 @@ function ReservationPanel({
                   </PanelSection>
                 );
               })()}
+              </>)}
             </div>
+
 
             {onCancel && (
               <div className="flex shrink-0 items-center justify-between gap-3 border-t border-black/[0.08] px-7 py-4">
