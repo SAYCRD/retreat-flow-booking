@@ -628,7 +628,7 @@ function TodayPage() {
   const [focusOpen, setFocusOpen] = useState(false);
   const [conflictDismissed, setConflictDismissed] = useState(false);
   const [openServiceId, setOpenServiceId] = useState<string | null>(null);
-  const [openGuestName, setOpenGuestName] = useState<string | null>(null);
+  const [openTab, setOpenTab] = useState<"booking" | "guest">("booking");
   const [heroPast, setHeroPast] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [blocks, setBlocks] = useState<Block[]>([]);
