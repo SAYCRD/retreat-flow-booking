@@ -973,7 +973,7 @@ function TodayPage() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setOpenGuestName(cueSvc.guest);
+                            openGuestProfile(cueSvc.guest);
                           }}
                           className="hidden items-center gap-1 text-[12.5px] font-semibold text-black/60 underline-offset-4 hover:text-black hover:underline sm:inline-flex"
                           title={`Open ${cueSvc.guest.split(" ")[0]}'s profile`}
