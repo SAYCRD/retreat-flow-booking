@@ -229,10 +229,7 @@ function GuestsPage() {
                 name={name}
                 info={info}
                 visits={visitCounts[name] ?? 0}
-                onClick={() => {
-                  // Future: open a dedicated guest detail view or side panel.
-                  // For now, navigate back to reservations filtered by this guest.
-                }}
+      onClick={onClick}
               />
             ))
           )}
