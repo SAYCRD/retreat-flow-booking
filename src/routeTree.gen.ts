@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PractitionersRouteImport } from './routes/practitioners'
+import { Route as GuestsRouteImport } from './routes/guests'
 import { Route as FieldRouteImport } from './routes/field'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FieldIndexRouteImport } from './routes/field.index'
@@ -18,6 +19,11 @@ import { Route as FieldSitesSiteIdRouteImport } from './routes/field.sites.$site
 const PractitionersRoute = PractitionersRouteImport.update({
   id: '/practitioners',
   path: '/practitioners',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuestsRoute = GuestsRouteImport.update({
+  id: '/guests',
+  path: '/guests',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FieldRoute = FieldRouteImport.update({
@@ -44,12 +50,14 @@ const FieldSitesSiteIdRoute = FieldSitesSiteIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/field': typeof FieldRouteWithChildren
+  '/guests': typeof GuestsRoute
   '/practitioners': typeof PractitionersRoute
   '/field/': typeof FieldIndexRoute
   '/field/sites/$siteId': typeof FieldSitesSiteIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/guests': typeof GuestsRoute
   '/practitioners': typeof PractitionersRoute
   '/field': typeof FieldIndexRoute
   '/field/sites/$siteId': typeof FieldSitesSiteIdRoute
@@ -58,6 +66,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/field': typeof FieldRouteWithChildren
+  '/guests': typeof GuestsRoute
   '/practitioners': typeof PractitionersRoute
   '/field/': typeof FieldIndexRoute
   '/field/sites/$siteId': typeof FieldSitesSiteIdRoute
@@ -67,15 +76,17 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/field'
+    | '/guests'
     | '/practitioners'
     | '/field/'
     | '/field/sites/$siteId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/practitioners' | '/field' | '/field/sites/$siteId'
+  to: '/' | '/guests' | '/practitioners' | '/field' | '/field/sites/$siteId'
   id:
     | '__root__'
     | '/'
     | '/field'
+    | '/guests'
     | '/practitioners'
     | '/field/'
     | '/field/sites/$siteId'
@@ -84,6 +95,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   FieldRoute: typeof FieldRouteWithChildren
+  GuestsRoute: typeof GuestsRoute
   PractitionersRoute: typeof PractitionersRoute
 }
 
@@ -94,6 +106,13 @@ declare module '@tanstack/react-router' {
       path: '/practitioners'
       fullPath: '/practitioners'
       preLoaderRoute: typeof PractitionersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guests': {
+      id: '/guests'
+      path: '/guests'
+      fullPath: '/guests'
+      preLoaderRoute: typeof GuestsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/field': {
@@ -142,6 +161,7 @@ const FieldRouteWithChildren = FieldRoute._addFileChildren(FieldRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   FieldRoute: FieldRouteWithChildren,
+  GuestsRoute: GuestsRoute,
   PractitionersRoute: PractitionersRoute,
 }
 export const routeTree = rootRouteImport

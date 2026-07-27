@@ -4,6 +4,8 @@ import { MessageSquare, Footprints, RefreshCcw, Sparkles, Sparkle, Radio, Calend
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as MiniCalendar } from "@/components/ui/calendar";
 import { PractitionerPanel } from "@/components/PractitionerPanel";
+import { GuestPanel } from "@/components/GuestPanel";
+import { GUESTS, getProtocols } from "@/lib/guestData";
 import {
   openPractitionerPanelByName,
   hasAvailabilityCovering,
@@ -402,119 +404,8 @@ const FINANCES = [
   { guest: "Thomas Wren", services: 1, amount: 95, paid: true },
 ];
 
-// Per-guest details — contact, waiver, contraindications keyed to service kind.
-type GuestInfo = {
-  phone: string;
-  email: string;
-  pronouns?: string;
-  waiverSignedOn?: string; // ISO date, undefined = not signed
-  notes?: string;
-  contraindications?: string[];
-};
-
-const GUESTS: Record<string, GuestInfo> = {
-  "Elena Vives": {
-    phone: "+1 (415) 555-0132", email: "elena.vives@hey.com", pronouns: "she/her",
-    waiverSignedOn: "2026-06-14",
-    notes: "Prefers arm rest under IV. Slight vein anxiety — talk her through the tap.",
-    contraindications: ["History of vasovagal response — recline fully", "Avoid B-complex flush at high rate"],
-  },
-  "Nadia Farrow": {
-    phone: "+1 (628) 555-0177", email: "nadia@farrowstudio.com", pronouns: "she/her",
-    waiverSignedOn: "2026-07-02",
-    notes: "Deep pressure OK on shoulders, light on lower back.",
-    contraindications: ["Recent cortisone in right shoulder (May) — avoid direct work", "No cupping over lumbar tattoo (still healing)"],
-  },
-  "Thomas Wren": {
-    phone: "+1 (206) 555-0104", email: "twren@northlight.co",
-    waiverSignedOn: "2026-05-20",
-    contraindications: ["Pacemaker — confirm BEMER protocol distance"],
-  },
-  "Gerald & June Pierce": {
-    phone: "+1 (312) 555-0155", email: "pierces@fastmail.com",
-    waiverSignedOn: "2026-07-25",
-    notes: "25th anniversary. Champagne + card in the room.",
-    contraindications: ["June: right hip replacement 2019 — no deep hip work, side-lying only"],
-  },
-  "Amara Okonkwo": {
-    phone: "+44 20 7946 0432", email: "amara.o@studio.london", pronouns: "she/her",
-    waiverSignedOn: "2026-07-25",
-    notes: "Sensory sensitive. Low light, minimal chat on arrival. Journey of 3.",
-    contraindications: ["Migraine trigger — no strong essential oils in reading room"],
-  },
-  "Marcus Hale": {
-    phone: "+1 (503) 555-0198", email: "marcus.hale@proton.me",
-    waiverSignedOn: undefined,
-    notes: "First visit — greet at the door, walk him through the space.",
-    contraindications: ["Tinnitus — check bowl proximity before session"],
-  },
-  "Priya Anand": {
-    phone: "+1 (917) 555-0121", email: "priya.a@lantern.co",
-    waiverSignedOn: undefined,
-    notes: "Awaiting confirmation on Medicine Walk. Bring water + light jacket.",
-    contraindications: [],
-  },
-  "Lena Costa": {
-    phone: "+1 (415) 555-0187", email: "lena@costafolio.com",
-    waiverSignedOn: "2026-04-11",
-    contraindications: ["Second trimester pregnancy — supine only briefly, side-lying preferred"],
-  },
-};
-
-// Session protocols — cautions tied to the SERVICE (modality), not the person.
-// These are the things the practitioner must brief the guest on, or confirm before starting.
-// The waiver is auto-composed from the applicable protocols + the guest's disclosures.
-type Protocol = { text: string; severity: "brief" | "confirm" | "block" };
-const SESSION_PROTOCOLS: Record<string, Protocol[]> = {
-  "Myers Cocktail IV": [
-    { text: "Confirm no recent kidney issues or dialysis", severity: "confirm" },
-    { text: "Brief guest on cold sensation & metallic taste during push", severity: "brief" },
-    { text: "Vasovagal risk — recline fully before insertion", severity: "confirm" },
-  ],
-  "Deep Tissue Massage": [
-    { text: "Check pressure at 5 min and again at 15 min", severity: "brief" },
-    { text: "Avoid areas of recent injection, cortisone, or fresh ink", severity: "block" },
-    { text: "No deep work over replaced joints or acute inflammation", severity: "block" },
-  ],
-  "BEMER Session": [
-    { text: "Pacemaker / ICD — maintain protocol distance, confirm model", severity: "block" },
-    { text: "Not for active pregnancy first trimester", severity: "block" },
-  ],
-  "Cupping": [
-    { text: "No cupping over tattoos <6 weeks, moles, or broken skin", severity: "block" },
-    { text: "Brief on marking — lasts 3–7 days", severity: "brief" },
-  ],
-  "Couples Ayurvedic Massage": [
-    { text: "Confirm oil allergies with both guests", severity: "confirm" },
-    { text: "Side-lying only for hip replacement or late pregnancy", severity: "confirm" },
-  ],
-  "Intuitive Reading": [
-    { text: "Confirm guest is not in acute grief or crisis — offer reschedule", severity: "confirm" },
-  ],
-  "Sound Healing": [
-    { text: "Tinnitus — position bowls at safe distance, check before start", severity: "confirm" },
-    { text: "Photosensitive epilepsy — no strobe elements", severity: "block" },
-  ],
-  "Ceremonial Tea & Integration": [
-    { text: "Confirm no MAOI medications in last 14 days", severity: "block" },
-    { text: "Brief on tea composition & duration", severity: "brief" },
-  ],
-  "Infrared Sauna": [
-    { text: "Hydration check before entry — offer electrolytes", severity: "brief" },
-    { text: "No entry with fever, alcohol, or first-trimester pregnancy", severity: "block" },
-  ],
-  "Medicine Walk": [
-    { text: "Confirm mobility & footwear — 90 min terrain", severity: "confirm" },
-    { text: "Brief on weather, water, and sun exposure", severity: "brief" },
-  ],
-  "Grandmother Crystal Bowl": [
-    { text: "Photosensitivity & tinnitus — confirm before start", severity: "confirm" },
-  ],
-};
-
-function getProtocols(serviceName: string): Protocol[] {
-  return SESSION_PROTOCOLS[serviceName] ?? [];
-}
+// Guest details and session protocols now live in @/lib/guestData and are
+// shared with the guest directory route.
 
 // Payment state now lives in @/lib/paymentState so cards and the panel
 // can share reads/writes. Retained here only as a legacy alias for
@@ -737,6 +628,7 @@ function TodayPage() {
   const [focusOpen, setFocusOpen] = useState(false);
   const [conflictDismissed, setConflictDismissed] = useState(false);
   const [openServiceId, setOpenServiceId] = useState<string | null>(null);
+  const [openGuestName, setOpenGuestName] = useState<string | null>(null);
   const [heroPast, setHeroPast] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -856,6 +748,7 @@ function TodayPage() {
           <nav className="flex items-center gap-4 text-[12.5px]">
             <Link to="/" className="font-semibold text-black">Reservations</Link>
             <Link to="/practitioners" className="text-black/50 hover:text-black">Practitioners</Link>
+            <Link to="/guests" className="text-black/50 hover:text-black">Guests</Link>
           </nav>
 
 
@@ -1184,6 +1077,7 @@ function TodayPage() {
               cueRoom={isToday ? cue?.room ?? null : null}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
+              onOpenGuest={(name) => setOpenGuestName(name)}
               allServices={liveServices}
               dateKey={selectedDateKey}
               blocks={blocks}
@@ -1225,6 +1119,15 @@ function TodayPage() {
         onCancel={(id) => {
           storeCancelService(id);
           setOpenServiceId(null);
+        }}
+      />
+      <GuestPanel
+        guestName={openGuestName}
+        services={liveServices}
+        onClose={() => setOpenGuestName(null)}
+        onNewBooking={(guestName) => {
+          setOpenGuestName(null);
+          setOpenSlot({ room: ROOMS[0], start: 0, end: 60, mode: "reservation" });
         }}
       />
       <SlotPanel
@@ -1664,6 +1567,7 @@ function Timeline({
   cueRoom,
   onRoomClick,
   onOpenService,
+  onOpenGuest,
   allServices = SERVICES,
   emptyLabel,
   blocks = [],
@@ -1684,6 +1588,7 @@ function Timeline({
   cueRoom?: string | null;
   onRoomClick?: (room: string) => void;
   onOpenService?: (id: string) => void;
+  onOpenGuest?: (name: string) => void;
   allServices?: Service[];
   emptyLabel?: string;
   blocks?: Block[];
@@ -2569,13 +2474,18 @@ function Timeline({
                         >
                           for
                         </span>
-                        <div
-                          className="truncate text-[16px] font-semibold leading-tight tracking-[-0.005em]"
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenGuest?.(s.guest);
+                          }}
+                          className="truncate text-left text-[16px] font-semibold leading-tight tracking-[-0.005em] hover:underline"
                           style={{ color: nameColor, fontFamily: DISPLAY }}
                         >
                           {s.guest}
                           {s.partySize ? ` +${s.partySize - 1}` : ""}
-                        </div>
+                        </button>
                         {isRequest && (
                           <span
                             className="ml-auto rounded-sm px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]"
