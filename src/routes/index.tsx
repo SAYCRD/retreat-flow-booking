@@ -628,7 +628,7 @@ function TodayPage() {
   const [focusOpen, setFocusOpen] = useState(false);
   const [conflictDismissed, setConflictDismissed] = useState(false);
   const [openServiceId, setOpenServiceId] = useState<string | null>(null);
-  const [openGuestName, setOpenGuestName] = useState<string | null>(null);
+  const [openTab, setOpenTab] = useState<"booking" | "guest">("booking");
   const [heroPast, setHeroPast] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -653,6 +653,22 @@ function TodayPage() {
       consumeOpenReservation();
     }
   }, [storeSnap.openReservationId]);
+
+  // Open the unified detail panel focused on a guest. Finds the guest's
+  // current or next service today and opens it on the "Guest" tab.
+  const openGuestProfile = (guestName: string) => {
+    const guestServices = liveServices
+      .filter((s) => s.guest === guestName)
+      .sort((a, b) => a.start - b.start);
+    const nowM = nowMin;
+    const target =
+      guestServices.find((s) => s.end >= nowM) ?? guestServices[0] ?? null;
+    if (target) {
+      setOpenServiceId(target.id);
+      setOpenTab("guest");
+    }
+  };
+
 
 
   const timelineRef = useRef<HTMLDivElement | null>(null);
@@ -957,7 +973,7 @@ function TodayPage() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setOpenGuestName(cueSvc.guest);
+                            openGuestProfile(cueSvc.guest);
                           }}
                           className="hidden items-center gap-1 text-[12.5px] font-semibold text-black/60 underline-offset-4 hover:text-black hover:underline sm:inline-flex"
                           title={`Open ${cueSvc.guest.split(" ")[0]}'s profile`}
@@ -1091,7 +1107,7 @@ function TodayPage() {
               cueRoom={isToday ? cue?.room ?? null : null}
               onRoomClick={(r) => setActiveRoom((cur) => (cur === r ? null : r))}
               onOpenService={(id) => setOpenServiceId(id)}
-              onOpenGuest={(name) => setOpenGuestName(name)}
+              onOpenGuest={(name) => openGuestProfile(name)}
               allServices={liveServices}
               dateKey={selectedDateKey}
               blocks={blocks}
@@ -1129,25 +1145,15 @@ function TodayPage() {
 
       <ReservationPanel
         service={openService}
+        initialTab={openTab}
+        onTabChange={setOpenTab}
         onClose={() => setOpenServiceId(null)}
         onCancel={(id) => {
           storeCancelService(id);
           setOpenServiceId(null);
         }}
-        onOpenGuest={(name) => {
-          setOpenServiceId(null);
-          setOpenGuestName(name);
-        }}
       />
-      <GuestPanel
-        guestName={openGuestName}
-        services={liveServices}
-        onClose={() => setOpenGuestName(null)}
-        onNewBooking={(guestName) => {
-          setOpenGuestName(null);
-          setOpenSlot({ room: ROOMS[0], start: 0, end: 60, mode: "reservation" });
-        }}
-      />
+
       <SlotPanel
         draft={openSlot}
         dateKey={selectedDateKey}
@@ -2918,14 +2924,22 @@ function ReservationPanel({
   service,
   onClose,
   onCancel,
-  onOpenGuest,
+  initialTab = "booking",
+  onTabChange,
 }: {
   service: Service | null;
   onClose: () => void;
   onCancel?: (id: string) => void;
-  onOpenGuest?: (name: string) => void;
+  initialTab?: "booking" | "guest";
+  onTabChange?: (tab: "booking" | "guest") => void;
 }) {
   const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [tab, setTab] = useState<"booking" | "guest">(initialTab);
+  useEffect(() => { setTab(initialTab); }, [initialTab, service?.id]);
+  const switchTab = (t: "booking" | "guest") => {
+    setTab(t);
+    onTabChange?.(t);
+  };
   useEffect(() => { if (!service) setConfirmingCancel(false); }, [service]);
   // Trap Esc to close
   useEffect(() => {
@@ -2936,6 +2950,7 @@ function ReservationPanel({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [service, onClose]);
+
 
   const open = !!service;
   const s = service;
@@ -3018,9 +3033,38 @@ function ReservationPanel({
               </button>
             </div>
 
+            {/* Tabs */}
+            <div className="flex shrink-0 items-center gap-0 border-b border-black/[0.08] px-7">
+              {(["booking", "guest"] as const).map((t) => {
+                const isActive = tab === t;
+                const label = t === "booking" ? "Booking" : "Guest";
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => switchTab(t)}
+                    className={`relative -mb-px px-3 py-3 text-[12.5px] font-semibold tracking-tight transition-colors ${
+                      isActive ? "text-black" : "text-black/45 hover:text-black/70"
+                    }`}
+                    style={{ fontFamily: DISPLAY }}
+                  >
+                    {label}
+                    {isActive && (
+                      <span
+                        className="absolute inset-x-2 -bottom-px h-[2px] rounded-t-full"
+                        style={{ background: rc }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Scrollable body */}
             <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-8">
+              {tab === "booking" && (<>
               {/* Fact list */}
+
               <dl className="grid grid-cols-[110px_1fr] gap-y-3 border-t border-black/[0.08] py-5 text-[14px]">
                 <PanelRow label="Room">
                   <span className="font-semibold" style={{ color: rc }}>{s.room}</span>
@@ -3158,24 +3202,14 @@ function ReservationPanel({
                   </ol>
                 </PanelSection>
               )}
+              </>)}
 
+              {tab === "guest" && (<>
               {/* Contact */}
+
               {guest && (
-                <PanelSection
-                  eyebrow="Contact"
-                  trailing={
-                    onOpenGuest ? (
-                      <button
-                        type="button"
-                        onClick={() => onOpenGuest(s.guest)}
-                        className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-black/70 underline-offset-4 hover:text-black hover:underline"
-                      >
-                        <User size={13} strokeWidth={2} />
-                        Guest profile
-                      </button>
-                    ) : null
-                  }
-                >
+                <PanelSection eyebrow="Contact">
+
                   <div className="space-y-1.5 text-[13.5px]">
                     <a
                       href={`tel:${guest.phone.replace(/\s+/g, "")}`}
@@ -3364,7 +3398,9 @@ function ReservationPanel({
                   </PanelSection>
                 );
               })()}
+              </>)}
             </div>
+
 
             {onCancel && (
               <div className="flex shrink-0 items-center justify-between gap-3 border-t border-black/[0.08] px-7 py-4">
