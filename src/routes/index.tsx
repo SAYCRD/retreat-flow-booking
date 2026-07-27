@@ -1120,6 +1120,15 @@ function TodayPage() {
           setOpenServiceId(null);
         }}
       />
+      <GuestPanel
+        guestName={openGuestName}
+        services={liveServices}
+        onClose={() => setOpenGuestName(null)}
+        onNewBooking={(guestName) => {
+          setOpenGuestName(null);
+          setOpenSlot({ room: ROOMS[0], start: 0, end: 60, mode: "reservation" });
+        }}
+      />
       <SlotPanel
         draft={openSlot}
         dateKey={selectedDateKey}
