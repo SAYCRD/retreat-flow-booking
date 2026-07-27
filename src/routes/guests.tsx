@@ -126,6 +126,7 @@ function GuestRow({
 
 function GuestsPage() {
   const [query, setQuery] = useState("");
+  const [selectedGuest, setSelectedGuest] = useState<string | null>(null);
   const guests = useMemo(() => Object.entries(GUESTS), []);
 
   const filtered = useMemo(() => {
