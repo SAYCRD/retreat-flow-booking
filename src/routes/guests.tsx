@@ -235,6 +235,15 @@ function GuestsPage() {
           )}
         </div>
       </main>
+
+      <GuestPanel
+        guestName={selectedGuest}
+        services={SEED_SERVICES}
+        onClose={() => setSelectedGuest(null)}
+        onNewBooking={(guestName) => {
+          setSelectedGuest(null);
+        }}
+      />
     </div>
   );
 }
