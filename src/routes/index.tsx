@@ -3202,8 +3202,11 @@ function ReservationPanel({
                   </ol>
                 </PanelSection>
               )}
+              </>)}
 
+              {tab === "guest" && (<>
               {/* Contact */}
+
               {guest && (
                 <PanelSection eyebrow="Contact">
 
