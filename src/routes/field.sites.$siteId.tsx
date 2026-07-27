@@ -95,7 +95,7 @@ type TabId = typeof TABS[number]["id"];
 function SiteWorkspace() {
   const { siteId } = Route.useParams();
   const activeSite = useMemo(() => SITES.find((s) => s.id === siteId) ?? SITES[0], [siteId]);
-  const [activeTab, setActiveTab] = useState<typeof TABS[number]["id"]>"editorial");
+  const [activeTab, setActiveTab] = useState<TabId>("editorial");
 
   const tools: Tool[] = useMemo(
     () => [
