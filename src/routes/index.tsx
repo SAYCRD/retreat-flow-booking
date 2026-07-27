@@ -747,6 +747,7 @@ function TodayPage() {
           <nav className="flex items-center gap-4 text-[12.5px]">
             <Link to="/" className="font-semibold text-black">Reservations</Link>
             <Link to="/practitioners" className="text-black/50 hover:text-black">Practitioners</Link>
+            <Link to="/guests" className="text-black/50 hover:text-black">Guests</Link>
           </nav>
 
 
