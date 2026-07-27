@@ -2473,13 +2473,18 @@ function Timeline({
                         >
                           for
                         </span>
-                        <div
-                          className="truncate text-[16px] font-semibold leading-tight tracking-[-0.005em]"
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenGuest?.(s.guest);
+                          }}
+                          className="truncate text-left text-[16px] font-semibold leading-tight tracking-[-0.005em] hover:underline"
                           style={{ color: nameColor, fontFamily: DISPLAY }}
                         >
                           {s.guest}
                           {s.partySize ? ` +${s.partySize - 1}` : ""}
-                        </div>
+                        </button>
                         {isRequest && (
                           <span
                             className="ml-auto rounded-sm px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]"
