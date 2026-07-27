@@ -155,26 +155,7 @@ function SiteWorkspace() {
     : tools.filter((t) => ["config-tool", "templates"].includes(t.id));
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900" style={{ fontFamily: '"Inter", system-ui, sans-serif' }}>
-      {/* Utility strip */}
-      <div className="flex items-center justify-between px-8 pt-6 text-[11px] uppercase tracking-[0.14em] text-neutral-500" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-        <div className="flex items-center gap-6">
-          <Link to="/field" className="font-semibold text-neutral-900 hover:opacity-70">
-            The Field
-          </Link>
-          <span className="text-neutral-300">/</span>
-          <Link to="/field" className="hover:text-neutral-900">
-            Sites
-          </Link>
-          <a href="#cell-architecture" className="hover:text-neutral-900">Cell Architecture ↗</a>
-          <a href="#dev-guide" className="hover:text-neutral-900">Dev Guide ↗</a>
-        </div>
-        <a href="#what" className="hover:text-neutral-900 inline-flex items-center gap-1">
-          What this is <ArrowUpRight className="h-3 w-3" />
-        </a>
-      </div>
-
-      <div className="flex min-h-[calc(100vh-88px)]">
+    <div className="flex min-h-[calc(100vh-88px)]">
         {/* Left rail — sites */}
         <aside className="w-[280px] border-r border-neutral-200 px-6 py-8 flex flex-col">
           <div className="flex items-baseline justify-between mb-6">
