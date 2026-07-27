@@ -3033,9 +3033,38 @@ function ReservationPanel({
               </button>
             </div>
 
+            {/* Tabs */}
+            <div className="flex shrink-0 items-center gap-0 border-b border-black/[0.08] px-7">
+              {(["booking", "guest"] as const).map((t) => {
+                const isActive = tab === t;
+                const label = t === "booking" ? "Booking" : "Guest";
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => switchTab(t)}
+                    className={`relative -mb-px px-3 py-3 text-[12.5px] font-semibold tracking-tight transition-colors ${
+                      isActive ? "text-black" : "text-black/45 hover:text-black/70"
+                    }`}
+                    style={{ fontFamily: DISPLAY }}
+                  >
+                    {label}
+                    {isActive && (
+                      <span
+                        className="absolute inset-x-2 -bottom-px h-[2px] rounded-t-full"
+                        style={{ background: rc }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Scrollable body */}
             <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-8">
+              {tab === "booking" && (<>
               {/* Fact list */}
+
               <dl className="grid grid-cols-[110px_1fr] gap-y-3 border-t border-black/[0.08] py-5 text-[14px]">
                 <PanelRow label="Room">
                   <span className="font-semibold" style={{ color: rc }}>{s.room}</span>
