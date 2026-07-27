@@ -222,6 +222,34 @@ function FieldHome() {
         </ul>
       </section>
 
+      {/* Dev Guide */}
+      <section id="dev-guide" className="px-8 py-16 border-t border-neutral-200">
+        <h3
+          className="text-[28px] font-semibold text-neutral-900"
+          style={{ fontFamily: '"Inter Tight", sans-serif', letterSpacing: "-0.03em" }}
+        >
+          Dev Guide
+        </h3>
+        <p className="mt-3 max-w-2xl text-neutral-600 leading-relaxed">
+          How The Field is built, deployed, and extended. Conventions for cells, sites,
+          publish rhythms, and the intelligence layer that surfaces requests up to this home.
+        </p>
+      </section>
+
+      {/* Cell Architecture */}
+      <section id="cell-architecture" className="px-8 py-16 border-t border-neutral-200">
+        <h3
+          className="text-[28px] font-semibold text-neutral-900"
+          style={{ fontFamily: '"Inter Tight", sans-serif', letterSpacing: "-0.03em" }}
+        >
+          Cell Architecture
+        </h3>
+        <p className="mt-3 max-w-2xl text-neutral-600 leading-relaxed">
+          The anatomy of a site: content cells, curation cells, orchestration cells, and the
+          reporting agent that decides what rises to Field Intelligence.
+        </p>
+      </section>
+
       {/* What this is */}
       <section id="what" className="px-8 py-16 border-t border-neutral-200">
         <h3
