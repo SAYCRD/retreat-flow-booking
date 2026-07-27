@@ -292,8 +292,10 @@ function SiteRow({ site, cueCount }: { site: Site; cueCount: number }) {
   const statusColor = site.status === "attention" ? "#ff7aa2" : site.status === "quiet" ? "#9ca3af" : "#3fd6b0";
 
   return (
-    <div
-      className="group relative bg-white border border-neutral-200 p-6 transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_14px_36px_-18px_rgba(0,0,0,0.25)]"
+    <Link
+      to="/field/sites/$siteId"
+      params={{ siteId: site.id }}
+      className="group block relative bg-white border border-neutral-200 p-6 transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_14px_36px_-18px_rgba(0,0,0,0.25)]"
       style={{
         borderLeft: `3px solid ${site.accent}`,
         boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -18px rgba(0,0,0,0.15)",
@@ -340,7 +342,7 @@ function SiteRow({ site, cueCount }: { site: Site; cueCount: number }) {
           Enter site <ArrowUpRight className="h-3.5 w-3.5" />
         </span>
       </div>
-    </div>
+    </Link>
   );
 }
 
