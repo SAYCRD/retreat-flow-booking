@@ -129,8 +129,8 @@ function FieldHome() {
       </section>
 
       {/* BAND 2 — Field Intelligence strip */}
-      <section className="sticky top-0 z-20 border-y border-neutral-200" style={{ background: "#fff5f7" }}>
-        <div className="px-8 py-5 flex items-center gap-5">
+      <section className="sticky top-0 z-20 border-y border-neutral-200" style={{ background: "#f8f5ff" }}>
+        <div className="px-8 py-7 flex items-center gap-5">
           <div className="flex items-center gap-2 min-w-[168px]">
             <Sparkles className="h-4 w-4 text-neutral-900" />
             <span
