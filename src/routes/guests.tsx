@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Search, Phone, Mail, Plus, ArrowRight, AlertCircle, ShieldCheck, FileText, ChevronLeft } from "lucide-react";
 import { GUESTS, type GuestInfo } from "@/lib/guestData";
 import { SEED_SERVICES, type Service } from "@/lib/catalog";
+import { GuestPanel } from "@/components/GuestPanel";
 
 const DISPLAY = "'Inter Tight', 'Inter', system-ui, sans-serif";
 const MONO = "'JetBrains Mono', 'SF Mono', ui-monospace, monospace";
