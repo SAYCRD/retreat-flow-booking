@@ -4,6 +4,8 @@ import { MessageSquare, Footprints, RefreshCcw, Sparkles, Sparkle, Radio, Calend
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as MiniCalendar } from "@/components/ui/calendar";
 import { PractitionerPanel } from "@/components/PractitionerPanel";
+import { GuestPanel } from "@/components/GuestPanel";
+import { GUESTS, getProtocols } from "@/lib/guestData";
 import {
   openPractitionerPanelByName,
   hasAvailabilityCovering,
