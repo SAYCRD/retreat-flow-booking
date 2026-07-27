@@ -1145,25 +1145,15 @@ function TodayPage() {
 
       <ReservationPanel
         service={openService}
+        initialTab={openTab}
+        onTabChange={setOpenTab}
         onClose={() => setOpenServiceId(null)}
         onCancel={(id) => {
           storeCancelService(id);
           setOpenServiceId(null);
         }}
-        onOpenGuest={(name) => {
-          setOpenServiceId(null);
-          setOpenGuestName(name);
-        }}
       />
-      <GuestPanel
-        guestName={openGuestName}
-        services={liveServices}
-        onClose={() => setOpenGuestName(null)}
-        onNewBooking={(guestName) => {
-          setOpenGuestName(null);
-          setOpenSlot({ room: ROOMS[0], start: 0, end: 60, mode: "reservation" });
-        }}
-      />
+
       <SlotPanel
         draft={openSlot}
         dateKey={selectedDateKey}
