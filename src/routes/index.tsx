@@ -654,6 +654,22 @@ function TodayPage() {
     }
   }, [storeSnap.openReservationId]);
 
+  // Open the unified detail panel focused on a guest. Finds the guest's
+  // current or next service today and opens it on the "Guest" tab.
+  const openGuestProfile = (guestName: string) => {
+    const guestServices = liveServices
+      .filter((s) => s.guest === guestName)
+      .sort((a, b) => a.start - b.start);
+    const nowM = nowMin;
+    const target =
+      guestServices.find((s) => s.end >= nowM) ?? guestServices[0] ?? null;
+    if (target) {
+      setOpenServiceId(target.id);
+      setOpenTab("guest");
+    }
+  };
+
+
 
   const timelineRef = useRef<HTMLDivElement | null>(null);
   // Intentionally do NOT auto-scroll to the timeline when the date changes —
