@@ -2902,10 +2902,12 @@ function ReservationPanel({
   service,
   onClose,
   onCancel,
+  onOpenGuest,
 }: {
   service: Service | null;
   onClose: () => void;
   onCancel?: (id: string) => void;
+  onOpenGuest?: (name: string) => void;
 }) {
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   useEffect(() => { if (!service) setConfirmingCancel(false); }, [service]);
