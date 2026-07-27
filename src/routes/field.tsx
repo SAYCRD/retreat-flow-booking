@@ -109,13 +109,16 @@ function FieldHome() {
       <section className="px-8 pt-10 pb-12">
         <div className="flex items-start justify-between gap-8">
           <div>
-            <h1
-              className="text-[112px] leading-[0.9] font-semibold text-neutral-900"
-              style={{ fontFamily: '"Inter Tight", sans-serif', letterSpacing: "-0.045em" }}
+            <span
+              className="text-sm uppercase tracking-[0.18em] text-neutral-500"
+              style={{ fontFamily: '"JetBrains Mono", monospace' }}
             >
               Today
-            </h1>
-            <p className="mt-4 text-lg text-neutral-600" style={{ fontFamily: '"Instrument Serif", serif', fontStyle: "italic" }}>
+            </span>
+            <p
+              className="mt-2 text-[72px] leading-[0.95] text-neutral-900"
+              style={{ fontFamily: '"Instrument Serif", serif', fontStyle: "italic", letterSpacing: "-0.03em" }}
+            >
               {dateLong} · {clock}
             </p>
           </div>
