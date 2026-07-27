@@ -2484,9 +2484,11 @@ function Timeline({
                             e.stopPropagation();
                             onOpenGuest?.(s.guest);
                           }}
-                          className="truncate text-left text-[16px] font-semibold leading-tight tracking-[-0.005em] hover:underline"
+                          className="group/guest inline-flex max-w-full items-center gap-1 truncate text-left text-[16px] font-semibold leading-tight tracking-[-0.005em] underline underline-offset-2 hover:text-black"
                           style={{ color: nameColor, fontFamily: DISPLAY }}
+                          title="Open guest profile"
                         >
+                          <User size={13} strokeWidth={2.25} className="shrink-0 opacity-60" />
                           {s.guest}
                           {s.partySize ? ` +${s.partySize - 1}` : ""}
                         </button>
