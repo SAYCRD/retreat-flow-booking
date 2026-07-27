@@ -97,8 +97,8 @@ function FieldHome() {
       <div className="flex items-center justify-between px-8 pt-6 text-[11px] uppercase tracking-[0.14em] text-neutral-500" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
         <div className="flex items-center gap-6">
           <span className="font-semibold text-neutral-900">The Field</span>
-          <Link to="/" className="hover:text-neutral-900">Reservations ↗</Link>
-          <Link to="/practitioners" className="hover:text-neutral-900">Practitioners ↗</Link>
+          <a href="#dev-guide" className="hover:text-neutral-900">Dev Guide ↗</a>
+          <a href="#cell-architecture" className="hover:text-neutral-900">Cell Architecture ↗</a>
         </div>
         <a href="#what" className="hover:text-neutral-900 inline-flex items-center gap-1">
           What this is <ArrowUpRight className="h-3 w-3" />
@@ -129,8 +129,8 @@ function FieldHome() {
       </section>
 
       {/* BAND 2 — Field Intelligence strip */}
-      <section className="sticky top-0 z-20 border-y border-neutral-200" style={{ background: "#fff5f7" }}>
-        <div className="px-8 py-5 flex items-center gap-5">
+      <section className="sticky top-0 z-20 border-y border-neutral-200" style={{ background: "#f8f5ff" }}>
+        <div className="px-8 py-7 flex items-center gap-5">
           <div className="flex items-center gap-2 min-w-[168px]">
             <Sparkles className="h-4 w-4 text-neutral-900" />
             <span
@@ -220,6 +220,34 @@ function FieldHome() {
             </li>
           ))}
         </ul>
+      </section>
+
+      {/* Dev Guide */}
+      <section id="dev-guide" className="px-8 py-16 border-t border-neutral-200">
+        <h3
+          className="text-[28px] font-semibold text-neutral-900"
+          style={{ fontFamily: '"Inter Tight", sans-serif', letterSpacing: "-0.03em" }}
+        >
+          Dev Guide
+        </h3>
+        <p className="mt-3 max-w-2xl text-neutral-600 leading-relaxed">
+          How The Field is built, deployed, and extended. Conventions for cells, sites,
+          publish rhythms, and the intelligence layer that surfaces requests up to this home.
+        </p>
+      </section>
+
+      {/* Cell Architecture */}
+      <section id="cell-architecture" className="px-8 py-16 border-t border-neutral-200">
+        <h3
+          className="text-[28px] font-semibold text-neutral-900"
+          style={{ fontFamily: '"Inter Tight", sans-serif', letterSpacing: "-0.03em" }}
+        >
+          Cell Architecture
+        </h3>
+        <p className="mt-3 max-w-2xl text-neutral-600 leading-relaxed">
+          The anatomy of a site: content cells, curation cells, orchestration cells, and the
+          reporting agent that decides what rises to Field Intelligence.
+        </p>
       </section>
 
       {/* What this is */}
