@@ -952,6 +952,20 @@ function TodayPage() {
                 <div className="flex shrink-0 items-center gap-3">
                   {cue && (
                     <>
+                      {cueSvc && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenGuestName(cueSvc.guest);
+                          }}
+                          className="hidden items-center gap-1 text-[12.5px] font-semibold text-black/60 underline-offset-4 hover:text-black hover:underline sm:inline-flex"
+                          title={`Open ${cueSvc.guest.split(" ")[0]}'s profile`}
+                        >
+                          <User size={13} strokeWidth={2} />
+                          {cueSvc.guest.split(" ")[0]}
+                        </button>
+                      )}
                       {isNotify ? (() => {
                         // No action button — the "text" happens by clicking
                         // the little notify marker on the timeline, which
