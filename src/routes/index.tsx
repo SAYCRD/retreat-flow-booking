@@ -3176,21 +3176,8 @@ function ReservationPanel({
 
               {/* Contact */}
               {guest && (
-                <PanelSection
-                  eyebrow="Contact"
-                  trailing={
-                    onOpenGuest ? (
-                      <button
-                        type="button"
-                        onClick={() => onOpenGuest(s.guest)}
-                        className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-black/70 underline-offset-4 hover:text-black hover:underline"
-                      >
-                        <User size={13} strokeWidth={2} />
-                        Guest profile
-                      </button>
-                    ) : null
-                  }
-                >
+                <PanelSection eyebrow="Contact">
+
                   <div className="space-y-1.5 text-[13.5px]">
                     <a
                       href={`tel:${guest.phone.replace(/\s+/g, "")}`}
