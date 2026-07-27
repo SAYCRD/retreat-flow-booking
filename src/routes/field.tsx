@@ -49,12 +49,9 @@ type Cue = {
 };
 
 const SITES: Site[] = [
-  { id: "seondya", name: "Seondya", domain: "seondya.co", accent: "#ff7aa2", nextPublish: "Aug 1", drafts: 3, pending: 1, status: "attention" },
-  { id: "temple", name: "Temple Notes", domain: "templenotes.field", accent: "#9d8bff", nextPublish: "Aug 4", drafts: 2, pending: 0, status: "healthy" },
-  { id: "land", name: "Land Journal", domain: "landjournal.field", accent: "#8fd14f", nextPublish: "Aug 6", drafts: 5, pending: 2, status: "attention" },
-  { id: "buddha", name: "Buddha Room", domain: "buddha.field", accent: "#3fd6b0", nextPublish: "Aug 9", drafts: 1, pending: 0, status: "quiet" },
-  { id: "ayurveda", name: "Ayurveda Daily", domain: "ayurveda.field", accent: "#f5b544", nextPublish: "Aug 12", drafts: 4, pending: 1, status: "healthy" },
-  { id: "om", name: "Om Space", domain: "omspace.field", accent: "#e57ac8", nextPublish: "Aug 14", drafts: 2, pending: 0, status: "healthy" },
+  { id: "sedona-heartfelt-journeys", name: "Sedona Heartfelt Journeys", domain: "sedonaheartfeltjourneys.com", accent: "#9d8bff", nextPublish: "Aug 1", drafts: 3, pending: 1, status: "attention" },
+  { id: "untapped", name: "Untapped", domain: "untapped.co", accent: "#ff7aa2", nextPublish: "Aug 4", drafts: 2, pending: 0, status: "healthy" },
+  { id: "sedonaexperience", name: "SedonaExperience", domain: "sedonaexperience.com", accent: "#3fd6b0", nextPublish: "Aug 6", drafts: 5, pending: 2, status: "attention" },
 ];
 
 const CUES: Cue[] = [
