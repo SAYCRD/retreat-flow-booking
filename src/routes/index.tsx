@@ -1120,6 +1120,10 @@ function TodayPage() {
           storeCancelService(id);
           setOpenServiceId(null);
         }}
+        onOpenGuest={(name) => {
+          setOpenServiceId(null);
+          setOpenGuestName(name);
+        }}
       />
       <GuestPanel
         guestName={openGuestName}
