@@ -8,7 +8,7 @@
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowUpRight, LayoutTemplate, Home, ShoppingBag, CalendarDays, Settings, Sparkles, PenLine } from "lucide-react";
+import { ArrowUpRight, LayoutTemplate, Home, ShoppingBag, CalendarDays, Settings, PenLine } from "lucide-react";
 
 export const Route = createFileRoute("/field/sites/$siteId")({
   head: ({ params }) => {
