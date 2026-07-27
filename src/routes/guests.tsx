@@ -141,7 +141,7 @@ function GuestsPage() {
 
   const visitCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    SERVICES.forEach((s) => {
+    SEED_SERVICES.forEach((s: Service) => {
       counts[s.guest] = (counts[s.guest] ?? 0) + 1;
     });
     return counts;
